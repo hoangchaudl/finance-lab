@@ -5,12 +5,14 @@ import {
   PiggyBank,
   Briefcase,
   Flame,
-  BarChart3, // <--- Import Icon
+  BarChart3,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import financeLogo from "@/assets/finance-logo.png";
 
 const NAV_ITEMS = [
@@ -18,13 +20,13 @@ const NAV_ITEMS = [
   { label: "Transactions", path: "/transactions", icon: ArrowRightLeft },
   { label: "Budget Plan", path: "/budget", icon: PiggyBank },
   { label: "Portfolio", path: "/portfolio", icon: Briefcase },
-  { label: "Reports", path: "/report", icon: BarChart3 }, // <--- Add Report Item
-  // { label: "FIRE Goals", path: "/fire", icon: Flame },
+  { label: "Reports", path: "/report", icon: BarChart3 },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { signOut, user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
@@ -47,7 +49,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <aside
         className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out
-        md:relative md:translate-x-0
+        md:relative md:translate-x-0 flex flex-col
         ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >
@@ -57,7 +59,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <h1 className="text-2xl font-bold text-primary">Finance Hub</h1>
           </div>
         </div>
-        <nav className="space-y-1 px-3">
+        <nav className="space-y-1 px-3 flex-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -78,6 +80,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        <div className="p-3 border-t">
+          <p className="text-xs text-muted-foreground truncate px-3 mb-2">{user?.email}</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
+            onClick={signOut}
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
       </aside>
 
       {/* Main Content */}

@@ -7,6 +7,15 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const appData = useAppData();
+
+  if (appData.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading your data...</p>
+      </div>
+    );
+  }
+
   return <AppContext.Provider value={appData}>{children}</AppContext.Provider>;
 }
 

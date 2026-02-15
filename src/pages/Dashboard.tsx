@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,9 +17,9 @@ export default function Dashboard() {
   const netWorth = getNetWorth();
 
   const allocData = [
-    { name: "Thiết yếu", value: data.incomeAllocations.essentials_pct },
+    { name: "Essentials", value: data.incomeAllocations.essentials_pct },
     { name: "Lifestyle", value: data.incomeAllocations.lifestyle_pct },
-    { name: "Tiết kiệm", value: data.incomeAllocations.savings_pct },
+    { name: "Savings", value: data.incomeAllocations.savings_pct },
   ];
 
   const today = new Date();
@@ -28,13 +27,13 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Tổng quan — {getMonthLabel(monthKey)}</h1>
+      <h1 className="text-2xl font-bold">Overview — {getMonthLabel(monthKey)}</h1>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Tổng thu nhập</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-primary">{formatVND(income)}</p>
@@ -42,7 +41,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Tổng chi tiêu</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-destructive">{formatVND(expenses)}</p>
@@ -50,7 +49,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Tiết kiệm</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Savings</CardTitle>
           </CardHeader>
           <CardContent>
             <p className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}>
@@ -60,7 +59,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Chi/Thu</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Expense Ratio</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{ratio}%</p>
@@ -72,7 +71,7 @@ export default function Dashboard() {
         {/* Net Worth */}
         <Card>
           <CardHeader>
-            <CardTitle>Tổng tài sản ròng</CardTitle>
+            <CardTitle>Net Worth</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-primary mb-4">{formatVND(netWorth)}</p>
@@ -90,7 +89,7 @@ export default function Dashboard() {
         {/* Income Allocation */}
         <Card>
           <CardHeader>
-            <CardTitle>Phân bổ thu nhập</CardTitle>
+            <CardTitle>Income Allocation</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-6">
             <div className="w-32 h-32">
@@ -121,7 +120,7 @@ export default function Dashboard() {
         {/* Savings Goals */}
         <Card>
           <CardHeader>
-            <CardTitle>Mục tiêu tiết kiệm</CardTitle>
+            <CardTitle>Savings Goals</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {data.goals.map((g) => {
@@ -145,7 +144,7 @@ export default function Dashboard() {
         {/* Subscriptions */}
         <Card>
           <CardHeader>
-            <CardTitle>Đăng ký định kỳ</CardTitle>
+            <CardTitle>Recurring Subscriptions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {data.subscriptions.map((s) => {
@@ -155,12 +154,12 @@ export default function Dashboard() {
                 <div key={s.id} className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">Ngày {s.due_day} hàng tháng</p>
+                    <p className="text-xs text-muted-foreground">Day {s.due_day} monthly</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm">{formatVND(s.amount)}</span>
                     {isUpcoming && (
-                      <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">Sắp đến hạn</Badge>
+                      <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">Due soon</Badge>
                     )}
                   </div>
                 </div>

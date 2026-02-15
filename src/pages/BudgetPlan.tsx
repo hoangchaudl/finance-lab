@@ -20,10 +20,10 @@ import {
 } from "@/components/ui/table";
 
 const TYPE_LABELS: Record<string, string> = {
-  essential: "Chi phí thiết yếu",
-  nonessential: "Chi phí không thiết yếu",
-  savings: "Tiết kiệm",
-  investment: "Đầu tư",
+  essential: "Essential Expenses",
+  nonessential: "Non-essential Expenses",
+  savings: "Savings",
+  investment: "Investments",
 };
 
 export default function BudgetPlan() {
@@ -55,7 +55,7 @@ export default function BudgetPlan() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Kế hoạch ngân sách</h1>
+        <h1 className="text-2xl font-bold">Budget Plan</h1>
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -73,7 +73,7 @@ export default function BudgetPlan() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Tháng này, bạn còn dư:{" "}
+            Monthly surplus:{" "}
             <span className={surplus >= 0 ? "text-primary" : "text-destructive"}>
               {formatVND(surplus)}
             </span>
@@ -83,9 +83,9 @@ export default function BudgetPlan() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/3">Danh mục</TableHead>
-                <TableHead className="text-right">Kế hoạch</TableHead>
-                <TableHead className="text-right">Thực tế</TableHead>
+                <TableHead className="w-1/3">Category</TableHead>
+                <TableHead className="text-right">Planned</TableHead>
+                <TableHead className="text-right">Actual</TableHead>
                 <TableHead className="text-right">+/-</TableHead>
               </TableRow>
             </TableHeader>
@@ -102,7 +102,7 @@ export default function BudgetPlan() {
                 return (
                   <> 
                     <TableRow key={`header-${type}`}>
-                      <TableCell colSpan={4} className="bg-secondary/50 font-semibold text-sm">
+                      <TableCell colSpan={4} className="bg-muted/50 font-semibold text-sm">
                         {TYPE_LABELS[type] || type}
                       </TableCell>
                     </TableRow>
@@ -143,7 +143,7 @@ export default function BudgetPlan() {
                       );
                     })}
                     <TableRow key={`total-${type}`}>
-                      <TableCell className="font-semibold text-sm">Tổng</TableCell>
+                      <TableCell className="font-semibold text-sm">Total</TableCell>
                       <TableCell className="text-right font-semibold text-sm">
                         {formatVND(totalPlanned)}
                       </TableCell>

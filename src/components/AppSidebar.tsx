@@ -17,10 +17,10 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Tổng quan", url: "/", icon: LayoutDashboard },
-  { title: "Giao dịch", url: "/transactions", icon: ArrowLeftRight },
-  { title: "Kế hoạch", url: "/budget", icon: ClipboardList },
-  { title: "Mục tiêu FIRE", url: "/fire", icon: Flame },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Transactions", url: "/transactions", icon: ArrowLeftRight },
+  { title: "Budget Plan", url: "/budget", icon: ClipboardList },
+  { title: "FIRE Goals", url: "/fire", icon: Flame },
 ];
 
 export function AppSidebar() {
@@ -28,7 +28,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-bold text-primary">💰 SaveDi</span>
+          <span className="text-xl font-bold text-sidebar-primary">💰 SaveDi</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -41,8 +41,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-secondary"
-                      activeClassName="bg-secondary text-primary font-semibold"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-sidebar-accent"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
                     >
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>

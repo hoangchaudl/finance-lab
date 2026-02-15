@@ -8,8 +8,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import {
@@ -34,7 +32,7 @@ const ASSET_COLORS = [
 ];
 
 export default function FireGoals() {
-  const { data, updateAsset, updateFireSettings, getNetWorth, getTotalExpenses } = useApp();
+  const { data, updateAsset, updateFireSettings, getNetWorth } = useApp();
   const { fireSettings } = data;
   const netWorth = getNetWorth();
 
@@ -43,10 +41,9 @@ export default function FireGoals() {
   const futureFI = fiNumber * Math.pow(1 + fireSettings.inflationRate / 100, 10);
   const fireProgress = Math.min(100, (netWorth / fiNumber) * 100);
 
-  // Projection chart data
   const projectionData = Array.from({ length: 21 }, (_, i) => {
     const year = new Date().getFullYear() + i;
-    const monthlySavings = fireSettings.monthlyExpenses * 0.3; // assume 30% savings
+    const monthlySavings = fireSettings.monthlyExpenses * 0.3;
     const projectedNW =
       netWorth * Math.pow(1 + fireSettings.returnRate / 100, i) +
       monthlySavings * 12 * ((Math.pow(1 + fireSettings.returnRate / 100, i) - 1) / (fireSettings.returnRate / 100));
@@ -61,12 +58,11 @@ export default function FireGoals() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Mục tiêu FIRE 🔥</h1>
+      <h1 className="text-2xl font-bold">FIRE Goals 🔥</h1>
 
-      {/* FIRE Progress */}
       <Card>
         <CardHeader>
-          <CardTitle>Tiến độ FIRE</CardTitle>
+          <CardTitle>FIRE Progress</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 mb-2">
@@ -80,14 +76,13 @@ export default function FireGoals() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* FIRE Calculator */}
         <Card>
           <CardHeader>
             <CardTitle>FIRE Calculator</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Chi phí hàng tháng</Label>
+              <Label>Monthly Expenses</Label>
               <Input
                 type="number"
                 value={fireSettings.monthlyExpenses}
@@ -98,7 +93,7 @@ export default function FireGoals() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Lạm phát (%)</Label>
+                <Label>Inflation Rate (%)</Label>
                 <Input
                   type="number"
                   value={fireSettings.inflationRate}
@@ -108,7 +103,7 @@ export default function FireGoals() {
                 />
               </div>
               <div>
-                <Label>Lợi nhuận kỳ vọng (%)</Label>
+                <Label>Expected Return (%)</Label>
                 <Input
                   type="number"
                   value={fireSettings.returnRate}
@@ -120,7 +115,7 @@ export default function FireGoals() {
             </div>
             <div className="space-y-2 text-sm pt-2 border-t border-border">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Chi phí hàng năm</span>
+                <span className="text-muted-foreground">Annual Expenses</span>
                 <span>{formatVND(annualExpenses)}</span>
               </div>
               <div className="flex justify-between">
@@ -128,17 +123,16 @@ export default function FireGoals() {
                 <span className="font-semibold text-primary">{formatVND(fiNumber)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">FI sau 10 năm (lạm phát)</span>
+                <span className="text-muted-foreground">FI after 10 years (inflation)</span>
                 <span>{formatVND(Math.round(futureFI))}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Asset Portfolio */}
         <Card>
           <CardHeader>
-            <CardTitle>Danh mục tài sản</CardTitle>
+            <CardTitle>Asset Portfolio</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
@@ -187,7 +181,7 @@ export default function FireGoals() {
                   </TableBody>
                 </Table>
                 <p className="text-right font-bold mt-2">
-                  Tổng: {formatVND(netWorth)}
+                  Total: {formatVND(netWorth)}
                 </p>
               </div>
             </div>
@@ -195,23 +189,22 @@ export default function FireGoals() {
         </Card>
       </div>
 
-      {/* FIRE Projection Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Dự phóng FIRE</CardTitle>
+          <CardTitle>FIRE Projection</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={projectionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 33%, 25%)" />
-                <XAxis dataKey="year" stroke="hsl(215, 20%, 65%)" fontSize={12} />
-                <YAxis tickFormatter={formatAxis} stroke="hsl(215, 20%, 65%)" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(0, 0%, 88%)" />
+                <XAxis dataKey="year" stroke="hsl(0, 0%, 45%)" fontSize={12} />
+                <YAxis tickFormatter={formatAxis} stroke="hsl(0, 0%, 45%)" fontSize={12} />
                 <RechartsTooltip
                   formatter={(v: number) => formatVND(v)}
                   contentStyle={{
-                    background: "hsl(217, 33%, 17%)",
-                    border: "1px solid hsl(217, 33%, 25%)",
+                    background: "hsl(0, 0%, 100%)",
+                    border: "1px solid hsl(0, 0%, 88%)",
                     borderRadius: "8px",
                   }}
                 />
@@ -221,7 +214,7 @@ export default function FireGoals() {
                   stroke="hsl(160, 84%, 39%)"
                   strokeWidth={2}
                   dot={false}
-                  name="Tài sản ròng"
+                  name="Net Worth"
                 />
                 <ReferenceLine
                   y={Math.round(futureFI)}

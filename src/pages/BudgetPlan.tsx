@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -27,7 +28,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function BudgetPlan() {
-  const { data, updatePlan, getActualForCategory, getTotalIncome, getTotalExpenses } = useApp();
+  const { data, updatePlan, updateCategoryAllocation, getActualForCategory, getTotalIncome, getTotalExpenses } = useApp();
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
 
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -46,6 +47,14 @@ export default function BudgetPlan() {
   const income = getTotalIncome(selectedMonth);
   const expenses = getTotalExpenses(selectedMonth);
   const surplus = income - expenses;
+  const allocations = data.categoryAllocations ?? {};
+  const totalAllocated = Object.values(allocations).reduce((s, v) => s + v, 0);
+  const overAllocated = income > 0 && totalAllocated > income;
+
+  const getPct = (amount: number) => {
+    if (!income || income <= 0) return 0;
+    return (amount / income) * 100;
+  };
 
   const handlePlanChange = (categoryId: string, value: string) => {
     const num = parseFloat(value) || 0;
@@ -70,20 +79,52 @@ export default function BudgetPlan() {
         </Select>
       </div>
 
+      {/* Allocation Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Total Income</p>
+            <p className="text-xl font-bold text-primary">{formatVND(income)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Total Allocated</p>
+            <p className={`text-xl font-bold ${overAllocated ? "text-destructive" : ""}`}>{formatVND(totalAllocated)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Monthly Surplus</p>
+            <p className={`text-xl font-bold ${surplus >= 0 ? "text-primary" : "text-destructive"}`}>{formatVND(surplus)}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {overAllocated && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          ⚠️ Total allocated ({formatVND(totalAllocated)}) exceeds income ({formatVND(income)}). Please adjust.
+        </div>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>
-            Monthly surplus:{" "}
-            <span className={surplus >= 0 ? "text-primary" : "text-destructive"}>
-              {formatVND(surplus)}
-            </span>
+          <CardTitle className="flex items-center justify-between">
+            <span>Budget Matrix</span>
+            {!overAllocated && totalAllocated > 0 && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-normal">
+                {formatVND(income - totalAllocated)} unallocated
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/3">Category</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead className="text-right">Allocation</TableHead>
+                <TableHead className="text-right">%</TableHead>
                 <TableHead className="text-right">Planned</TableHead>
                 <TableHead className="text-right">Actual</TableHead>
                 <TableHead className="text-right">+/-</TableHead>
@@ -98,15 +139,18 @@ export default function BudgetPlan() {
                   (s, c) => s + getActualForCategory(selectedMonth, c.id), 0
                 );
                 const totalDiff = totalActual - totalPlanned;
+                const totalAlloc = cats.reduce((s, c) => s + (allocations[c.id] ?? 0), 0);
 
                 return (
                   <> 
                     <TableRow key={`header-${type}`}>
-                      <TableCell colSpan={4} className="bg-muted/50 font-semibold text-sm">
+                      <TableCell colSpan={6} className="bg-muted/50 font-semibold text-sm">
                         {TYPE_LABELS[type] || type}
                       </TableCell>
                     </TableRow>
                     {cats.map((cat) => {
+                      const alloc = allocations[cat.id] ?? 0;
+                      const pct = getPct(alloc);
                       const planned = data.monthlyPlans[selectedMonth]?.[cat.id]?.planned ?? 0;
                       const actual = getActualForCategory(selectedMonth, cat.id);
                       const diff = actual - planned;
@@ -116,15 +160,18 @@ export default function BudgetPlan() {
                             {cat.emoji} {cat.name}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Input
-                              type="text"
-                              className="w-32 ml-auto text-right h-8"
-                              value={planned ? planned.toLocaleString("de-DE") : ""}
-                              onChange={(e) => {
-                                const raw = e.target.value.replace(/\./g, "");
-                                handlePlanChange(cat.id, raw);
-                              }}
-                              placeholder="0"
+                            <InlineAmount
+                              value={alloc}
+                              onChange={(v) => updateCategoryAllocation(cat.id, v)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">
+                            {pct.toFixed(1)}%
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <PlannedInput
+                              value={planned}
+                              onChange={(raw) => handlePlanChange(cat.id, raw)}
                             />
                           </TableCell>
                           <TableCell className="text-right text-sm">
@@ -132,11 +179,7 @@ export default function BudgetPlan() {
                           </TableCell>
                           <TableCell
                             className={`text-right text-sm font-medium ${
-                              diff > 0
-                                ? "text-destructive"
-                                : diff < 0
-                                ? "text-primary"
-                                : "text-muted-foreground"
+                              diff > 0 ? "text-destructive" : diff < 0 ? "text-primary" : "text-muted-foreground"
                             }`}
                           >
                             {diff > 0 ? "+" : ""}
@@ -147,19 +190,13 @@ export default function BudgetPlan() {
                     })}
                     <TableRow key={`total-${type}`}>
                       <TableCell className="font-semibold text-sm">Total</TableCell>
-                      <TableCell className="text-right font-semibold text-sm">
-                        {formatVND(totalPlanned)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-sm">
-                        {formatVND(totalActual)}
-                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm">{formatVND(totalAlloc)}</TableCell>
+                      <TableCell className="text-right font-semibold text-sm text-muted-foreground">{getPct(totalAlloc).toFixed(1)}%</TableCell>
+                      <TableCell className="text-right font-semibold text-sm">{formatVND(totalPlanned)}</TableCell>
+                      <TableCell className="text-right font-semibold text-sm">{formatVND(totalActual)}</TableCell>
                       <TableCell
                         className={`text-right font-semibold text-sm ${
-                          totalDiff > 0
-                            ? "text-destructive"
-                            : totalDiff < 0
-                            ? "text-primary"
-                            : "text-muted-foreground"
+                          totalDiff > 0 ? "text-destructive" : totalDiff < 0 ? "text-primary" : "text-muted-foreground"
                         }`}
                       >
                         {totalDiff > 0 ? "+" : ""}
@@ -174,5 +211,74 @@ export default function BudgetPlan() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function InlineAmount({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [temp, setTemp] = useState("");
+
+  if (isEditing) {
+    return (
+      <Input
+        type="text"
+        value={temp}
+        onChange={(e) => setTemp(e.target.value)}
+        onBlur={() => {
+          onChange(parseFloat(temp.replace(/\./g, "").replace(",", ".")) || 0);
+          setIsEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            onChange(parseFloat(temp.replace(/\./g, "").replace(",", ".")) || 0);
+            setIsEditing(false);
+          }
+        }}
+        className="w-28 ml-auto text-right h-8"
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setTemp(value ? value.toLocaleString("de-DE") : ""); setIsEditing(true); }}
+      className="text-sm hover:underline cursor-pointer"
+    >
+      {value > 0 ? formatVND(value) : <span className="text-muted-foreground">0 ₫</span>}
+    </button>
+  );
+}
+
+function PlannedInput({ value, onChange }: { value: number; onChange: (raw: string) => void }) {
+  const [focused, setFocused] = useState(false);
+  const [temp, setTemp] = useState("");
+
+  if (focused) {
+    return (
+      <Input
+        type="text"
+        value={temp}
+        onChange={(e) => {
+          setTemp(e.target.value);
+          onChange(e.target.value.replace(/\./g, ""));
+        }}
+        onFocus={() => {}}
+        onBlur={() => {
+          setFocused(false);
+        }}
+        className="w-32 ml-auto text-right h-8"
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setTemp(value ? value.toLocaleString("de-DE") : ""); setFocused(true); }}
+      className="text-sm hover:underline cursor-pointer"
+    >
+      {value > 0 ? formatVND(value) : <span className="text-muted-foreground">0 ₫</span>}
+    </button>
   );
 }

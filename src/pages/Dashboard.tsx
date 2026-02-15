@@ -2,7 +2,9 @@ import { useApp } from "@/contexts/AppContext";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { TrendingUp, Target } from "lucide-react";
 
 const COLORS = [
   "hsl(160, 84%, 39%)",
@@ -33,6 +35,23 @@ export default function Dashboard() {
     { name: "Lifestyle", value: data.incomeAllocations.lifestyle_pct },
     { name: "Savings", value: data.incomeAllocations.savings_pct },
   ];
+
+  // FIRE Goals Calculation
+  const { monthlyExpenses, returnRate, currentAge } = data.fireSettings;
+  const annualExpenses = monthlyExpenses * 12;
+  const fiNumber = annualExpenses * 25;
+  const currentNetWorth = getNetWorth();
+  const fireProgress = Math.min(100, (currentNetWorth / fiNumber) * 100);
+
+  const yearsToGrow = 14;
+  const months = yearsToGrow * 12;
+  const r = returnRate / 100 / 12;
+  const fvPrincipal = currentNetWorth * Math.pow(1 + r, months);
+  const remainingTarget = fiNumber - fvPrincipal;
+  const requiredMonthlySavings =
+    remainingTarget > 0
+      ? (remainingTarget * r) / (Math.pow(1 + r, months) - 1)
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -184,33 +203,65 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Savings Goals */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Savings Goals</CardTitle>
+      {/* FIRE Goals Section */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
+              F.I. Target (Rule of 25)
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {data.goals.map((g) => {
-              const pct = Math.min(100, (g.current / g.target) * 100);
-              return (
-                <div key={g.id}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{g.name}</span>
-                    <span className="text-muted-foreground">
-                      {pct.toFixed(0)}%
-                    </span>
-                  </div>
-                  <Progress value={pct} className="h-2" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatVND(g.current)} / {formatVND(g.target)}
-                  </p>
-                </div>
-              );
-            })}
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {formatVND(fiNumber)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Based on {formatVND(monthlyExpenses)}/mo expenses
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
+              F.I. Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{fireProgress.toFixed(2)}%</div>
+            <Progress value={fireProgress} className="h-2 mt-2" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-blue-50/50 border-blue-100">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-blue-600">
+              Required Monthly Savings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-700">
+              {formatVND(requiredMonthlySavings)}
+            </div>
+            <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+              <TrendingUp className="h-3 w-3" />
+              <span>
+                To retire in {yearsToGrow} years (@{returnRate}%)
+              </span>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      <Alert>
+        <Target className="h-4 w-4" />
+        <AlertTitle>Action Plan</AlertTitle>
+        <AlertDescription>
+          To reach Financial Independence by age {currentAge + yearsToGrow}, you
+          need to invest <strong>{formatVND(requiredMonthlySavings)}</strong>{" "}
+          every month into your portfolio.
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }

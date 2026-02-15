@@ -4,6 +4,7 @@ import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -60,16 +61,86 @@ export default function BudgetPlan() {
   const incomeGrouped =
     incomeCategories.length > 0 ? { income: incomeCategories } : {};
 
-  const income = getTotalIncome(selectedMonth);
+  // --- 1. CORE CALCULATIONS ---
+  const actualIncome = getTotalIncome(selectedMonth);
   const expenses = getTotalExpenses(selectedMonth);
-  const surplus = income - expenses;
-  const allocations = data.categoryAllocations ?? {};
-  const totalAllocated = Object.values(allocations).reduce((s, v) => s + v, 0);
-  const overAllocated = income > 0 && totalAllocated > income;
+  const surplus = actualIncome - expenses;
 
+  // Planned Income
+  const plannedIncome = incomeCategories.reduce((sum, cat) => {
+    return sum + (data.monthlyPlans[selectedMonth]?.[cat.id]?.planned ?? 0);
+  }, 0);
+
+  // Effective Income (Use Planned if Actual is 0 so percentages show up)
+  const effectiveIncome = actualIncome > 0 ? actualIncome : plannedIncome;
+
+  // --- 2. SUBSCRIPTION CALCULATIONS ---
+  const totalSubscriptions = data.subscriptions.reduce(
+    (sum, sub) => sum + sub.amount,
+    0,
+  );
+
+  // Try to match actual transactions to subscriptions by Note
+  const getActualForSubscription = (monthKey: string, subName: string) => {
+    return data.transactions
+      .filter(
+        (t) =>
+          t.type === "expense" &&
+          t.date.startsWith(monthKey) &&
+          t.note?.toLowerCase().includes(subName.toLowerCase()),
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
+  const totalActualSubscriptions = data.subscriptions.reduce(
+    (sum, sub) => sum + getActualForSubscription(selectedMonth, sub.name),
+    0,
+  );
+
+  // --- 3. BUCKET CALCULATIONS (PLANNED) ---
+  const getPlannedBucketTotal = (types: string[]) =>
+    data.categories
+      .filter((c) => types.includes(c.type))
+      .reduce((sum, c) => {
+        const planned = data.monthlyPlans[selectedMonth]?.[c.id]?.planned || 0;
+        return sum + planned;
+      }, 0);
+
+  const plannedEssential = getPlannedBucketTotal(["essential"]);
+  const plannedLifestyle = getPlannedBucketTotal(["nonessential"]);
+  const plannedSavingsBucket = getPlannedBucketTotal(["savings"]); // Strict Savings
+  const plannedInvestingBucket = getPlannedBucketTotal(["investment"]); // Strict Investment
+  const plannedSavingsCombined = plannedSavingsBucket + plannedInvestingBucket; // For Allocation View
+
+  // --- 4. BUCKET CALCULATIONS (ACTUAL) ---
+  const getActualBucketTotal = (types: string[]) =>
+    data.categories
+      .filter((c) => types.includes(c.type))
+      .reduce((sum, c) => {
+        return sum + getActualForCategory(selectedMonth, c.id);
+      }, 0);
+
+  const actualEssential = getActualBucketTotal(["essential"]);
+  const actualLifestyle = getActualBucketTotal(["nonessential"]);
+  const actualSavingsBucket = getActualBucketTotal(["savings"]); // Strict Savings
+  const actualInvestingBucket = getActualBucketTotal(["investment"]); // Strict Investment
+  const actualSavingsCombined = actualSavingsBucket + actualInvestingBucket; // For Allocation View
+
+  // --- 5. FINANCIAL RATIOS CALCULATIONS ---
+  // Expenses = Essentials + Lifestyle + Subscriptions
+  const plannedTotalExpenses =
+    plannedEssential + plannedLifestyle + totalSubscriptions;
+  const actualTotalExpenses =
+    actualEssential + actualLifestyle + totalActualSubscriptions;
+
+  // Total Planned (Everything)
+  const totalPlannedAll = plannedTotalExpenses + plannedSavingsCombined;
+  const overAllocated =
+    effectiveIncome > 0 && totalPlannedAll > effectiveIncome;
+
+  // Helper to get % of effective income
   const getPct = (amount: number) => {
-    if (!income || income <= 0) return 0;
-    return (amount / income) * 100;
+    if (!effectiveIncome || effectiveIncome <= 0) return 0;
+    return (amount / effectiveIncome) * 100;
   };
 
   const getActualForIncome = (monthKey: string, categoryId: string) => {
@@ -106,29 +177,33 @@ export default function BudgetPlan() {
         </Select>
       </div>
 
-      {/* Allocation Summary */}
+      {/* --- Summary Cards --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">Total Income</p>
+            <p className="text-sm text-muted-foreground">
+              Total Income {actualIncome === 0 && "(Planned)"}
+            </p>
             <p className="text-xl font-bold text-primary">
-              {formatVND(income)}
+              {formatVND(effectiveIncome)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">Total Allocated</p>
+            <p className="text-sm text-muted-foreground">Total Planned</p>
             <p
               className={`text-xl font-bold ${overAllocated ? "text-destructive" : ""}`}
             >
-              {formatVND(totalAllocated)}
+              {formatVND(totalPlannedAll)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">Monthly Surplus</p>
+            <p className="text-sm text-muted-foreground">
+              Monthly Surplus (Actual)
+            </p>
             <p
               className={`text-xl font-bold ${surplus >= 0 ? "text-primary" : "text-destructive"}`}
             >
@@ -140,21 +215,315 @@ export default function BudgetPlan() {
 
       {overAllocated && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          ⚠️ Total allocated ({formatVND(totalAllocated)}) exceeds income (
-          {formatVND(income)}). Please adjust.
+          ⚠️ Total planned ({formatVND(totalPlannedAll)}) exceeds income (
+          {formatVND(effectiveIncome)}). Please adjust.
         </div>
       )}
 
+      {/* --- ANALYSIS SECTIONS --- */}
+      <div className="space-y-6">
+        {/* 1. Allocation Breakdown (Detailed) */}
+        <Card className="bg-muted/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">
+              Allocation Breakdown (Detailed)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-6 md:grid-cols-3">
+            {/* Essentials */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm font-medium">
+                <span>Essentials</span>
+                <Badge variant="outline">
+                  Target: {data.incomeAllocations.essentials_pct}%
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Planned</span>
+                  <span>{getPct(plannedEssential).toFixed(1)}%</span>
+                </div>
+                <Progress
+                  value={
+                    (getPct(plannedEssential) /
+                      data.incomeAllocations.essentials_pct) *
+                    100
+                  }
+                  className="h-1.5 opacity-50"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {formatVND(plannedEssential)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Actual</span>
+                  <span
+                    className={
+                      getPct(actualEssential) >
+                      data.incomeAllocations.essentials_pct
+                        ? "text-destructive"
+                        : "text-primary"
+                    }
+                  >
+                    {getPct(actualEssential).toFixed(1)}%
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    (getPct(actualEssential) /
+                      data.incomeAllocations.essentials_pct) *
+                    100
+                  }
+                  className="h-2"
+                />
+                <p className="text-xs font-medium text-right">
+                  {formatVND(actualEssential)}
+                </p>
+              </div>
+            </div>
+
+            {/* Lifestyle */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm font-medium">
+                <span>Lifestyle</span>
+                <Badge variant="outline">
+                  Target: {data.incomeAllocations.lifestyle_pct}%
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Planned</span>
+                  <span>{getPct(plannedLifestyle).toFixed(1)}%</span>
+                </div>
+                <Progress
+                  value={
+                    (getPct(plannedLifestyle) /
+                      data.incomeAllocations.lifestyle_pct) *
+                    100
+                  }
+                  className="h-1.5 opacity-50"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {formatVND(plannedLifestyle)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Actual</span>
+                  <span
+                    className={
+                      getPct(actualLifestyle) >
+                      data.incomeAllocations.lifestyle_pct
+                        ? "text-destructive"
+                        : "text-primary"
+                    }
+                  >
+                    {getPct(actualLifestyle).toFixed(1)}%
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    (getPct(actualLifestyle) /
+                      data.incomeAllocations.lifestyle_pct) *
+                    100
+                  }
+                  className="h-2"
+                />
+                <p className="text-xs font-medium text-right">
+                  {formatVND(actualLifestyle)}
+                </p>
+              </div>
+            </div>
+
+            {/* Savings (Combined) */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm font-medium">
+                <span>Savings (All)</span>
+                <Badge variant="outline">
+                  Target: {data.incomeAllocations.savings_pct}%
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Planned</span>
+                  <span>{getPct(plannedSavingsCombined).toFixed(1)}%</span>
+                </div>
+                <Progress
+                  value={
+                    (getPct(plannedSavingsCombined) /
+                      data.incomeAllocations.savings_pct) *
+                    100
+                  }
+                  className="h-1.5 opacity-50"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {formatVND(plannedSavingsCombined)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Actual</span>
+                  <span className="text-primary">
+                    {getPct(actualSavingsCombined).toFixed(1)}%
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    (getPct(actualSavingsCombined) /
+                      data.incomeAllocations.savings_pct) *
+                    100
+                  }
+                  className="h-2"
+                />
+                <p className="text-xs font-medium text-right">
+                  {formatVND(actualSavingsCombined)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 2. Financial Ratios (High Level) */}
+        <Card className="bg-muted/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">
+              Financial Ratios (% of Income)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-6 md:grid-cols-3">
+            {/* Total Expenses */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm font-medium">
+                <span>Total Expenses</span>
+                <Badge variant="secondary">Target: &lt;70%</Badge>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Planned</span>
+                  <span>{getPct(plannedTotalExpenses).toFixed(1)}%</span>
+                </div>
+                <Progress
+                  value={getPct(plannedTotalExpenses)}
+                  className="h-1.5 opacity-50"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {formatVND(plannedTotalExpenses)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Actual</span>
+                  <span
+                    className={
+                      getPct(actualTotalExpenses) > 80
+                        ? "text-destructive"
+                        : "text-primary"
+                    }
+                  >
+                    {getPct(actualTotalExpenses).toFixed(1)}%
+                  </span>
+                </div>
+                <Progress value={getPct(actualTotalExpenses)} className="h-2" />
+                <p className="text-xs font-medium text-right">
+                  {formatVND(actualTotalExpenses)}
+                </p>
+              </div>
+            </div>
+
+            {/* Pure Savings */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm font-medium">
+                <span>Total Savings</span>
+                <Badge variant="outline" className="bg-primary/5 text-primary">
+                  Grow this
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Planned</span>
+                  <span>{getPct(plannedSavingsBucket).toFixed(1)}%</span>
+                </div>
+                <Progress
+                  value={getPct(plannedSavingsBucket) * 2}
+                  className="h-1.5 opacity-50"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {formatVND(plannedSavingsBucket)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Actual</span>
+                  <span className="text-primary">
+                    {getPct(actualSavingsBucket).toFixed(1)}%
+                  </span>
+                </div>
+                <Progress
+                  value={getPct(actualSavingsBucket) * 2}
+                  className="h-2"
+                />
+                <p className="text-xs font-medium text-right">
+                  {formatVND(actualSavingsBucket)}
+                </p>
+              </div>
+            </div>
+
+            {/* Investing */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm font-medium">
+                <span>Total Investing</span>
+                <Badge
+                  variant="outline"
+                  className="bg-blue-500/10 text-blue-600"
+                >
+                  Future
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Planned</span>
+                  <span>{getPct(plannedInvestingBucket).toFixed(1)}%</span>
+                </div>
+                <Progress
+                  value={getPct(plannedInvestingBucket) * 2}
+                  className="h-1.5 opacity-50"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {formatVND(plannedInvestingBucket)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-medium">
+                  <span>Actual</span>
+                  <span className="text-blue-600">
+                    {getPct(actualInvestingBucket).toFixed(1)}%
+                  </span>
+                </div>
+                <Progress
+                  value={getPct(actualInvestingBucket) * 2}
+                  className="h-2"
+                />
+                <p className="text-xs font-medium text-right">
+                  {formatVND(actualInvestingBucket)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* --- BUDGET MATRIX --- */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Budget Matrix</span>
-            {!overAllocated && totalAllocated > 0 && (
+            {!overAllocated && effectiveIncome > totalPlannedAll && (
               <Badge
                 variant="outline"
                 className="bg-primary/10 text-primary border-primary/20 font-normal"
               >
-                {formatVND(income - totalAllocated)} unallocated
+                {formatVND(effectiveIncome - totalPlannedAll)} left to plan
               </Badge>
             )}
           </CardTitle>
@@ -164,9 +533,8 @@ export default function BudgetPlan() {
             <TableHeader>
               <TableRow>
                 <TableHead>Category</TableHead>
-                <TableHead className="text-right">Allocation</TableHead>
-                <TableHead className="text-right">%</TableHead>
                 <TableHead className="text-right">Planned</TableHead>
+                <TableHead className="text-right">%</TableHead>
                 <TableHead className="text-right">Actual</TableHead>
                 <TableHead className="text-right">+/-</TableHead>
               </TableRow>
@@ -190,7 +558,7 @@ export default function BudgetPlan() {
                   <>
                     <TableRow key={`header-${type}`}>
                       <TableCell
-                        colSpan={6}
+                        colSpan={5}
                         className="bg-muted/50 font-semibold text-sm"
                       >
                         {TYPE_LABELS[type] || type}
@@ -207,17 +575,14 @@ export default function BudgetPlan() {
                           <TableCell className="text-sm">
                             {cat.emoji} {cat.name}
                           </TableCell>
-                          <TableCell className="text-right text-sm text-muted-foreground">
-                            -
-                          </TableCell>
-                          <TableCell className="text-right text-sm text-muted-foreground">
-                            -
-                          </TableCell>
                           <TableCell className="text-right">
                             <PlannedInput
                               value={planned}
                               onChange={(raw) => handlePlanChange(cat.id, raw)}
                             />
+                          </TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">
+                            -
                           </TableCell>
                           <TableCell className="text-right text-sm">
                             {formatVND(actual)}
@@ -241,14 +606,11 @@ export default function BudgetPlan() {
                       <TableCell className="font-semibold text-sm">
                         Total
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-sm text-muted-foreground">
-                        -
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-sm text-muted-foreground">
-                        -
-                      </TableCell>
                       <TableCell className="text-right font-semibold text-sm">
                         {formatVND(totalPlanned)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm text-muted-foreground">
+                        -
                       </TableCell>
                       <TableCell className="text-right font-semibold text-sm">
                         {formatVND(totalActual)}
@@ -269,6 +631,65 @@ export default function BudgetPlan() {
                   </>
                 );
               })}
+
+              {/* Subscriptions Section in Table */}
+              {data.subscriptions.length > 0 && (
+                <>
+                  <TableRow key="header-subscriptions">
+                    <TableCell
+                      colSpan={5}
+                      className="bg-muted/50 font-semibold text-sm"
+                    >
+                      Recurring Subscriptions (Fixed)
+                    </TableCell>
+                  </TableRow>
+                  {data.subscriptions.map((sub) => {
+                    const actual = getActualForSubscription(
+                      selectedMonth,
+                      sub.name,
+                    );
+                    const pct = getPct(sub.amount);
+
+                    return (
+                      <TableRow key={sub.id}>
+                        <TableCell className="text-sm">
+                          💳 {sub.name} (Day {sub.due_day})
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {formatVND(sub.amount)}
+                        </TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">
+                          {pct.toFixed(1)}%
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {actual > 0 ? formatVND(actual) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">
+                          -
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  <TableRow key="total-subscriptions">
+                    <TableCell className="font-semibold text-sm">
+                      Total
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-sm">
+                      {formatVND(totalSubscriptions)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-sm text-muted-foreground">
+                      {getPct(totalSubscriptions).toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-sm">
+                      {formatVND(totalActualSubscriptions)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-sm text-muted-foreground">
+                      -
+                    </TableCell>
+                  </TableRow>
+                </>
+              )}
+
               {/* Expenses Section */}
               {Object.entries(grouped).map(([type, cats]) => {
                 const totalPlanned = cats.reduce(
@@ -282,27 +703,22 @@ export default function BudgetPlan() {
                   0,
                 );
                 const totalDiff = totalPlanned - totalActual;
-                const totalAlloc = cats.reduce(
-                  (s, c) => s + (allocations[c.id] ?? 0),
-                  0,
-                );
 
                 return (
                   <>
                     <TableRow key={`header-${type}`}>
                       <TableCell
-                        colSpan={6}
+                        colSpan={5}
                         className="bg-muted/50 font-semibold text-sm"
                       >
                         {TYPE_LABELS[type] || type}
                       </TableCell>
                     </TableRow>
                     {cats.map((cat) => {
-                      const alloc = allocations[cat.id] ?? 0;
-                      const pct = getPct(alloc);
                       const planned =
                         data.monthlyPlans[selectedMonth]?.[cat.id]?.planned ??
                         0;
+                      const pct = getPct(planned);
                       const actual = getActualForCategory(
                         selectedMonth,
                         cat.id,
@@ -314,21 +730,13 @@ export default function BudgetPlan() {
                             {cat.emoji} {cat.name}
                           </TableCell>
                           <TableCell className="text-right">
-                            <InlineAmount
-                              value={alloc}
-                              onChange={(v) =>
-                                updateCategoryAllocation(cat.id, v)
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="text-right text-sm text-muted-foreground">
-                            {pct.toFixed(1)}%
-                          </TableCell>
-                          <TableCell className="text-right">
                             <PlannedInput
                               value={planned}
                               onChange={(raw) => handlePlanChange(cat.id, raw)}
                             />
+                          </TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">
+                            {pct.toFixed(1)}%
                           </TableCell>
                           <TableCell className="text-right text-sm">
                             {formatVND(actual)}
@@ -353,13 +761,10 @@ export default function BudgetPlan() {
                         Total
                       </TableCell>
                       <TableCell className="text-right font-semibold text-sm">
-                        {formatVND(totalAlloc)}
+                        {formatVND(totalPlanned)}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-sm text-muted-foreground">
-                        {getPct(totalAlloc).toFixed(1)}%
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-sm">
-                        {formatVND(totalPlanned)}
+                        {getPct(totalPlanned).toFixed(1)}%
                       </TableCell>
                       <TableCell className="text-right font-semibold text-sm">
                         {formatVND(totalActual)}
@@ -388,6 +793,7 @@ export default function BudgetPlan() {
   );
 }
 
+// ... Keep InlineAmount and PlannedInput components unchanged ...
 function InlineAmount({
   value,
   onChange,

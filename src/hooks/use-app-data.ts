@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { AppData, Transaction, Category, PortfolioEntry } from "@/lib/types";
+import {
+  AppData,
+  Transaction,
+  Category,
+  PortfolioEntry,
+  Subscription,
+} from "@/lib/types";
 import { initialData } from "@/lib/initial-data";
-import { generateId, getMonthKey } from "@/lib/format";
+import { generateId } from "@/lib/format";
 
 const STORAGE_KEY = "savedi-app-data";
 
@@ -31,7 +37,7 @@ export function useAppData() {
         transactions: [...d.transactions, { ...t, id: generateId() }],
       }));
     },
-    [update]
+    [update],
   );
 
   const deleteTransaction = useCallback(
@@ -41,7 +47,7 @@ export function useAppData() {
         transactions: d.transactions.filter((t) => t.id !== id),
       }));
     },
-    [update]
+    [update],
   );
 
   const updatePlan = useCallback(
@@ -57,7 +63,7 @@ export function useAppData() {
         },
       }));
     },
-    [update]
+    [update],
   );
 
   const updateAsset = useCallback(
@@ -67,7 +73,7 @@ export function useAppData() {
         assets: d.assets.map((a) => (a.id === id ? { ...a, value } : a)),
       }));
     },
-    [update]
+    [update],
   );
 
   const updateGoal = useCallback(
@@ -77,21 +83,21 @@ export function useAppData() {
         goals: d.goals.map((g) => (g.id === id ? { ...g, current } : g)),
       }));
     },
-    [update]
+    [update],
   );
 
   const updateAllocations = useCallback(
     (alloc: AppData["incomeAllocations"]) => {
       update((d) => ({ ...d, incomeAllocations: alloc }));
     },
-    [update]
+    [update],
   );
 
   const updateFireSettings = useCallback(
     (settings: AppData["fireSettings"]) => {
       update((d) => ({ ...d, fireSettings: settings }));
     },
-    [update]
+    [update],
   );
 
   const addCategory = useCallback(
@@ -101,17 +107,19 @@ export function useAppData() {
         categories: [...d.categories, { ...cat, id: generateId() }],
       }));
     },
-    [update]
+    [update],
   );
 
   const updateCategory = useCallback(
     (id: string, updates: Partial<Omit<Category, "id">>) => {
       update((d) => ({
         ...d,
-        categories: d.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+        categories: d.categories.map((c) =>
+          c.id === id ? { ...c, ...updates } : c,
+        ),
       }));
     },
-    [update]
+    [update],
   );
 
   const deleteCategory = useCallback(
@@ -125,7 +133,7 @@ export function useAppData() {
         };
       });
     },
-    [update]
+    [update],
   );
 
   const updateCategoryAllocation = useCallback(
@@ -138,8 +146,42 @@ export function useAppData() {
         },
       }));
     },
-    [update]
+    [update],
   );
+
+  // --- Subscription Functions ---
+  const addSubscription = useCallback(
+    (sub: Omit<Subscription, "id">) => {
+      update((d) => ({
+        ...d,
+        subscriptions: [...d.subscriptions, { ...sub, id: generateId() }],
+      }));
+    },
+    [update],
+  );
+
+  const updateSubscription = useCallback(
+    (id: string, updates: Partial<Omit<Subscription, "id">>) => {
+      update((d) => ({
+        ...d,
+        subscriptions: d.subscriptions.map((s) =>
+          s.id === id ? { ...s, ...updates } : s,
+        ),
+      }));
+    },
+    [update],
+  );
+
+  const deleteSubscription = useCallback(
+    (id: string) => {
+      update((d) => ({
+        ...d,
+        subscriptions: d.subscriptions.filter((s) => s.id !== id),
+      }));
+    },
+    [update],
+  );
+  // -----------------------------
 
   const getActualForCategory = useCallback(
     (monthKey: string, categoryId: string) => {
@@ -148,18 +190,18 @@ export function useAppData() {
           (t) =>
             t.category_id === categoryId &&
             t.date.startsWith(monthKey) &&
-            t.type === "expense"
+            t.type === "expense",
         )
         .reduce((sum, t) => sum + t.amount, 0);
     },
-    [data.transactions]
+    [data.transactions],
   );
 
   const getMonthTransactions = useCallback(
     (monthKey: string) => {
       return data.transactions.filter((t) => t.date.startsWith(monthKey));
     },
-    [data.transactions]
+    [data.transactions],
   );
 
   const getTotalIncome = useCallback(
@@ -168,7 +210,7 @@ export function useAppData() {
         .filter((t) => t.date.startsWith(monthKey) && t.type === "income")
         .reduce((sum, t) => sum + t.amount, 0);
     },
-    [data.transactions]
+    [data.transactions],
   );
 
   const getTotalExpenses = useCallback(
@@ -177,7 +219,7 @@ export function useAppData() {
         .filter((t) => t.date.startsWith(monthKey) && t.type === "expense")
         .reduce((sum, t) => sum + t.amount, 0);
     },
-    [data.transactions]
+    [data.transactions],
   );
 
   const getNetWorth = useCallback(() => {
@@ -195,17 +237,19 @@ export function useAppData() {
         portfolio: [...(d.portfolio ?? []), { ...entry, id: generateId() }],
       }));
     },
-    [update]
+    [update],
   );
 
   const updatePortfolioEntry = useCallback(
     (id: string, updates: Partial<Omit<PortfolioEntry, "id">>) => {
       update((d) => ({
         ...d,
-        portfolio: (d.portfolio ?? []).map((e) => (e.id === id ? { ...e, ...updates } : e)),
+        portfolio: (d.portfolio ?? []).map((e) =>
+          e.id === id ? { ...e, ...updates } : e,
+        ),
       }));
     },
-    [update]
+    [update],
   );
 
   const deletePortfolioEntry = useCallback(
@@ -215,15 +259,19 @@ export function useAppData() {
         portfolio: (d.portfolio ?? []).filter((e) => e.id !== id),
       }));
     },
-    [update]
+    [update],
   );
 
   const getTotalSavings = useCallback(() => {
-    return (data.portfolio ?? []).filter((e) => e.type === "Savings").reduce((s, e) => s + e.value, 0);
+    return (data.portfolio ?? [])
+      .filter((e) => e.type === "Savings")
+      .reduce((s, e) => s + e.value, 0);
   }, [data.portfolio]);
 
   const getTotalInvestments = useCallback(() => {
-    return (data.portfolio ?? []).filter((e) => e.type !== "Savings").reduce((s, e) => s + e.value, 0);
+    return (data.portfolio ?? [])
+      .filter((e) => e.type !== "Savings")
+      .reduce((s, e) => s + e.value, 0);
   }, [data.portfolio]);
 
   return {
@@ -239,6 +287,9 @@ export function useAppData() {
     updateCategory,
     deleteCategory,
     updateCategoryAllocation,
+    addSubscription, // Exported
+    updateSubscription, // Exported
+    deleteSubscription, // Exported
     addPortfolioEntry,
     updatePortfolioEntry,
     deletePortfolioEntry,

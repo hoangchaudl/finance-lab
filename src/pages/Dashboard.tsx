@@ -2,13 +2,23 @@ import { useApp } from "@/contexts/AppContext";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
-const COLORS = ["hsl(160, 84%, 39%)", "hsl(38, 92%, 50%)", "hsl(217, 91%, 60%)"];
+const COLORS = [
+  "hsl(160, 84%, 39%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(217, 91%, 60%)",
+];
 
 export default function Dashboard() {
-  const { data, getTotalIncome, getTotalExpenses, getNetWorth, getTotalSavings, getTotalInvestments } = useApp();
+  const {
+    data,
+    getTotalIncome,
+    getTotalExpenses,
+    getNetWorth,
+    getTotalSavings,
+    getTotalInvestments,
+  } = useApp();
   const monthKey = getMonthKey();
   const income = getTotalIncome(monthKey);
   const expenses = getTotalExpenses(monthKey);
@@ -24,44 +34,57 @@ export default function Dashboard() {
     { name: "Savings", value: data.incomeAllocations.savings_pct },
   ];
 
-  const today = new Date();
-  const currentDay = today.getDate();
-
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Overview — {getMonthLabel(monthKey)}</h1>
+      <h1 className="text-2xl font-bold">
+        Overview — {getMonthLabel(monthKey)}
+      </h1>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Total Income</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Total Income
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-primary">{formatVND(income)}</p>
+            <p className="text-2xl font-bold text-primary">
+              {formatVND(income)}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Total Expenses</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Total Expenses
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-destructive">{formatVND(expenses)}</p>
+            <p className="text-2xl font-bold text-destructive">
+              {formatVND(expenses)}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Monthly Savings</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Monthly Savings
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}>
+            <p
+              className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}
+            >
               {formatVND(savings)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Expense Ratio</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Expense Ratio
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{ratio}%</p>
@@ -69,18 +92,26 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Total Savings (Portfolio)</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Total Savings (Portfolio)
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-primary">{formatVND(totalSavings)}</p>
+            <p className="text-2xl font-bold text-primary">
+              {formatVND(totalSavings)}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Total Investments</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              Total Investments
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">{formatVND(totalInvestments)}</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {formatVND(totalInvestments)}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -92,12 +123,18 @@ export default function Dashboard() {
             <CardTitle>Net Worth</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-primary mb-4">{formatVND(netWorth)}</p>
+            <p className="text-3xl font-bold text-primary mb-4">
+              {formatVND(netWorth)}
+            </p>
             <div className="space-y-2">
               {data.assets.map((a) => (
                 <div key={a.id} className="flex justify-between text-sm">
-                  <span>{a.emoji} {a.name}</span>
-                  <span className="text-muted-foreground">{formatVND(a.value)}</span>
+                  <span>
+                    {a.emoji} {a.name}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {formatVND(a.value)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -113,7 +150,15 @@ export default function Dashboard() {
             <div className="w-32 h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={allocData} cx="50%" cy="50%" innerRadius={30} outerRadius={55} dataKey="value" stroke="none">
+                  <Pie
+                    data={allocData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={30}
+                    outerRadius={55}
+                    dataKey="value"
+                    stroke="none"
+                  >
                     {allocData.map((_, i) => (
                       <Cell key={i} fill={COLORS[i]} />
                     ))}
@@ -125,8 +170,13 @@ export default function Dashboard() {
             <div className="space-y-2 text-sm">
               {allocData.map((d, i) => (
                 <div key={d.name} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ background: COLORS[i] }} />
-                  <span>{d.name}: {d.value}%</span>
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ background: COLORS[i] }}
+                  />
+                  <span>
+                    {d.name}: {d.value}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -136,7 +186,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Savings Goals */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Savings Goals</CardTitle>
           </CardHeader>
@@ -147,39 +197,14 @@ export default function Dashboard() {
                 <div key={g.id}>
                   <div className="flex justify-between text-sm mb-1">
                     <span>{g.name}</span>
-                    <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
+                    <span className="text-muted-foreground">
+                      {pct.toFixed(0)}%
+                    </span>
                   </div>
                   <Progress value={pct} className="h-2" />
                   <p className="text-xs text-muted-foreground mt-1">
                     {formatVND(g.current)} / {formatVND(g.target)}
                   </p>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* Subscriptions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recurring Subscriptions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {data.subscriptions.map((s) => {
-              const daysUntil = s.due_day - currentDay;
-              const isUpcoming = daysUntil >= 0 && daysUntil <= 7;
-              return (
-                <div key={s.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">Day {s.due_day} monthly</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{formatVND(s.amount)}</span>
-                    {isUpcoming && (
-                      <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">Due soon</Badge>
-                    )}
-                  </div>
                 </div>
               );
             })}

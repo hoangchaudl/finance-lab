@@ -18,6 +18,7 @@ export interface Transaction {
   type: "income" | "expense";
   category_id: string;
   note?: string;
+  portfolio_entry_id?: string; // <--- NEW FIELD
 }
 
 export interface MonthlyPlan {
@@ -49,6 +50,7 @@ export interface PortfolioEntry {
   id: string;
   name: string;
   type: string;
+  account: string; // <--- NEW FIELD
   value: number;
   contribution?: number;
   notes?: string;
@@ -64,9 +66,10 @@ export interface AppData {
   subscriptions: Subscription[];
   categoryAllocations?: { [categoryId: string]: number };
   portfolio?: PortfolioEntry[];
-  fireSettings: {
+  ffireSettings: {
     monthlyExpenses: number;
     inflationRate: number;
     returnRate: number;
+    currentAge: number; // <--- NEW: Added for Portfolio Balancing
   };
 }

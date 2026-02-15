@@ -30,22 +30,68 @@ export function useAppData() {
     setData((prev) => fn(prev));
   }, []);
 
+  // --- UPDATED: Automatically update Portfolio when Transaction is added ---
   const addTransaction = useCallback(
     (t: Omit<Transaction, "id">) => {
-      update((d) => ({
-        ...d,
-        transactions: [...d.transactions, { ...t, id: generateId() }],
-      }));
+      update((d) => {
+        let newPortfolio = d.portfolio;
+
+        // If linked to a portfolio entry, update its value
+        if (t.portfolio_entry_id && newPortfolio) {
+          newPortfolio = newPortfolio.map((p) => {
+            if (p.id === t.portfolio_entry_id) {
+              // Logic: If Expense (Money Out -> Invest), Value Increases.
+              // If Income (Sell -> Money In), Value Decreases?
+              // For now, let's assume 'Expense' means contributing to the asset.
+              const change = t.type === "expense" ? t.amount : -t.amount;
+              return {
+                ...p,
+                value: p.value + change,
+                contribution: (p.contribution || 0) + change,
+              };
+            }
+            return p;
+          });
+        }
+
+        return {
+          ...d,
+          transactions: [...d.transactions, { ...t, id: generateId() }],
+          portfolio: newPortfolio,
+        };
+      });
     },
     [update],
   );
 
+  // --- UPDATED: Reverse Portfolio update if Transaction is deleted ---
   const deleteTransaction = useCallback(
     (id: string) => {
-      update((d) => ({
-        ...d,
-        transactions: d.transactions.filter((t) => t.id !== id),
-      }));
+      update((d) => {
+        const tx = d.transactions.find((t) => t.id === id);
+        let newPortfolio = d.portfolio;
+
+        if (tx && tx.portfolio_entry_id && newPortfolio) {
+          newPortfolio = newPortfolio.map((p) => {
+            if (p.id === tx.portfolio_entry_id) {
+              const change = tx.type === "expense" ? tx.amount : -tx.amount;
+              // Reversing: Subtract the change
+              return {
+                ...p,
+                value: p.value - change,
+                contribution: (p.contribution || 0) - change,
+              };
+            }
+            return p;
+          });
+        }
+
+        return {
+          ...d,
+          transactions: d.transactions.filter((t) => t.id !== id),
+          portfolio: newPortfolio,
+        };
+      });
     },
     [update],
   );
@@ -223,8 +269,14 @@ export function useAppData() {
   );
 
   const getNetWorth = useCallback(() => {
-    return data.assets.reduce((sum, a) => sum + a.value, 0);
-  }, [data.assets]);
+    // Assets + Portfolio
+    const assetsTotal = data.assets.reduce((sum, a) => sum + a.value, 0);
+    const portfolioTotal = (data.portfolio ?? []).reduce(
+      (sum, p) => sum + p.value,
+      0,
+    );
+    return assetsTotal + portfolioTotal;
+  }, [data.assets, data.portfolio]);
 
   const resetData = useCallback(() => {
     setData(initialData);
@@ -287,9 +339,9 @@ export function useAppData() {
     updateCategory,
     deleteCategory,
     updateCategoryAllocation,
-    addSubscription, // Exported
-    updateSubscription, // Exported
-    deleteSubscription, // Exported
+    addSubscription,
+    updateSubscription,
+    deleteSubscription,
     addPortfolioEntry,
     updatePortfolioEntry,
     deletePortfolioEntry,

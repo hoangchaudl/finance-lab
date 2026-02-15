@@ -1,5 +1,5 @@
 export function formatVND(amount: number): string {
-  return new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
+  return amount.toLocaleString("de-DE") + " ₫";
 }
 
 export function getMonthKey(date: Date = new Date()): string {
@@ -8,7 +8,8 @@ export function getMonthKey(date: Date = new Date()): string {
 
 export function getMonthLabel(key: string): string {
   const [year, month] = key.split("-");
-  return `Tháng ${parseInt(month)}/${year}`;
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${monthNames[parseInt(month) - 1]} ${year}`;
 }
 
 export function generateId(): string {

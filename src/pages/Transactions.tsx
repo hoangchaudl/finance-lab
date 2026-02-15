@@ -82,7 +82,7 @@ export default function Transactions() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Giao dịch</h1>
+        <h1 className="text-2xl font-bold">Transactions</h1>
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -100,24 +100,24 @@ export default function Transactions() {
       {/* Transaction Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Thêm giao dịch</CardTitle>
+          <CardTitle className="text-lg">Add Transaction</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
             <div>
-              <Label>Loại</Label>
+              <Label>Type</Label>
               <Select value={formType} onValueChange={(v) => { setFormType(v as any); setFormCategory(""); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="income">Thu nhập</SelectItem>
-                  <SelectItem value="expense">Chi tiêu</SelectItem>
+                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Danh mục</Label>
+              <Label>Category</Label>
               <Select value={formCategory} onValueChange={setFormCategory}>
-                <SelectTrigger><SelectValue placeholder="Chọn..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                 <SelectContent>
                   {filteredCategories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
@@ -128,19 +128,19 @@ export default function Transactions() {
               </Select>
             </div>
             <div>
-              <Label>Số tiền</Label>
+              <Label>Amount</Label>
               <Input type="number" value={formAmount} onChange={(e) => setFormAmount(e.target.value)} placeholder="0" />
             </div>
             <div>
-              <Label>Ngày</Label>
+              <Label>Date</Label>
               <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
             </div>
             <div>
-              <Label>Ghi chú</Label>
-              <Input value={formNote} onChange={(e) => setFormNote(e.target.value)} placeholder="Tùy chọn" />
+              <Label>Note</Label>
+              <Input value={formNote} onChange={(e) => setFormNote(e.target.value)} placeholder="Optional" />
             </div>
             <Button type="submit" className="gap-1">
-              <Plus className="h-4 w-4" /> Thêm
+              <Plus className="h-4 w-4" /> Add
             </Button>
           </form>
         </CardContent>
@@ -152,12 +152,12 @@ export default function Transactions() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Ngày</TableHead>
-                <TableHead>Danh mục</TableHead>
-                <TableHead>Loại</TableHead>
-                <TableHead className="text-right">Số tiền</TableHead>
-                <TableHead>Đánh giá</TableHead>
-                <TableHead>Ghi chú</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Note</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
@@ -165,7 +165,7 @@ export default function Transactions() {
               {transactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    Chưa có giao dịch nào
+                    No transactions yet
                   </TableCell>
                 </TableRow>
               ) : (
@@ -182,16 +182,16 @@ export default function Transactions() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={t.type === "income" ? "default" : "secondary"} className="text-xs">
-                          {t.type === "income" ? "Thu" : "Chi"}
+                          {t.type === "income" ? "Income" : "Expense"}
                         </Badge>
                       </TableCell>
                       <TableCell className={`text-right font-medium ${t.type === "income" ? "text-primary" : "text-destructive"}`}>
                         {t.type === "income" ? "+" : "-"}{formatVND(t.amount)}
                       </TableCell>
                       <TableCell>
-                        {evaluation === "over" && <span className="text-destructive">😰 Vượt KH</span>}
-                        {evaluation === "under" && <span className="text-primary">😍 Tốt</span>}
-                        {evaluation === "equal" && <span className="text-muted-foreground">— Đúng KH</span>}
+                        {evaluation === "over" && <span className="text-destructive">😰 Over budget</span>}
+                        {evaluation === "under" && <span className="text-primary">😍 On track</span>}
+                        {evaluation === "equal" && <span className="text-muted-foreground">— On plan</span>}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{t.note}</TableCell>
                       <TableCell>

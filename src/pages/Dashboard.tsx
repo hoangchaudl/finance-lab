@@ -20,6 +20,7 @@ export default function Dashboard() {
     getNetWorth,
     getTotalSavings,
     getTotalInvestments,
+    getTotalInvestmentCost,
   } = useApp();
   const monthKey = getMonthKey();
   const income = getTotalIncome(monthKey);
@@ -140,8 +141,19 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-blue-600">
-              {formatVND(totalInvestments)}
+              {formatVND(Math.round(totalInvestments))}
             </p>
+            {(() => {
+              const cost = getTotalInvestmentCost();
+              const roi = cost > 0 ? ((totalInvestments - cost) / cost) * 100 : 0;
+              const profit = totalInvestments - cost;
+              const isPositive = profit >= 0;
+              return (
+                <p className={`text-sm mt-1 ${isPositive ? "text-primary" : "text-destructive"}`}>
+                  {isPositive ? "+" : ""}{roi.toFixed(2)}% ({isPositive ? "+" : ""}{formatVND(Math.round(profit))})
+                </p>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>

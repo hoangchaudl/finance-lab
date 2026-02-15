@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { label: "Budget Plan", path: "/budget", icon: PiggyBank },
   { label: "Portfolio", path: "/portfolio", icon: Briefcase },
   { label: "Reports", path: "/report", icon: BarChart3 }, // <--- Add Report Item
-  { label: "FIRE Goals", path: "/fire", icon: Flame },
+  // { label: "FIRE Goals", path: "/fire", icon: Flame },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -29,7 +29,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b bg-card">
-        <span className="font-bold text-lg">SaveDi</span>
+        <span className="font-bold text-lg">Finance Hub</span>
         <Button
           variant="ghost"
           size="icon"
@@ -49,7 +49,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       >
         <div className="p-6">
           <h1 className="text-2xl font-bold text-primary hidden md:block">
-            SaveDi
+            Finance Hub
           </h1>
         </div>
         <nav className="space-y-1 px-3">

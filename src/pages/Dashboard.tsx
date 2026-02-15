@@ -37,8 +37,14 @@ export default function Dashboard() {
   ];
 
   // FIRE Goals Calculation
-  const { monthlyExpenses, returnRate, birthYear } = data.fireSettings;
-  const currentAge = new Date().getFullYear() - birthYear;
+  const {
+    monthlyExpenses,
+    returnRate,
+    currentAge: fireCurrentAge,
+    birthYear,
+  } = data.fireSettings;
+  const currentAge =
+    fireCurrentAge || (birthYear ? new Date().getFullYear() - birthYear : 0);
   const annualExpenses = monthlyExpenses * 12;
   const fiNumber = annualExpenses * 25;
   const currentNetWorth = getNetWorth();
@@ -299,8 +305,9 @@ export default function Dashboard() {
         <AlertDescription>
           To reach Financial Independence by age {currentAge + yearsToGrow}, you
           need to invest <strong>{formatVND(requiredMonthlySavings)}</strong>{" "}
-          every month — <strong>{formatVND(Math.ceil(stockAllocation))}</strong> in stocks
-          and <strong>{formatVND(Math.ceil(bondAllocation))}</strong> in bonds.
+          every month — <strong>{formatVND(Math.ceil(stockAllocation))}</strong>{" "}
+          in stocks and <strong>{formatVND(Math.ceil(bondAllocation))}</strong>{" "}
+          in bonds.
         </AlertDescription>
       </Alert>
     </div>

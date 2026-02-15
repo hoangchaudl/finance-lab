@@ -24,7 +24,7 @@ const App = () => (
         <AppProvider>
           <AppLayout>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/budget" element={<BudgetPlan />} />
               <Route path="/fire" element={<FireGoals />} />

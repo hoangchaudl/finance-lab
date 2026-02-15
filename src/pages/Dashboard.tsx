@@ -110,7 +110,7 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">
               Expense Ratio
@@ -119,7 +119,7 @@ export default function Dashboard() {
           <CardContent>
             <p className="text-2xl font-bold">{ratio}%</p>
           </CardContent>
-        </Card>
+        </Card> */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">

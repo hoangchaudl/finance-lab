@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import financeLogo from "@/assets/finance-logo.png";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -29,7 +30,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b bg-card">
-        <span className="font-bold text-lg">Finance Hub</span>
+        <div className="flex items-center gap-2">
+          <img src={financeLogo} alt="Finance Hub" className="h-7 w-7" />
+          <span className="font-bold text-lg">Finance Hub</span>
+        </div>
         <Button
           variant="ghost"
           size="icon"
@@ -48,9 +52,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       `}
       >
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-primary hidden md:block">
-            Finance Hub
-          </h1>
+          <div className="flex items-center gap-2 hidden md:flex">
+            <img src={financeLogo} alt="Finance Hub" className="h-8 w-8" />
+            <h1 className="text-2xl font-bold text-primary">Finance Hub</h1>
+          </div>
         </div>
         <nav className="space-y-1 px-3">
           {NAV_ITEMS.map((item) => {

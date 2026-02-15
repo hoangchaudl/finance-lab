@@ -149,8 +149,11 @@ export default function Portfolio() {
       g.totalCost > 0 ? ((g.totalValue - g.totalCost) / g.totalCost) * 100 : 0,
   }));
 
-  const totalCostBasis = calculatedEntries.reduce((s, e) => s + e.costBasis, 0);
-  const totalCurrentValue = calculatedEntries.reduce(
+  // Exclude "Other" type from reports/charts/cost basis
+  const investmentEntries = calculatedEntries.filter((e) => e.type !== "Other");
+
+  const totalCostBasis = investmentEntries.reduce((s, e) => s + e.costBasis, 0);
+  const totalCurrentValue = investmentEntries.reduce(
     (s, e) => s + e.currentValue,
     0,
   );
@@ -158,7 +161,7 @@ export default function Portfolio() {
   const totalROI = totalCostBasis > 0 ? (totalGain / totalCostBasis) * 100 : 0;
 
   const categoryChartData = Object.entries(
-    calculatedEntries.reduce(
+    investmentEntries.reduce(
       (acc, e) => {
         acc[e.type] = (acc[e.type] || 0) + e.currentValue;
         return acc;
@@ -169,7 +172,7 @@ export default function Portfolio() {
     .map(([name, value]) => ({ name, value }))
     .filter((d) => d.value > 0);
 
-  const accountTotals = calculatedEntries.reduce(
+  const accountTotals = investmentEntries.reduce(
     (acc, entry) => {
       const acct = entry.account || "Unassigned";
       acc[acct] = (acc[acct] || 0) + entry.currentValue;

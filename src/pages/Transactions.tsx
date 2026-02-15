@@ -30,6 +30,7 @@ export default function Transactions() {
     deleteTransaction,
     getMonthTransactions,
     getActualForCategory,
+    getTotalIncome,
   } = useApp();
 
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
@@ -79,6 +80,8 @@ export default function Transactions() {
     return "equal";
   };
 
+  const monthlyIncome = getTotalIncome(selectedMonth);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -96,6 +99,14 @@ export default function Transactions() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Monthly Income Summary */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="py-4 flex items-center justify-between">
+          <span className="text-sm font-medium text-muted-foreground">Monthly Income</span>
+          <span className="text-2xl font-bold text-primary">{formatVND(monthlyIncome)}</span>
+        </CardContent>
+      </Card>
 
       {/* Transaction Form */}
       <Card>

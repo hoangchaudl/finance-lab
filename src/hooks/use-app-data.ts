@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { AppData, Transaction, Category } from "@/lib/types";
+import { AppData, Transaction, Category, PortfolioEntry } from "@/lib/types";
 import { initialData } from "@/lib/initial-data";
 import { generateId, getMonthKey } from "@/lib/format";
 
@@ -188,6 +188,44 @@ export function useAppData() {
     setData(initialData);
   }, []);
 
+  const addPortfolioEntry = useCallback(
+    (entry: Omit<PortfolioEntry, "id">) => {
+      update((d) => ({
+        ...d,
+        portfolio: [...(d.portfolio ?? []), { ...entry, id: generateId() }],
+      }));
+    },
+    [update]
+  );
+
+  const updatePortfolioEntry = useCallback(
+    (id: string, updates: Partial<Omit<PortfolioEntry, "id">>) => {
+      update((d) => ({
+        ...d,
+        portfolio: (d.portfolio ?? []).map((e) => (e.id === id ? { ...e, ...updates } : e)),
+      }));
+    },
+    [update]
+  );
+
+  const deletePortfolioEntry = useCallback(
+    (id: string) => {
+      update((d) => ({
+        ...d,
+        portfolio: (d.portfolio ?? []).filter((e) => e.id !== id),
+      }));
+    },
+    [update]
+  );
+
+  const getTotalSavings = useCallback(() => {
+    return (data.portfolio ?? []).filter((e) => e.type === "Savings").reduce((s, e) => s + e.value, 0);
+  }, [data.portfolio]);
+
+  const getTotalInvestments = useCallback(() => {
+    return (data.portfolio ?? []).filter((e) => e.type !== "Savings").reduce((s, e) => s + e.value, 0);
+  }, [data.portfolio]);
+
   return {
     data,
     addTransaction,
@@ -201,11 +239,16 @@ export function useAppData() {
     updateCategory,
     deleteCategory,
     updateCategoryAllocation,
+    addPortfolioEntry,
+    updatePortfolioEntry,
+    deletePortfolioEntry,
     getActualForCategory,
     getMonthTransactions,
     getTotalIncome,
     getTotalExpenses,
     getNetWorth,
+    getTotalSavings,
+    getTotalInvestments,
     resetData,
   };
 }

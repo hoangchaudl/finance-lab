@@ -8,13 +8,15 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 const COLORS = ["hsl(160, 84%, 39%)", "hsl(38, 92%, 50%)", "hsl(217, 91%, 60%)"];
 
 export default function Dashboard() {
-  const { data, getTotalIncome, getTotalExpenses, getNetWorth } = useApp();
+  const { data, getTotalIncome, getTotalExpenses, getNetWorth, getTotalSavings, getTotalInvestments } = useApp();
   const monthKey = getMonthKey();
   const income = getTotalIncome(monthKey);
   const expenses = getTotalExpenses(monthKey);
   const savings = income - expenses;
   const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : "0";
   const netWorth = getNetWorth();
+  const totalSavings = getTotalSavings();
+  const totalInvestments = getTotalInvestments();
 
   const allocData = [
     { name: "Essentials", value: data.incomeAllocations.essentials_pct },
@@ -30,7 +32,7 @@ export default function Dashboard() {
       <h1 className="text-2xl font-bold">Overview — {getMonthLabel(monthKey)}</h1>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">Total Income</CardTitle>
@@ -49,7 +51,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Savings</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Monthly Savings</CardTitle>
           </CardHeader>
           <CardContent>
             <p className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}>
@@ -63,6 +65,22 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{ratio}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Total Savings (Portfolio)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-primary">{formatVND(totalSavings)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Total Investments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600">{formatVND(totalInvestments)}</p>
           </CardContent>
         </Card>
       </div>

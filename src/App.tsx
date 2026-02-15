@@ -10,6 +10,7 @@ import Transactions from "@/pages/Transactions";
 import BudgetPlan from "@/pages/BudgetPlan";
 import FireGoals from "@/pages/FireGoals";
 import CategoriesManager from "@/pages/CategoriesManager";
+import Portfolio from "@/pages/Portfolio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/budget" element={<BudgetPlan />} />
               <Route path="/fire" element={<FireGoals />} />
               <Route path="/categories" element={<CategoriesManager />} />
+              <Route path="/portfolio" element={<Portfolio />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>

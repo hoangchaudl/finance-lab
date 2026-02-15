@@ -20,8 +20,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  Building2,
+  ChevronDown,
+  ChevronRight,
+  PieChart as PieIcon,
+} from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 const TYPE_OPTIONS = [
   "Savings",
@@ -32,21 +49,29 @@ const TYPE_OPTIONS = [
   "Other",
 ] as const;
 
-const TYPE_COLORS: Record<string, string> = {
-  Savings: "bg-primary/10 text-primary border-primary/20",
-  Stocks: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  Crypto: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-  Gold: "bg-warning/10 text-warning border-warning/20",
-  ETF: "bg-teal-500/10 text-teal-600 border-teal-500/20",
-  Other: "bg-secondary/10 text-secondary-foreground border-secondary/20",
+const CHART_COLORS: Record<string, string> = {
+  Savings: "#22c55e",
+  Stocks: "#3b82f6",
+  Crypto: "#a855f7",
+  Gold: "#eab308",
+  ETF: "#14b8a6",
+  Other: "#64748b",
 };
+
+// Formatting helpers
+const formatNumberInput = (num: number) =>
+  num ? num.toLocaleString("de-DE") : "";
+const parseNumberInput = (str: string) =>
+  parseFloat(str.replace(/\./g, "").replace(",", ".")) || 0;
 
 interface EditState {
   id: string;
   name: string;
   type: string;
-  value: number;
-  contribution: number;
+  account: string;
+  quantity: number;
+  purchasePrice: number;
+  currentPrice: number;
   notes: string;
 }
 
@@ -57,61 +82,148 @@ export default function Portfolio() {
     updatePortfolioEntry,
     deletePortfolioEntry,
   } = useApp();
-
   const entries = data.portfolio ?? [];
-  const totalValue = entries.reduce((s, e) => s + e.value, 0);
-  const { currentAge } = data.fireSettings;
 
-  // --- ANALYSIS LOGIC ---
-  // Safe = Savings, Gold. Growth = Stocks, ETF, Crypto, Other.
-  const safeTypes = ["Savings", "Gold"];
-  const safeValue = entries
-    .filter((e) => safeTypes.includes(e.type))
-    .reduce((s, e) => s + e.value, 0);
+  // --- 1. CALCULATIONS & GROUPING ---
+  const calculatedEntries = entries.map((entry) => {
+    // Force numbers
+    const qty = Number(entry.quantity) || 0;
+    const buy = Number(entry.purchasePrice) || 0;
+    const cur = Number(entry.currentPrice) || 0;
 
-  const growthValue = totalValue - safeValue;
+    // ROUND UP EVERYTHING
+    const costBasis = Math.ceil(qty * buy);
+    const currentValue = Math.ceil(qty * cur);
 
-  const targetSafePct = currentAge;
-  const targetGrowthPct = 100 - currentAge;
-
-  const currentSafePct = totalValue > 0 ? (safeValue / totalValue) * 100 : 0;
-  const currentGrowthPct =
-    totalValue > 0 ? (growthValue / totalValue) * 100 : 0;
-
-  // Rebalancing Logic
-  const isTooSafe = currentSafePct > targetSafePct;
-
-  const allocData = [
-    { name: "Growth (Stocks/ETF)", value: growthValue },
-    { name: "Safe (Cash/Gold)", value: safeValue },
-  ];
-  const COLORS = ["#2563eb", "#16a34a"]; // Blue for Growth, Green for Safe
-
-  // --- FORM STATE ---
-  const [adding, setAdding] = useState(false);
-  const [editing, setEditing] = useState<EditState | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    type: "Savings",
-    value: "",
-    contribution: "",
-    notes: "",
+    const gain = currentValue - costBasis;
+    const roi = costBasis > 0 ? (gain / costBasis) * 100 : 0;
+    return {
+      ...entry,
+      quantity: qty,
+      purchasePrice: buy,
+      currentPrice: cur,
+      costBasis,
+      currentValue,
+      gain,
+      roi,
+    };
   });
 
+  type Group = {
+    name: string;
+    type: string;
+    totalQty: number;
+    totalCost: number;
+    totalValue: number;
+    avgPrice: number;
+    children: typeof calculatedEntries;
+  };
+
+  const groupedAssets = Object.values(
+    calculatedEntries.reduce(
+      (acc, item) => {
+        if (!acc[item.name]) {
+          acc[item.name] = {
+            name: item.name,
+            type: item.type,
+            totalQty: 0,
+            totalCost: 0,
+            totalValue: 0,
+            avgPrice: 0,
+            children: [],
+          };
+        }
+        const group = acc[item.name];
+        group.children.push(item);
+        group.totalQty += item.quantity;
+        group.totalCost += item.costBasis;
+        group.totalValue += item.currentValue;
+        return acc;
+      },
+      {} as Record<string, Group>,
+    ),
+  ).map((g) => ({
+    ...g,
+    avgPrice: g.totalQty > 0 ? Math.ceil(g.totalCost / g.totalQty) : 0,
+    roi:
+      g.totalCost > 0 ? ((g.totalValue - g.totalCost) / g.totalCost) * 100 : 0,
+  }));
+
+  const totalCostBasis = calculatedEntries.reduce((s, e) => s + e.costBasis, 0);
+  const totalCurrentValue = calculatedEntries.reduce(
+    (s, e) => s + e.currentValue,
+    0,
+  );
+  const totalGain = totalCurrentValue - totalCostBasis;
+  const totalROI = totalCostBasis > 0 ? (totalGain / totalCostBasis) * 100 : 0;
+
+  const categoryChartData = Object.entries(
+    calculatedEntries.reduce(
+      (acc, e) => {
+        acc[e.type] = (acc[e.type] || 0) + e.currentValue;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
+  )
+    .map(([name, value]) => ({ name, value }))
+    .filter((d) => d.value > 0);
+
+  const accountTotals = calculatedEntries.reduce(
+    (acc, entry) => {
+      const acct = entry.account || "Unassigned";
+      acc[acct] = (acc[acct] || 0) + entry.currentValue;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  const sortedAccounts = Object.entries(accountTotals).sort(
+    (a, b) => b[1] - a[1],
+  );
+
+  // --- STATE ---
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<EditState | null>(null);
+
+  const toggleExpand = (name: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  const [form, setForm] = useState({
+    name: "",
+    type: "Stocks",
+    account: "",
+    quantity: "",
+    purchasePrice: "",
+    currentPrice: "",
+    notes: "",
+  });
+  const existingAccounts = Array.from(
+    new Set(entries.map((e) => e.account).filter(Boolean)),
+  );
+
   const handleAdd = () => {
-    if (!form.name.trim() || !form.value) return;
+    if (!form.name.trim() || !form.currentPrice) return;
     addPortfolioEntry({
       name: form.name.trim(),
       type: form.type,
-      value: parseFloat(form.value) || 0,
-      contribution: parseFloat(form.contribution) || 0,
+      account: form.account.trim() || "General",
+      quantity: parseNumberInput(form.quantity),
+      purchasePrice: parseNumberInput(form.purchasePrice),
+      currentPrice: parseNumberInput(form.currentPrice),
       notes: form.notes || undefined,
     });
     setForm({
       name: "",
-      type: "Savings",
-      value: "",
-      contribution: "",
+      type: "Stocks",
+      account: "",
+      quantity: "",
+      purchasePrice: "",
+      currentPrice: "",
       notes: "",
     });
     setAdding(false);
@@ -122,152 +234,182 @@ export default function Portfolio() {
     updatePortfolioEntry(editing.id, {
       name: editing.name,
       type: editing.type,
-      value: editing.value,
-      contribution: editing.contribution,
+      account: editing.account,
+      quantity: editing.quantity,
+      purchasePrice: editing.purchasePrice,
+      currentPrice: editing.currentPrice,
       notes: editing.notes || undefined,
     });
     setEditing(null);
   };
 
+  // Live Calc for Add Form
+  const addFormValue =
+    parseNumberInput(form.quantity) * parseNumberInput(form.currentPrice);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Portfolio Tracker</h1>
+        <h1 className="text-2xl font-bold">Portfolio Manager</h1>
         <Button onClick={() => setAdding(true)} disabled={adding}>
-          <Plus className="h-4 w-4 mr-1" /> Add Entry
+          <Plus className="h-4 w-4 mr-1" /> Add Asset
         </Button>
       </div>
 
-      {/* --- SMART ALLOCATION SECTION --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Asset Allocation</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center">
-            <div className="h-32 w-32">
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={allocData}
-                    innerRadius={35}
-                    outerRadius={55}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {allocData.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(val: number) => formatVND(val)} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="ml-6 space-y-2 text-sm">
-              <div className="flex justify-between w-48">
-                <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-600" /> Growth
-                </span>
-                <span className="font-bold">
-                  {currentGrowthPct.toFixed(1)}%
-                </span>
-              </div>
-              <div className="flex justify-between w-48">
-                <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-600" /> Safe
-                </span>
-                <span className="font-bold">{currentSafePct.toFixed(1)}%</span>
-              </div>
-              <div className="pt-2 border-t text-xs text-muted-foreground">
-                Target (Age {currentAge}):{" "}
-                <span className="font-medium text-foreground">
-                  {targetGrowthPct}% Growth
-                </span>{" "}
-                / {targetSafePct}% Safe
-              </div>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-muted/30">
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Total Cost Basis</p>
+            <p className="text-xl font-bold text-muted-foreground">
+              {formatVND(totalCostBasis)}
+            </p>
           </CardContent>
         </Card>
-
-        <Card className="bg-muted/30 border-dashed border-2">
-          <CardHeader className="pb-2">
-            <CardTitle>Rebalancing Strategy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <Badge variant={isTooSafe ? "destructive" : "default"}>
-                  {isTooSafe ? "Too Conservative" : "On Track"}
-                </Badge>
-              </div>
-              <p className="text-sm">
-                You currently have <strong>{currentSafePct.toFixed(1)}%</strong>{" "}
-                in Safe assets (Target: {targetSafePct}%).
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="py-4">
+            <p className="text-sm text-primary font-medium">
+              Total Current Value
+            </p>
+            <p className="text-2xl font-bold text-primary">
+              {formatVND(totalCurrentValue)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Overall ROI</p>
+            <div className="flex items-end gap-2">
+              <p
+                className={`text-2xl font-bold ${totalROI >= 0 ? "text-green-600" : "text-destructive"}`}
+              >
+                {totalROI > 0 ? "+" : ""}
+                {totalROI.toFixed(2)}%
               </p>
-              <div className="bg-background p-3 rounded-md border shadow-sm">
-                <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
-                  Next Move
-                </p>
-                <p className="text-sm font-medium">
-                  {isTooSafe
-                    ? "🚀 Direct 100% of new savings into Stocks/ETFs until balanced."
-                    : "✅ Continue investing according to your 76/24 split."}
-                </p>
-              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* --- TOTAL VALUE CARD --- */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="py-4 flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
-            Total Portfolio Value
-          </span>
-          <span className="text-2xl font-bold text-primary">
-            {formatVND(totalValue)}
-          </span>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-1 flex flex-col">
+          <CardHeader className="pb-0">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+              <PieIcon className="h-4 w-4" /> Allocation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-[200px]">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={categoryChartData}
+                  innerRadius={40}
+                  outerRadius={70}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {categoryChartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={CHART_COLORS[entry.name] || "#8884d8"}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(val: number) => formatVND(Math.ceil(val))}
+                />
+                <Legend
+                  layout="vertical"
+                  verticalAlign="middle"
+                  align="right"
+                  wrapperStyle={{ fontSize: "12px" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* --- MANAGEMENT TABLE --- */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+              <Building2 className="h-4 w-4" /> Account Balances
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {sortedAccounts.map(([acct, val]) => (
+                <div
+                  key={acct}
+                  className="flex flex-col p-3 rounded-lg border bg-card"
+                >
+                  <span
+                    className="text-xs font-semibold text-muted-foreground uppercase truncate"
+                    title={acct}
+                  >
+                    {acct}
+                  </span>
+                  <span className="text-md font-bold">
+                    {formatVND(Math.ceil(val))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Asset Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Current Value</TableHead>
-                <TableHead className="text-right">Contribution</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead className="text-right w-24">Actions</TableHead>
+                <TableHead className="w-[30px]"></TableHead>
+                <TableHead className="w-[180px]">Asset / Account</TableHead>
+                <TableHead className="w-[100px]">Type</TableHead>
+                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead className="text-right">Avg / Buy Price</TableHead>
+                <TableHead className="text-right">Mkt Price</TableHead>
+                <TableHead className="text-right font-bold text-primary">
+                  Total Value
+                </TableHead>
+                <TableHead className="text-right">ROI</TableHead>
+                <TableHead className="text-right w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {adding && (
-                <TableRow>
+                <TableRow className="bg-muted/30">
+                  <TableCell></TableCell>
                   <TableCell>
                     <Input
                       value={form.name}
                       onChange={(e) =>
                         setForm({ ...form, name: e.target.value })
                       }
-                      placeholder="Asset name"
+                      placeholder="Asset Name"
+                      className="h-8 mb-1"
                       autoFocus
                     />
+                    <Input
+                      value={form.account}
+                      onChange={(e) =>
+                        setForm({ ...form, account: e.target.value })
+                      }
+                      placeholder="Account"
+                      className="h-7 text-xs"
+                      list="acct-list"
+                    />
+                    <datalist id="acct-list">
+                      {existingAccounts.map((a) => (
+                        <option key={a} value={a} />
+                      ))}
+                    </datalist>
                   </TableCell>
                   <TableCell>
                     <Select
                       value={form.type}
                       onValueChange={(v) => setForm({ ...form, type: v })}
                     >
-                      <SelectTrigger className="w-[120px]">
+                      <SelectTrigger className="h-8">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -281,43 +423,57 @@ export default function Portfolio() {
                   </TableCell>
                   <TableCell>
                     <Input
-                      type="number"
-                      value={form.value}
+                      value={form.quantity}
                       onChange={(e) =>
-                        setForm({ ...form, value: e.target.value })
+                        setForm({ ...form, quantity: e.target.value })
                       }
-                      placeholder="0"
-                      className="text-right"
+                      placeholder="Qty"
+                      className="h-8 text-right"
                     />
                   </TableCell>
                   <TableCell>
                     <Input
-                      type="number"
-                      value={form.contribution}
+                      value={form.purchasePrice}
                       onChange={(e) =>
-                        setForm({ ...form, contribution: e.target.value })
+                        setForm({ ...form, purchasePrice: e.target.value })
                       }
-                      placeholder="0"
-                      className="text-right"
+                      placeholder="Buy"
+                      className="h-8 text-right"
                     />
                   </TableCell>
                   <TableCell>
                     <Input
-                      value={form.notes}
+                      value={form.currentPrice}
                       onChange={(e) =>
-                        setForm({ ...form, notes: e.target.value })
+                        setForm({ ...form, currentPrice: e.target.value })
                       }
-                      placeholder="Optional"
+                      placeholder="Now"
+                      className="h-8 text-right"
                     />
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button size="icon" variant="ghost" onClick={handleAdd}>
-                        <Check className="h-4 w-4 text-primary" />
+                  {/* LIVE CALCULATION DISPLAY */}
+                  <TableCell
+                    colSpan={2}
+                    className="text-center text-xs font-bold text-primary"
+                  >
+                    {addFormValue > 0
+                      ? formatVND(Math.ceil(addFormValue))
+                      : "Auto-calc"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={handleAdd}
+                      >
+                        <Check className="h-4 w-4 text-green-600" />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
+                        className="h-8 w-8"
                         onClick={() => setAdding(false)}
                       >
                         <X className="h-4 w-4" />
@@ -326,157 +482,220 @@ export default function Portfolio() {
                   </TableCell>
                 </TableRow>
               )}
-              {entries.length === 0 && !adding ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center text-muted-foreground py-8"
-                  >
-                    No portfolio entries yet
-                  </TableCell>
-                </TableRow>
-              ) : (
-                entries.map((entry) => {
-                  if (editing?.id === entry.id) {
-                    return (
-                      <TableRow key={entry.id}>
-                        <TableCell>
-                          <Input
-                            value={editing.name}
-                            onChange={(e) =>
-                              setEditing({ ...editing, name: e.target.value })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={editing.type}
-                            onValueChange={(v) =>
-                              setEditing({ ...editing, type: v })
-                            }
-                          >
-                            <SelectTrigger className="w-[120px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {TYPE_OPTIONS.map((t) => (
-                                <SelectItem key={t} value={t}>
-                                  {t}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            value={editing.value}
-                            onChange={(e) =>
-                              setEditing({
-                                ...editing,
-                                value: parseFloat(e.target.value) || 0,
-                              })
-                            }
-                            className="text-right"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            value={editing.contribution}
-                            onChange={(e) =>
-                              setEditing({
-                                ...editing,
-                                contribution: parseFloat(e.target.value) || 0,
-                              })
-                            }
-                            className="text-right"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={editing.notes}
-                            onChange={(e) =>
-                              setEditing({ ...editing, notes: e.target.value })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={handleSaveEdit}
-                            >
-                              <Check className="h-4 w-4 text-primary" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setEditing(null)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  }
-                  return (
-                    <TableRow key={entry.id}>
-                      <TableCell className="font-medium">
-                        {entry.name}
-                      </TableCell>
+
+              {groupedAssets.map((group) => {
+                const isExpanded = expandedGroups[group.name];
+                return (
+                  <>
+                    <TableRow
+                      key={group.name}
+                      className="bg-muted/10 hover:bg-muted/20 cursor-pointer"
+                      onClick={() => toggleExpand(group.name)}
+                    >
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={TYPE_COLORS[entry.type] ?? ""}
-                        >
-                          {entry.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatVND(entry.value)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {entry.contribution
-                          ? formatVND(entry.contribution)
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {entry.notes ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() =>
-                              setEditing({
-                                id: entry.id,
-                                name: entry.name,
-                                type: entry.type,
-                                value: entry.value,
-                                contribution: entry.contribution ?? 0,
-                                notes: entry.notes ?? "",
-                              })
-                            }
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => deletePortfolioEntry(entry.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                        <div className="flex items-center">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
                         </div>
                       </TableCell>
+                      <TableCell className="font-bold text-base">
+                        {group.name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{group.type}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {group.totalQty.toLocaleString("de-DE")}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground italic">
+                        {formatVND(group.avgPrice)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        —
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-primary text-base">
+                        {formatVND(Math.ceil(group.totalValue))}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-medium ${group.roi >= 0 ? "text-green-600" : "text-destructive"}`}
+                      >
+                        {group.roi > 0 ? "+" : ""}
+                        {group.roi.toFixed(1)}%
+                      </TableCell>
+                      <TableCell></TableCell>
                     </TableRow>
-                  );
-                })
-              )}
+
+                    {isExpanded &&
+                      group.children.map((child) => {
+                        if (editing?.id === child.id) {
+                          return (
+                            <TableRow key={child.id} className="bg-blue-50/50">
+                              <TableCell></TableCell>
+                              <TableCell className="pl-8">
+                                <Input
+                                  value={editing.name}
+                                  onChange={(e) =>
+                                    setEditing({
+                                      ...editing,
+                                      name: e.target.value,
+                                    })
+                                  }
+                                  className="h-8 mb-1"
+                                />
+                                <Input
+                                  value={editing.account}
+                                  onChange={(e) =>
+                                    setEditing({
+                                      ...editing,
+                                      account: e.target.value,
+                                    })
+                                  }
+                                  className="h-7 text-xs"
+                                  list="acct-list"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={editing.type}
+                                  onValueChange={(v) =>
+                                    setEditing({ ...editing, type: v })
+                                  }
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {TYPE_OPTIONS.map((t) => (
+                                      <SelectItem key={t} value={t}>
+                                        {t}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  value={editing.quantity}
+                                  onChange={(e) =>
+                                    setEditing({
+                                      ...editing,
+                                      quantity: parseFloat(e.target.value) || 0,
+                                    })
+                                  }
+                                  className="h-8 text-right"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  value={editing.purchasePrice}
+                                  onChange={(e) =>
+                                    setEditing({
+                                      ...editing,
+                                      purchasePrice:
+                                        parseFloat(e.target.value) || 0,
+                                    })
+                                  }
+                                  className="h-8 text-right"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  value={editing.currentPrice}
+                                  onChange={(e) =>
+                                    setEditing({
+                                      ...editing,
+                                      currentPrice:
+                                        parseFloat(e.target.value) || 0,
+                                    })
+                                  }
+                                  className="h-8 text-right"
+                                />
+                              </TableCell>
+                              <TableCell colSpan={2}></TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={handleSaveEdit}
+                                  >
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => setEditing(null)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+                        return (
+                          <TableRow key={child.id}>
+                            <TableCell></TableCell>
+                            <TableCell className="pl-10 text-sm flex items-center gap-2">
+                              <Building2 className="h-3 w-3 text-muted-foreground" />
+                              {child.account}
+                            </TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {child.quantity.toLocaleString("de-DE")}
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {formatVND(Math.ceil(child.purchasePrice))}
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {formatVND(Math.ceil(child.currentPrice))}
+                            </TableCell>
+                            <TableCell className="text-right text-sm font-medium">
+                              {formatVND(Math.ceil(child.currentValue))}
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {child.roi.toFixed(1)}%
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditing(child);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deletePortfolioEntry(child.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

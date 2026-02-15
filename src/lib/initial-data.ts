@@ -7,49 +7,58 @@ export const initialData: AppData = {
     returnRate: 10,
     currentAge: 24,
   },
-  // Added "account" field to each entry
   portfolio: [
+    // 1. Cash: Treated as 1 unit = 1 VND for simplicity, or 100m units @ 1 VND
     {
       id: "p1",
       name: "Tiền mặt",
       type: "Savings",
       account: "Bank",
-      value: 100000000,
-      contribution: 0,
+      quantity: 100000000,
+      purchasePrice: 1,
+      currentPrice: 1,
       notes: "Emergency Fund",
     },
+    // 2. ETF: Assumed ~41M Value, ~12M Cost
     {
       id: "p2",
       name: "ETF (VN30)",
       type: "ETF",
       account: "TCInvest",
-      value: 41698350,
-      contribution: 12000000,
+      quantity: 1000,
+      purchasePrice: 12000, // 12M Cost
+      currentPrice: 41698, // 41.6M Value
       notes: "DCA Monthly",
     },
+    // 3. Crypto: Assumed 0.5 units
     {
       id: "p3",
       name: "Bitcoin/ETH",
       type: "Crypto",
       account: "Binance",
-      value: 40500000,
-      contribution: 0,
+      quantity: 0.5,
+      purchasePrice: 80000000, // 40M Cost (Estimate)
+      currentPrice: 81000000, // 40.5M Value
     },
+    // 4. Stocks: Assumed 1000 shares
     {
       id: "p4",
       name: "Cổ phiếu lẻ",
       type: "Stocks",
       account: "TCInvest",
-      value: 38989040,
-      contribution: 0,
+      quantity: 1000,
+      purchasePrice: 35000,
+      currentPrice: 38989, // ~38.9M Value
     },
+    // 5. Gold: 3 units (chỉ)
     {
       id: "p5",
       name: "Vàng nhẫn",
       type: "Gold",
       account: "Home Safe",
-      value: 29340000,
-      contribution: 0,
+      quantity: 3,
+      purchasePrice: 7000000, // 21M Cost (Estimate)
+      currentPrice: 9780000, // 29.34M Value
       notes: "3 chỉ",
     },
   ],

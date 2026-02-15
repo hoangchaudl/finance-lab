@@ -15,10 +15,12 @@ export interface Transaction {
   id: string;
   date: string;
   amount: number;
-  type: "income" | "expense";
+  // New: quantity allows calculating the new average price when buying assets
+  quantity?: number;
+  type: "income" | "expense" | "investing" | "saving";
   category_id: string;
   note?: string;
-  portfolio_entry_id?: string; // <--- NEW FIELD
+  portfolio_entry_id?: string;
 }
 
 export interface MonthlyPlan {
@@ -50,9 +52,10 @@ export interface PortfolioEntry {
   id: string;
   name: string;
   type: string;
-  account: string; // <--- NEW FIELD
-  value: number;
-  contribution?: number;
+  account: string;
+  quantity: number;
+  purchasePrice: number;
+  currentPrice: number;
   notes?: string;
 }
 
@@ -66,10 +69,10 @@ export interface AppData {
   subscriptions: Subscription[];
   categoryAllocations?: { [categoryId: string]: number };
   portfolio?: PortfolioEntry[];
-  ffireSettings: {
+  fireSettings: {
     monthlyExpenses: number;
     inflationRate: number;
     returnRate: number;
-    currentAge: number; // <--- NEW: Added for Portfolio Balancing
+    currentAge: number;
   };
 }

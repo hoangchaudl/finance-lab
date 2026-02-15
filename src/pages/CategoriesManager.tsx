@@ -35,7 +35,7 @@ interface EditingRow {
   name: string;
   emoji: string;
   type: Category["type"];
-  allocation: number;
+  amount: number;
 }
 
 export default function CategoriesManager() {
@@ -51,7 +51,9 @@ export default function CategoriesManager() {
   const [editing, setEditing] = useState<EditingRow | null>(null);
 
   const allocations = data.categoryAllocations ?? {};
-  const totalAlloc = Object.values(allocations).reduce((s, v) => s + v, 0);
+  // allocations store amounts now
+  const totalAllocated = Object.values(allocations).reduce((s, v) => s + v, 0);
+  const overAllocated = totalIncome > 0 && totalAllocated > totalIncome;
 
   const handleAdd = () => {
     if (!newName.trim()) return;
@@ -65,8 +67,8 @@ export default function CategoriesManager() {
   const handleSaveEdit = () => {
     if (!editing || !editing.name.trim()) return;
     updateCategory(editing.id, { name: editing.name, emoji: editing.emoji, type: editing.type });
-    if (editing.allocation !== (allocations[editing.id] ?? 0)) {
-      updateCategoryAllocation(editing.id, editing.allocation);
+    if (editing.amount !== (allocations[editing.id] ?? 0)) {
+      updateCategoryAllocation(editing.id, editing.amount);
     }
     setEditing(null);
   };
@@ -77,15 +79,19 @@ export default function CategoriesManager() {
       name: cat.name,
       emoji: cat.emoji,
       type: cat.type,
-      allocation: allocations[cat.id] ?? 0,
+      amount: allocations[cat.id] ?? 0,
     });
   };
 
-  // Group categories by type for display
   const grouped = TYPE_OPTIONS.map((opt) => ({
     ...opt,
     categories: data.categories.filter((c) => c.type === opt.value),
   }));
+
+  const getPct = (amount: number) => {
+    if (!totalIncome || totalIncome <= 0) return 0;
+    return (amount / totalIncome) * 100;
+  };
 
   return (
     <div className="space-y-6">
@@ -96,9 +102,9 @@ export default function CategoriesManager() {
         </Button>
       </div>
 
-      {totalAlloc > 100 && (
+      {overAllocated && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          ⚠️ Total allocation is {totalAlloc.toFixed(1)}% — exceeds 100%. Please adjust your percentages.
+          ⚠️ Total allocated ({formatVND(totalAllocated)}) exceeds total income ({formatVND(totalIncome)}). Please adjust amounts.
         </div>
       )}
 
@@ -106,11 +112,11 @@ export default function CategoriesManager() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
-              Total Allocation: {totalAlloc.toFixed(1)}% of income ({formatVND(totalIncome)})
+              Allocated: {formatVND(totalAllocated)} of {formatVND(totalIncome)}
             </CardTitle>
-            {totalAlloc <= 100 && totalAlloc > 0 && (
+            {!overAllocated && totalAllocated > 0 && (
               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                {(100 - totalAlloc).toFixed(1)}% unallocated
+                {formatVND(totalIncome - totalAllocated)} unallocated
               </Badge>
             )}
           </div>
@@ -122,38 +128,23 @@ export default function CategoriesManager() {
                 <TableHead className="w-12"></TableHead>
                 <TableHead>Category Name</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-right">Allocation %</TableHead>
-                <TableHead className="text-right">Calculated Amount</TableHead>
                 <TableHead className="text-right w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* Add row */}
               {adding && (
                 <TableRow>
                   <TableCell>
-                    <Input
-                      value={newEmoji}
-                      onChange={(e) => setNewEmoji(e.target.value)}
-                      placeholder="😀"
-                      className="w-12 text-center"
-                      maxLength={4}
-                    />
+                    <Input value={newEmoji} onChange={(e) => setNewEmoji(e.target.value)} placeholder="😀" className="w-12 text-center" maxLength={4} />
                   </TableCell>
                   <TableCell>
-                    <Input
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      placeholder="Category name"
-                      className="max-w-[200px]"
-                      autoFocus
-                    />
+                    <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Category name" className="max-w-[200px]" autoFocus />
                   </TableCell>
                   <TableCell>
                     <Select value={newType} onValueChange={(v) => setNewType(v as Category["type"])}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {TYPE_OPTIONS.map((t) => (
                           <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -180,6 +171,7 @@ export default function CategoriesManager() {
                     allocations={allocations}
                     totalIncome={totalIncome}
                     editing={editing}
+                    getPct={getPct}
                     onStartEdit={startEdit}
                     onSaveEdit={handleSaveEdit}
                     onCancelEdit={() => setEditing(null)}
@@ -202,15 +194,16 @@ interface GroupRowsProps {
   allocations: Record<string, number>;
   totalIncome: number;
   editing: EditingRow | null;
+  getPct: (amount: number) => number;
   onStartEdit: (c: Category) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onEditChange: (e: EditingRow) => void;
   onDelete: (id: string) => void;
-  onAllocChange: (id: string, pct: number) => void;
+  onAllocChange: (id: string, amount: number) => void;
 }
 
-function GroupRows({ group, allocations, totalIncome, editing, onStartEdit, onSaveEdit, onCancelEdit, onEditChange, onDelete, onAllocChange }: GroupRowsProps) {
+function GroupRows({ group, allocations, totalIncome, editing, getPct, onStartEdit, onSaveEdit, onCancelEdit, onEditChange, onDelete, onAllocChange }: GroupRowsProps) {
   return (
     <>
       <TableRow className="bg-muted/30">
@@ -220,32 +213,21 @@ function GroupRows({ group, allocations, totalIncome, editing, onStartEdit, onSa
       </TableRow>
       {group.categories.map((cat) => {
         const isEditing = editing?.id === cat.id;
-        const alloc = allocations[cat.id] ?? 0;
-        const amount = (alloc / 100) * totalIncome;
+        const amount = allocations[cat.id] ?? 0;
+        const pct = getPct(amount);
 
         if (isEditing && editing) {
           return (
             <TableRow key={cat.id}>
               <TableCell>
-                <Input
-                  value={editing.emoji}
-                  onChange={(e) => onEditChange({ ...editing, emoji: e.target.value })}
-                  className="w-12 text-center"
-                  maxLength={4}
-                />
+                <Input value={editing.emoji} onChange={(e) => onEditChange({ ...editing, emoji: e.target.value })} className="w-12 text-center" maxLength={4} />
               </TableCell>
               <TableCell>
-                <Input
-                  value={editing.name}
-                  onChange={(e) => onEditChange({ ...editing, name: e.target.value })}
-                  className="max-w-[200px]"
-                />
+                <Input value={editing.name} onChange={(e) => onEditChange({ ...editing, name: e.target.value })} className="max-w-[200px]" />
               </TableCell>
               <TableCell>
                 <Select value={editing.type} onValueChange={(v) => onEditChange({ ...editing, type: v as Category["type"] })}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TYPE_OPTIONS.map((t) => (
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -254,18 +236,10 @@ function GroupRows({ group, allocations, totalIncome, editing, onStartEdit, onSa
                 </Select>
               </TableCell>
               <TableCell className="text-right">
-                <Input
-                  type="number"
-                  value={editing.allocation}
-                  onChange={(e) => onEditChange({ ...editing, allocation: parseFloat(e.target.value) || 0 })}
-                  className="w-20 ml-auto text-right"
-                  min={0}
-                  max={100}
-                  step={0.5}
-                />
+                <AmountInput value={editing.amount} onChange={(v) => onEditChange({ ...editing, amount: v })} />
               </TableCell>
               <TableCell className="text-right text-muted-foreground">
-                {formatVND((editing.allocation / 100) * totalIncome)}
+                {getPct(editing.amount).toFixed(1)}%
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
@@ -287,9 +261,11 @@ function GroupRows({ group, allocations, totalIncome, editing, onStartEdit, onSa
               </Badge>
             </TableCell>
             <TableCell className="text-right">
-              <InlineAlloc value={alloc} onChange={(v) => onAllocChange(cat.id, v)} />
+              <InlineAmount value={amount} onChange={(v) => onAllocChange(cat.id, v)} />
             </TableCell>
-            <TableCell className="text-right text-muted-foreground">{formatVND(amount)}</TableCell>
+            <TableCell className="text-right text-muted-foreground">
+              {pct.toFixed(1)}%
+            </TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end gap-1">
                 <Button size="icon" variant="ghost" onClick={() => onStartEdit(cat)}>
@@ -307,33 +283,58 @@ function GroupRows({ group, allocations, totalIncome, editing, onStartEdit, onSa
   );
 }
 
-function InlineAlloc({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [temp, setTemp] = useState(value);
+function InlineAmount({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [temp, setTemp] = useState(value ? value.toLocaleString("de-DE") : "");
 
-  if (editing) {
+  if (isEditing) {
     return (
       <Input
-        type="number"
+        type="text"
         value={temp}
-        onChange={(e) => setTemp(parseFloat(e.target.value) || 0)}
-        onBlur={() => { onChange(temp); setEditing(false); }}
-        onKeyDown={(e) => { if (e.key === "Enter") { onChange(temp); setEditing(false); } }}
-        className="w-20 ml-auto text-right"
+        onChange={(e) => setTemp(e.target.value)}
+        onBlur={() => {
+          const num = parseFloat(temp.replace(/\./g, "").replace(",", ".")) || 0;
+          onChange(num);
+          setIsEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            const num = parseFloat(temp.replace(/\./g, "").replace(",", ".")) || 0;
+            onChange(num);
+            setIsEditing(false);
+          }
+        }}
+        className="w-32 ml-auto text-right"
         autoFocus
-        min={0}
-        max={100}
-        step={0.5}
       />
     );
   }
 
   return (
     <button
-      onClick={() => { setTemp(value); setEditing(true); }}
+      onClick={() => { setTemp(value ? value.toLocaleString("de-DE") : ""); setIsEditing(true); }}
       className="text-sm hover:underline cursor-pointer"
     >
-      {value > 0 ? `${value}%` : <span className="text-muted-foreground">0%</span>}
+      {value > 0 ? formatVND(value) : <span className="text-muted-foreground">0 ₫</span>}
     </button>
+  );
+}
+
+function AmountInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [input, setInput] = useState(value ? value.toLocaleString("de-DE") : "");
+
+  return (
+    <Input
+      type="text"
+      value={input}
+      onChange={(e) => {
+        setInput(e.target.value);
+        const num = parseFloat(e.target.value.replace(/\./g, "").replace(",", ".")) || 0;
+        onChange(num);
+      }}
+      onBlur={() => setInput(value ? value.toLocaleString("de-DE") : "")}
+      className="w-32 ml-auto text-right"
+    />
   );
 }

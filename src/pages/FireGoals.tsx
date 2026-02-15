@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,15 @@ const ASSET_COLORS = [
   "hsl(0, 72%, 51%)",
 ];
 
+function formatDotInput(value: number): string {
+  if (!value) return "";
+  return value.toLocaleString("de-DE");
+}
+
+function parseDotInput(value: string): number {
+  return parseFloat(value.replace(/\./g, "").replace(",", ".")) || 0;
+}
+
 export default function FireGoals() {
   const { data, updateAsset, updateFireSettings, getNetWorth } = useApp();
   const { fireSettings } = data;
@@ -39,22 +49,28 @@ export default function FireGoals() {
   const annualExpenses = fireSettings.monthlyExpenses * 12;
   const fiNumber = annualExpenses * 25;
   const futureFI = fiNumber * Math.pow(1 + fireSettings.inflationRate / 100, 10);
-  const fireProgress = Math.min(100, (netWorth / fiNumber) * 100);
+  const fireProgress = fiNumber > 0 ? Math.min(100, (netWorth / fiNumber) * 100) : 0;
 
   const projectionData = Array.from({ length: 21 }, (_, i) => {
     const year = new Date().getFullYear() + i;
     const monthlySavings = fireSettings.monthlyExpenses * 0.3;
+    const rate = fireSettings.returnRate / 100;
     const projectedNW =
-      netWorth * Math.pow(1 + fireSettings.returnRate / 100, i) +
-      monthlySavings * 12 * ((Math.pow(1 + fireSettings.returnRate / 100, i) - 1) / (fireSettings.returnRate / 100));
+      netWorth * Math.pow(1 + rate, i) +
+      (rate > 0 ? monthlySavings * 12 * ((Math.pow(1 + rate, i) - 1) / rate) : monthlySavings * 12 * i);
     return { year: year.toString(), netWorth: Math.round(projectedNW), fiTarget: Math.round(futureFI) };
   });
 
   const formatAxis = (v: number) => {
     if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
     if (v >= 1e6) return `${(v / 1e6).toFixed(0)}M`;
-    return v.toString();
+    return v.toLocaleString("de-DE");
   };
+
+  // Local state for formatted inputs
+  const [expensesInput, setExpensesInput] = useState(formatDotInput(fireSettings.monthlyExpenses));
+  const [inflationInput, setInflationInput] = useState(String(fireSettings.inflationRate));
+  const [returnInput, setReturnInput] = useState(String(fireSettings.returnRate));
 
   return (
     <div className="space-y-6">
@@ -84,32 +100,39 @@ export default function FireGoals() {
             <div>
               <Label>Monthly Expenses</Label>
               <Input
-                type="number"
-                value={fireSettings.monthlyExpenses}
-                onChange={(e) =>
-                  updateFireSettings({ ...fireSettings, monthlyExpenses: parseFloat(e.target.value) || 0 })
-                }
+                type="text"
+                value={expensesInput}
+                onChange={(e) => {
+                  setExpensesInput(e.target.value);
+                  const num = parseDotInput(e.target.value);
+                  updateFireSettings({ ...fireSettings, monthlyExpenses: num });
+                }}
+                onBlur={() => setExpensesInput(formatDotInput(fireSettings.monthlyExpenses))}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Inflation Rate (%)</Label>
                 <Input
-                  type="number"
-                  value={fireSettings.inflationRate}
-                  onChange={(e) =>
-                    updateFireSettings({ ...fireSettings, inflationRate: parseFloat(e.target.value) || 0 })
-                  }
+                  type="text"
+                  value={inflationInput}
+                  onChange={(e) => {
+                    setInflationInput(e.target.value);
+                    updateFireSettings({ ...fireSettings, inflationRate: parseFloat(e.target.value) || 0 });
+                  }}
+                  onBlur={() => setInflationInput(String(fireSettings.inflationRate))}
                 />
               </div>
               <div>
                 <Label>Expected Return (%)</Label>
                 <Input
-                  type="number"
-                  value={fireSettings.returnRate}
-                  onChange={(e) =>
-                    updateFireSettings({ ...fireSettings, returnRate: parseFloat(e.target.value) || 0 })
-                  }
+                  type="text"
+                  value={returnInput}
+                  onChange={(e) => {
+                    setReturnInput(e.target.value);
+                    updateFireSettings({ ...fireSettings, returnRate: parseFloat(e.target.value) || 0 });
+                  }}
+                  onBlur={() => setReturnInput(String(fireSettings.returnRate))}
                 />
               </div>
             </div>
@@ -161,22 +184,7 @@ export default function FireGoals() {
                 <Table>
                   <TableBody>
                     {data.assets.map((a, i) => (
-                      <TableRow key={a.id}>
-                        <TableCell className="py-1.5">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full" style={{ background: ASSET_COLORS[i % ASSET_COLORS.length] }} />
-                            <span className="text-sm">{a.emoji} {a.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1.5">
-                          <Input
-                            type="number"
-                            className="w-36 h-8 text-right"
-                            value={a.value}
-                            onChange={(e) => updateAsset(a.id, parseFloat(e.target.value) || 0)}
-                          />
-                        </TableCell>
-                      </TableRow>
+                      <AssetRow key={a.id} asset={a} color={ASSET_COLORS[i % ASSET_COLORS.length]} onUpdate={updateAsset} />
                     ))}
                   </TableBody>
                 </Table>
@@ -228,5 +236,33 @@ export default function FireGoals() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function AssetRow({ asset, color, onUpdate }: { asset: { id: string; emoji: string; name: string; value: number }; color: string; onUpdate: (id: string, value: number) => void }) {
+  const [input, setInput] = useState(asset.value ? asset.value.toLocaleString("de-DE") : "");
+
+  return (
+    <TableRow>
+      <TableCell className="py-1.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ background: color }} />
+          <span className="text-sm">{asset.emoji} {asset.name}</span>
+        </div>
+      </TableCell>
+      <TableCell className="py-1.5">
+        <Input
+          type="text"
+          className="w-36 h-8 text-right"
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            const num = parseFloat(e.target.value.replace(/\./g, "").replace(",", ".")) || 0;
+            onUpdate(asset.id, num);
+          }}
+          onBlur={() => setInput(asset.value ? asset.value.toLocaleString("de-DE") : "")}
+        />
+      </TableCell>
+    </TableRow>
   );
 }

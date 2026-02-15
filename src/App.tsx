@@ -8,7 +8,7 @@ import AppLayout from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Transactions from "@/pages/Transactions";
 import BudgetPlan from "@/pages/BudgetPlan";
-// import FireGoals from "@/pages/FireGoals";
+import FireGoals from "@/pages/FireGoals";
 import CategoriesManager from "@/pages/CategoriesManager";
 import Portfolio from "@/pages/Portfolio";
 import NotFound from "./pages/NotFound";

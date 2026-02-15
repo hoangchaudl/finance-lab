@@ -2,7 +2,8 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   ClipboardList,
-  Flame } from
+  Flame,
+  FolderCog } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -20,7 +21,8 @@ const items = [
 { title: "Dashboard", url: "/", icon: LayoutDashboard },
 { title: "Transactions", url: "/transactions", icon: ArrowLeftRight },
 { title: "Budget Plan", url: "/budget", icon: ClipboardList },
-{ title: "FIRE Goals", url: "/fire", icon: Flame }];
+{ title: "FIRE Goals", url: "/fire", icon: Flame },
+{ title: "Categories", url: "/categories", icon: FolderCog }];
 
 
 export function AppSidebar() {

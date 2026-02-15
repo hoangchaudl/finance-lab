@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import Transactions from "@/pages/Transactions";
 import BudgetPlan from "@/pages/BudgetPlan";
 import FireGoals from "@/pages/FireGoals";
+import CategoriesManager from "@/pages/CategoriesManager";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/budget" element={<BudgetPlan />} />
               <Route path="/fire" element={<FireGoals />} />
+              <Route path="/categories" element={<CategoriesManager />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>

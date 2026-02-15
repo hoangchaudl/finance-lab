@@ -464,6 +464,14 @@ export function useAppData() {
     [data.portfolio],
   );
 
+  const getTotalInvestmentCost = useCallback(
+    () =>
+      (data.portfolio ?? [])
+        .filter((e) => e.type !== "Savings")
+        .reduce((s, e) => s + (e.quantity || 0) * (e.purchasePrice || 0), 0),
+    [data.portfolio],
+  );
+
   const resetData = useCallback(() => setData(initialData), []);
 
   return {
@@ -493,6 +501,7 @@ export function useAppData() {
     getNetWorth,
     getTotalSavings,
     getTotalInvestments,
+    getTotalInvestmentCost,
     resetData,
   };
 }

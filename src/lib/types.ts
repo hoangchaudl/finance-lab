@@ -74,5 +74,6 @@ export interface AppData {
     inflationRate: number;
     returnRate: number;
     currentAge: number;
+    birthYear: number;
   };
 }

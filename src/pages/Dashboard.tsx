@@ -37,7 +37,8 @@ export default function Dashboard() {
   ];
 
   // FIRE Goals Calculation
-  const { monthlyExpenses, returnRate, currentAge } = data.fireSettings;
+  const { monthlyExpenses, returnRate, birthYear } = data.fireSettings;
+  const currentAge = new Date().getFullYear() - birthYear;
   const annualExpenses = monthlyExpenses * 12;
   const fiNumber = annualExpenses * 25;
   const currentNetWorth = getNetWorth();
@@ -52,6 +53,10 @@ export default function Dashboard() {
     remainingTarget > 0
       ? (remainingTarget * r) / (Math.pow(1 + r, months) - 1)
       : 0;
+
+  // Stock/Bond allocation based on "100 minus age" rule
+  const stockAllocation = (requiredMonthlySavings * (100 - currentAge)) / 100;
+  const bondAllocation = (requiredMonthlySavings * currentAge) / 100;
 
   return (
     <div className="space-y-6">
@@ -253,13 +258,49 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Stock / Bond Allocation */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-green-700 dark:text-green-400">
+              📈 Invest in Stocks
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-700 dark:text-green-400">
+              {formatVND(Math.ceil(stockAllocation))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {100 - currentAge}% of monthly contribution (Age: {currentAge})
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-amber-700 dark:text-amber-400">
+              🏦 Invest in Bonds
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+              {formatVND(Math.ceil(bondAllocation))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {currentAge}% of monthly contribution (Age: {currentAge})
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       <Alert>
         <Target className="h-4 w-4" />
         <AlertTitle>Action Plan</AlertTitle>
         <AlertDescription>
           To reach Financial Independence by age {currentAge + yearsToGrow}, you
           need to invest <strong>{formatVND(requiredMonthlySavings)}</strong>{" "}
-          every month into your portfolio.
+          every month — <strong>{formatVND(Math.ceil(stockAllocation))}</strong> in stocks
+          and <strong>{formatVND(Math.ceil(bondAllocation))}</strong> in bonds.
         </AlertDescription>
       </Alert>
     </div>

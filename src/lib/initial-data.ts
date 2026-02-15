@@ -6,6 +6,7 @@ export const initialData: AppData = {
     inflationRate: 4,
     returnRate: 10,
     currentAge: 24,
+    birthYear: 2001,
   },
   portfolio: [
     // 1. Cash: Treated as 1 unit = 1 VND for simplicity, or 100m units @ 1 VND

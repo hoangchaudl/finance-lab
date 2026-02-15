@@ -72,7 +72,7 @@ interface EditState {
   quantity: number;
   purchasePrice: number;
   currentPrice: number;
-  notes: string;
+  notes?: string;
 }
 
 export default function Portfolio() {
@@ -285,6 +285,11 @@ export default function Portfolio() {
                 {totalROI > 0 ? "+" : ""}
                 {totalROI.toFixed(2)}%
               </p>
+              <p
+                className={`text-sm font-medium ${totalGain >= 0 ? "text-green-600" : "text-destructive"}`}
+              >
+                ({totalGain >= 0 ? "+" : ""}{formatVND(Math.ceil(totalGain))})
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -322,6 +327,13 @@ export default function Portfolio() {
                   verticalAlign="middle"
                   align="right"
                   wrapperStyle={{ fontSize: "12px" }}
+                  formatter={(value: string) => {
+                    const item = categoryChartData.find((d) => d.name === value);
+                    const pct = item && totalCurrentValue > 0
+                      ? ((item.value / totalCurrentValue) * 100).toFixed(1)
+                      : "0";
+                    return `${value} (${pct}%)`;
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -371,7 +383,8 @@ export default function Portfolio() {
                 <TableHead className="text-right font-bold text-primary">
                   Total Value
                 </TableHead>
-                <TableHead className="text-right">ROI</TableHead>
+                <TableHead className="text-right">ROI %</TableHead>
+                <TableHead className="text-right">ROI ₫</TableHead>
                 <TableHead className="text-right w-16"></TableHead>
               </TableRow>
             </TableHeader>
@@ -453,7 +466,7 @@ export default function Portfolio() {
                   </TableCell>
                   {/* LIVE CALCULATION DISPLAY */}
                   <TableCell
-                    colSpan={2}
+                    colSpan={3}
                     className="text-center text-xs font-bold text-primary"
                   >
                     {addFormValue > 0
@@ -514,7 +527,9 @@ export default function Portfolio() {
                         {formatVND(group.avgPrice)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        —
+                        {group.children.length > 0
+                          ? formatVND(Math.ceil(group.children[0].currentPrice))
+                          : "—"}
                       </TableCell>
                       <TableCell className="text-right font-bold text-primary text-base">
                         {formatVND(Math.ceil(group.totalValue))}
@@ -524,6 +539,12 @@ export default function Portfolio() {
                       >
                         {group.roi > 0 ? "+" : ""}
                         {group.roi.toFixed(1)}%
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-medium ${(group.totalValue - group.totalCost) >= 0 ? "text-green-600" : "text-destructive"}`}
+                      >
+                        {(group.totalValue - group.totalCost) >= 0 ? "+" : ""}
+                        {formatVND(Math.ceil(group.totalValue - group.totalCost))}
                       </TableCell>
                       <TableCell></TableCell>
                     </TableRow>
@@ -617,7 +638,7 @@ export default function Portfolio() {
                                   className="h-8 text-right"
                                 />
                               </TableCell>
-                              <TableCell colSpan={2}></TableCell>
+                              <TableCell colSpan={3}></TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
                                   <Button
@@ -663,6 +684,11 @@ export default function Portfolio() {
                             </TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">
                               {child.roi.toFixed(1)}%
+                            </TableCell>
+                            <TableCell
+                              className={`text-right text-sm ${child.gain >= 0 ? "text-green-600" : "text-destructive"}`}
+                            >
+                              {child.gain >= 0 ? "+" : ""}{formatVND(Math.ceil(child.gain))}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">

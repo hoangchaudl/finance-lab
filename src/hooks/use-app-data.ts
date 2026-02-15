@@ -190,6 +190,24 @@ export function useAppData() {
     [user, data.portfolio, loadFromDB],
   );
 
+  const updateTransaction = useCallback(
+    async (id: string, updates: Partial<Omit<Transaction, "id">>) => {
+      if (!user) return;
+      const dbUpdate: any = {};
+      if (updates.date !== undefined) dbUpdate.date = updates.date;
+      if (updates.amount !== undefined) dbUpdate.amount = updates.amount;
+      if (updates.quantity !== undefined) dbUpdate.quantity = updates.quantity ?? null;
+      if (updates.type !== undefined) dbUpdate.type = updates.type;
+      if (updates.category_id !== undefined) dbUpdate.category_id = updates.category_id;
+      if (updates.note !== undefined) dbUpdate.note = updates.note ?? null;
+      if (updates.portfolio_entry_id !== undefined) dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
+
+      await supabase.from("transactions").update(dbUpdate).eq("id", id);
+      await loadFromDB();
+    },
+    [user, loadFromDB],
+  );
+
   const deleteTransaction = useCallback(
     async (id: string) => {
       if (!user) return;
@@ -478,6 +496,7 @@ export function useAppData() {
     data,
     loading,
     addTransaction,
+    updateTransaction,
     deleteTransaction,
     updatePlan,
     updateAsset,

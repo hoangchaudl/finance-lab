@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { formatVND, getMonthKey } from "@/lib/format";
 import { Category } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,25 +34,16 @@ interface EditingRow {
   name: string;
   emoji: string;
   type: Category["type"];
-  amount: number;
 }
 
 export default function CategoriesManager() {
-  const { data, addCategory, updateCategory, deleteCategory, updateCategoryAllocation, getTotalIncome } = useApp();
-  const monthKey = getMonthKey();
-  const totalIncome = getTotalIncome(monthKey);
+  const { data, addCategory, updateCategory, deleteCategory } = useApp();
 
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
   const [newType, setNewType] = useState<Category["type"]>("essential");
-
   const [editing, setEditing] = useState<EditingRow | null>(null);
-
-  const allocations = data.categoryAllocations ?? {};
-  // allocations store amounts now
-  const totalAllocated = Object.values(allocations).reduce((s, v) => s + v, 0);
-  const overAllocated = totalIncome > 0 && totalAllocated > totalIncome;
 
   const handleAdd = () => {
     if (!newName.trim()) return;
@@ -67,31 +57,13 @@ export default function CategoriesManager() {
   const handleSaveEdit = () => {
     if (!editing || !editing.name.trim()) return;
     updateCategory(editing.id, { name: editing.name, emoji: editing.emoji, type: editing.type });
-    if (editing.amount !== (allocations[editing.id] ?? 0)) {
-      updateCategoryAllocation(editing.id, editing.amount);
-    }
     setEditing(null);
-  };
-
-  const startEdit = (cat: Category) => {
-    setEditing({
-      id: cat.id,
-      name: cat.name,
-      emoji: cat.emoji,
-      type: cat.type,
-      amount: allocations[cat.id] ?? 0,
-    });
   };
 
   const grouped = TYPE_OPTIONS.map((opt) => ({
     ...opt,
     categories: data.categories.filter((c) => c.type === opt.value),
   }));
-
-  const getPct = (amount: number) => {
-    if (!totalIncome || totalIncome <= 0) return 0;
-    return (amount / totalIncome) * 100;
-  };
 
   return (
     <div className="space-y-6">
@@ -102,34 +74,14 @@ export default function CategoriesManager() {
         </Button>
       </div>
 
-      {overAllocated && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          ⚠️ Total allocated ({formatVND(totalAllocated)}) exceeds total income ({formatVND(totalIncome)}). Please adjust amounts.
-        </div>
-      )}
-
       <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">
-              Allocated: {formatVND(totalAllocated)} of {formatVND(totalIncome)}
-            </CardTitle>
-            {!overAllocated && totalAllocated > 0 && (
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                {formatVND(totalIncome - totalAllocated)} unallocated
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12"></TableHead>
                 <TableHead>Category Name</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Allocation %</TableHead>
                 <TableHead className="text-right w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -152,8 +104,6 @@ export default function CategoriesManager() {
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">—</TableCell>
-                  <TableCell className="text-right text-muted-foreground">—</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" onClick={handleAdd}><Check className="h-4 w-4 text-primary" /></Button>
@@ -168,16 +118,12 @@ export default function CategoriesManager() {
                   <GroupRows
                     key={group.value}
                     group={group}
-                    allocations={allocations}
-                    totalIncome={totalIncome}
                     editing={editing}
-                    getPct={getPct}
-                    onStartEdit={startEdit}
+                    onStartEdit={(cat) => setEditing({ id: cat.id, name: cat.name, emoji: cat.emoji, type: cat.type })}
                     onSaveEdit={handleSaveEdit}
                     onCancelEdit={() => setEditing(null)}
                     onEditChange={setEditing}
                     onDelete={deleteCategory}
-                    onAllocChange={updateCategoryAllocation}
                   />
                 )
               )}
@@ -191,32 +137,24 @@ export default function CategoriesManager() {
 
 interface GroupRowsProps {
   group: { value: string; label: string; categories: Category[] };
-  allocations: Record<string, number>;
-  totalIncome: number;
   editing: EditingRow | null;
-  getPct: (amount: number) => number;
   onStartEdit: (c: Category) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onEditChange: (e: EditingRow) => void;
   onDelete: (id: string) => void;
-  onAllocChange: (id: string, amount: number) => void;
 }
 
-function GroupRows({ group, allocations, totalIncome, editing, getPct, onStartEdit, onSaveEdit, onCancelEdit, onEditChange, onDelete, onAllocChange }: GroupRowsProps) {
+function GroupRows({ group, editing, onStartEdit, onSaveEdit, onCancelEdit, onEditChange, onDelete }: GroupRowsProps) {
   return (
     <>
       <TableRow className="bg-muted/30">
-        <TableCell colSpan={6} className="py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+        <TableCell colSpan={4} className="py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
           {group.label}
         </TableCell>
       </TableRow>
       {group.categories.map((cat) => {
-        const isEditing = editing?.id === cat.id;
-        const amount = allocations[cat.id] ?? 0;
-        const pct = getPct(amount);
-
-        if (isEditing && editing) {
+        if (editing?.id === cat.id) {
           return (
             <TableRow key={cat.id}>
               <TableCell>
@@ -234,12 +172,6 @@ function GroupRows({ group, allocations, totalIncome, editing, getPct, onStartEd
                     ))}
                   </SelectContent>
                 </Select>
-              </TableCell>
-              <TableCell className="text-right">
-                <AmountInput value={editing.amount} onChange={(v) => onEditChange({ ...editing, amount: v })} />
-              </TableCell>
-              <TableCell className="text-right text-muted-foreground">
-                {getPct(editing.amount).toFixed(1)}%
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
@@ -261,12 +193,6 @@ function GroupRows({ group, allocations, totalIncome, editing, getPct, onStartEd
               </Badge>
             </TableCell>
             <TableCell className="text-right">
-              <InlineAmount value={amount} onChange={(v) => onAllocChange(cat.id, v)} />
-            </TableCell>
-            <TableCell className="text-right text-muted-foreground">
-              {pct.toFixed(1)}%
-            </TableCell>
-            <TableCell className="text-right">
               <div className="flex justify-end gap-1">
                 <Button size="icon" variant="ghost" onClick={() => onStartEdit(cat)}>
                   <Pencil className="h-4 w-4" />
@@ -280,61 +206,5 @@ function GroupRows({ group, allocations, totalIncome, editing, getPct, onStartEd
         );
       })}
     </>
-  );
-}
-
-function InlineAmount({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [temp, setTemp] = useState(value ? value.toLocaleString("de-DE") : "");
-
-  if (isEditing) {
-    return (
-      <Input
-        type="text"
-        value={temp}
-        onChange={(e) => setTemp(e.target.value)}
-        onBlur={() => {
-          const num = parseFloat(temp.replace(/\./g, "").replace(",", ".")) || 0;
-          onChange(num);
-          setIsEditing(false);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            const num = parseFloat(temp.replace(/\./g, "").replace(",", ".")) || 0;
-            onChange(num);
-            setIsEditing(false);
-          }
-        }}
-        className="w-32 ml-auto text-right"
-        autoFocus
-      />
-    );
-  }
-
-  return (
-    <button
-      onClick={() => { setTemp(value ? value.toLocaleString("de-DE") : ""); setIsEditing(true); }}
-      className="text-sm hover:underline cursor-pointer"
-    >
-      {value > 0 ? formatVND(value) : <span className="text-muted-foreground">0 ₫</span>}
-    </button>
-  );
-}
-
-function AmountInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [input, setInput] = useState(value ? value.toLocaleString("de-DE") : "");
-
-  return (
-    <Input
-      type="text"
-      value={input}
-      onChange={(e) => {
-        setInput(e.target.value);
-        const num = parseFloat(e.target.value.replace(/\./g, "").replace(",", ".")) || 0;
-        onChange(num);
-      }}
-      onBlur={() => setInput(value ? value.toLocaleString("de-DE") : "")}
-      className="w-32 ml-auto text-right"
-    />
   );
 }

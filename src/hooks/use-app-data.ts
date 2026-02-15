@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { AppData, Transaction } from "@/lib/types";
+import { AppData, Transaction, Category } from "@/lib/types";
 import { initialData } from "@/lib/initial-data";
 import { generateId, getMonthKey } from "@/lib/format";
 
@@ -94,6 +94,53 @@ export function useAppData() {
     [update]
   );
 
+  const addCategory = useCallback(
+    (cat: Omit<Category, "id">) => {
+      update((d) => ({
+        ...d,
+        categories: [...d.categories, { ...cat, id: generateId() }],
+      }));
+    },
+    [update]
+  );
+
+  const updateCategory = useCallback(
+    (id: string, updates: Partial<Omit<Category, "id">>) => {
+      update((d) => ({
+        ...d,
+        categories: d.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      }));
+    },
+    [update]
+  );
+
+  const deleteCategory = useCallback(
+    (id: string) => {
+      update((d) => {
+        const { [id]: _, ...restAlloc } = d.categoryAllocations ?? {};
+        return {
+          ...d,
+          categories: d.categories.filter((c) => c.id !== id),
+          categoryAllocations: restAlloc,
+        };
+      });
+    },
+    [update]
+  );
+
+  const updateCategoryAllocation = useCallback(
+    (categoryId: string, pct: number) => {
+      update((d) => ({
+        ...d,
+        categoryAllocations: {
+          ...(d.categoryAllocations ?? {}),
+          [categoryId]: pct,
+        },
+      }));
+    },
+    [update]
+  );
+
   const getActualForCategory = useCallback(
     (monthKey: string, categoryId: string) => {
       return data.transactions
@@ -150,6 +197,10 @@ export function useAppData() {
     updateGoal,
     updateAllocations,
     updateFireSettings,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    updateCategoryAllocation,
     getActualForCategory,
     getMonthTransactions,
     getTotalIncome,

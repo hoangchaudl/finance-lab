@@ -53,6 +53,7 @@ export interface AppData {
   assets: Asset[];
   goals: Goal[];
   subscriptions: Subscription[];
+  categoryAllocations?: { [categoryId: string]: number };
   fireSettings: {
     monthlyExpenses: number;
     inflationRate: number;

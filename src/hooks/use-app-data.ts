@@ -459,7 +459,7 @@ export function useAppData() {
   const getTotalInvestments = useCallback(
     () =>
       (data.portfolio ?? [])
-        .filter((e) => e.type !== "Savings")
+        .filter((e) => e.type !== "Savings" && e.type !== "Other")
         .reduce((s, e) => s + (e.quantity || 0) * (e.currentPrice || 0), 0),
     [data.portfolio],
   );
@@ -467,7 +467,7 @@ export function useAppData() {
   const getTotalInvestmentCost = useCallback(
     () =>
       (data.portfolio ?? [])
-        .filter((e) => e.type !== "Savings")
+        .filter((e) => e.type !== "Savings" && e.type !== "Other")
         .reduce((s, e) => s + (e.quantity || 0) * (e.purchasePrice || 0), 0),
     [data.portfolio],
   );

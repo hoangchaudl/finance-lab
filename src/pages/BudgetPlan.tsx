@@ -117,10 +117,13 @@ export default function BudgetPlan() {
                           </TableCell>
                           <TableCell className="text-right">
                             <Input
-                              type="number"
+                              type="text"
                               className="w-32 ml-auto text-right h-8"
-                              value={planned || ""}
-                              onChange={(e) => handlePlanChange(cat.id, e.target.value)}
+                              value={planned ? planned.toLocaleString("de-DE") : ""}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/\./g, "");
+                                handlePlanChange(cat.id, raw);
+                              }}
                               placeholder="0"
                             />
                           </TableCell>

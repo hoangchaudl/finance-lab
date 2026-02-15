@@ -3,7 +3,8 @@ import {
   ArrowLeftRight,
   ClipboardList,
   Flame,
-  FolderCog } from
+  FolderCog,
+  Briefcase } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -22,6 +23,7 @@ const items = [
 { title: "Transactions", url: "/transactions", icon: ArrowLeftRight },
 { title: "Budget Plan", url: "/budget", icon: ClipboardList },
 { title: "FIRE Goals", url: "/fire", icon: Flame },
+{ title: "Portfolio", url: "/portfolio", icon: Briefcase },
 { title: "Categories", url: "/categories", icon: FolderCog }];
 
 

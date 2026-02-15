@@ -45,6 +45,15 @@ export interface Subscription {
   due_day: number;
 }
 
+export interface PortfolioEntry {
+  id: string;
+  name: string;
+  type: string;
+  value: number;
+  contribution?: number;
+  notes?: string;
+}
+
 export interface AppData {
   incomeAllocations: IncomeAllocations;
   categories: Category[];
@@ -54,6 +63,7 @@ export interface AppData {
   goals: Goal[];
   subscriptions: Subscription[];
   categoryAllocations?: { [categoryId: string]: number };
+  portfolio?: PortfolioEntry[];
   fireSettings: {
     monthlyExpenses: number;
     inflationRate: number;

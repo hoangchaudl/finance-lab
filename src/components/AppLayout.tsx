@@ -4,8 +4,8 @@ import {
   ArrowRightLeft,
   PiggyBank,
   Briefcase,
-  Flame,
   BarChart3,
+  FolderCog,
   Menu,
   X,
   LogOut,
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { label: "Budget Plan", path: "/budget", icon: PiggyBank },
   { label: "Portfolio", path: "/portfolio", icon: Briefcase },
   { label: "Reports", path: "/report", icon: BarChart3 },
+  { label: "Categories", path: "/categories", icon: FolderCog },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

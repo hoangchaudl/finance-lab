@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { formatVND, getMonthKey, getMonthLabel, generateId } from "@/lib/format";
+import {
+  formatVND,
+  getMonthKey,
+  getMonthLabel,
+  generateId,
+  formatDate,
+} from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,15 +43,17 @@ export default function Transactions() {
   const [formType, setFormType] = useState<"income" | "expense">("expense");
   const [formCategory, setFormCategory] = useState("");
   const [formAmount, setFormAmount] = useState("");
-  const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
+  const [formDate, setFormDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
   const [formNote, setFormNote] = useState("");
 
   const transactions = getMonthTransactions(selectedMonth).sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
 
   const filteredCategories = data.categories.filter((c) =>
-    formType === "income" ? c.type === "income" : c.type !== "income"
+    formType === "income" ? c.type === "income" : c.type !== "income",
   );
 
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -80,6 +88,23 @@ export default function Transactions() {
     return "equal";
   };
 
+  const getLeftoverForTransaction = (
+    transactionIndex: number,
+    categoryId: string,
+  ) => {
+    const plan = data.monthlyPlans[selectedMonth]?.[categoryId]?.planned ?? 0;
+    // Get all transactions for this category up to and including this index
+    const categoryTransactions = transactions
+      .filter((t) => t.category_id === categoryId && t.type === "expense")
+      .reverse(); // Reverse because transactions are sorted newest first
+
+    const spent = categoryTransactions
+      .slice(0, transactionIndex + 1)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return plan - spent;
+  };
+
   const monthlyIncome = getTotalIncome(selectedMonth);
 
   return (
@@ -103,8 +128,12 @@ export default function Transactions() {
       {/* Monthly Income Summary */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="py-4 flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">Monthly Income</span>
-          <span className="text-2xl font-bold text-primary">{formatVND(monthlyIncome)}</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            Monthly Income
+          </span>
+          <span className="text-2xl font-bold text-primary">
+            {formatVND(monthlyIncome)}
+          </span>
         </CardContent>
       </Card>
 
@@ -114,11 +143,22 @@ export default function Transactions() {
           <CardTitle className="text-lg">Add Transaction</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end"
+          >
             <div>
               <Label>Type</Label>
-              <Select value={formType} onValueChange={(v) => { setFormType(v as any); setFormCategory(""); }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={formType}
+                onValueChange={(v) => {
+                  setFormType(v as any);
+                  setFormCategory("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="income">Income</SelectItem>
                   <SelectItem value="expense">Expense</SelectItem>
@@ -128,7 +168,9 @@ export default function Transactions() {
             <div>
               <Label>Category</Label>
               <Select value={formCategory} onValueChange={setFormCategory}>
-                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
                 <SelectContent>
                   {filteredCategories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
@@ -140,15 +182,28 @@ export default function Transactions() {
             </div>
             <div>
               <Label>Amount</Label>
-              <Input type="number" value={formAmount} onChange={(e) => setFormAmount(e.target.value)} placeholder="0" />
+              <Input
+                type="number"
+                value={formAmount}
+                onChange={(e) => setFormAmount(e.target.value)}
+                placeholder="0"
+              />
             </div>
             <div>
               <Label>Date</Label>
-              <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+              <Input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+              />
             </div>
             <div>
               <Label>Note</Label>
-              <Input value={formNote} onChange={(e) => setFormNote(e.target.value)} placeholder="Optional" />
+              <Input
+                value={formNote}
+                onChange={(e) => setFormNote(e.target.value)}
+                placeholder="Optional"
+              />
             </div>
             <Button type="submit" className="gap-1">
               <Plus className="h-4 w-4" /> Add
@@ -167,6 +222,7 @@ export default function Transactions() {
                 <TableHead>Category</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Leftover</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Note</TableHead>
                 <TableHead className="w-10"></TableHead>
@@ -175,38 +231,86 @@ export default function Transactions() {
             <TableBody>
               {transactions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell
+                    colSpan={8}
+                    className="text-center text-muted-foreground py-8"
+                  >
                     No transactions yet
                   </TableCell>
                 </TableRow>
               ) : (
-                transactions.map((t) => {
+                transactions.map((t, index) => {
                   const cat = getCategoryById(t.category_id);
-                  const evaluation = t.type === "expense" ? getEvaluation(t.category_id) : null;
+                  const evaluation =
+                    t.type === "expense" ? getEvaluation(t.category_id) : null;
                   return (
                     <TableRow key={t.id}>
-                      <TableCell className="text-sm">{t.date}</TableCell>
+                      <TableCell className="text-sm">
+                        {formatDate(t.date)}
+                      </TableCell>
                       <TableCell>
                         <span className="text-sm">
                           {cat ? `${cat.emoji} ${cat.name}` : t.category_id}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={t.type === "income" ? "default" : "secondary"} className="text-xs">
+                        <Badge
+                          variant={
+                            t.type === "income" ? "default" : "secondary"
+                          }
+                          className="text-xs"
+                        >
                           {t.type === "income" ? "Income" : "Expense"}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-right font-medium ${t.type === "income" ? "text-primary" : "text-destructive"}`}>
-                        {t.type === "income" ? "+" : "-"}{formatVND(t.amount)}
+                      <TableCell
+                        className={`text-right font-medium ${t.type === "income" ? "text-primary" : "text-destructive"}`}
+                      >
+                        {t.type === "income" ? "+" : "-"}
+                        {formatVND(t.amount)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        {t.type === "expense" ? (
+                          <span
+                            className={
+                              getLeftoverForTransaction(index, t.category_id) <
+                              0
+                                ? "text-destructive font-medium"
+                                : "text-muted-foreground"
+                            }
+                          >
+                            {formatVND(
+                              getLeftoverForTransaction(index, t.category_id),
+                            )}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
                       <TableCell>
-                        {evaluation === "over" && <span className="text-destructive">😰 Over budget</span>}
-                        {evaluation === "under" && <span className="text-primary">😍 On track</span>}
-                        {evaluation === "equal" && <span className="text-muted-foreground">— On plan</span>}
+                        {evaluation === "over" && (
+                          <span className="text-destructive">
+                            😰 Over budget
+                          </span>
+                        )}
+                        {evaluation === "under" && (
+                          <span className="text-primary">😍 On track</span>
+                        )}
+                        {evaluation === "equal" && (
+                          <span className="text-muted-foreground">
+                            — On plan
+                          </span>
+                        )}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{t.note}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {t.note}
+                      </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => deleteTransaction(t.id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteTransaction(t.id)}
+                        >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 
 const TYPE_LABELS: Record<string, string> = {
+  income: "Income Sources",
   essential: "Essential Expenses",
   nonessential: "Non-essential Expenses",
   savings: "Savings",
@@ -28,7 +29,14 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function BudgetPlan() {
-  const { data, updatePlan, updateCategoryAllocation, getActualForCategory, getTotalIncome, getTotalExpenses } = useApp();
+  const {
+    data,
+    updatePlan,
+    updateCategoryAllocation,
+    getActualForCategory,
+    getTotalIncome,
+    getTotalExpenses,
+  } = useApp();
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
 
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -37,12 +45,20 @@ export default function BudgetPlan() {
     return getMonthKey(d);
   });
 
+  const incomeCategories = data.categories.filter((c) => c.type === "income");
   const expenseCategories = data.categories.filter((c) => c.type !== "income");
-  const grouped = expenseCategories.reduce((acc, cat) => {
-    if (!acc[cat.type]) acc[cat.type] = [];
-    acc[cat.type].push(cat);
-    return acc;
-  }, {} as Record<string, typeof expenseCategories>);
+
+  const grouped = expenseCategories.reduce(
+    (acc, cat) => {
+      if (!acc[cat.type]) acc[cat.type] = [];
+      acc[cat.type].push(cat);
+      return acc;
+    },
+    {} as Record<string, typeof expenseCategories>,
+  );
+
+  const incomeGrouped =
+    incomeCategories.length > 0 ? { income: incomeCategories } : {};
 
   const income = getTotalIncome(selectedMonth);
   const expenses = getTotalExpenses(selectedMonth);
@@ -54,6 +70,17 @@ export default function BudgetPlan() {
   const getPct = (amount: number) => {
     if (!income || income <= 0) return 0;
     return (amount / income) * 100;
+  };
+
+  const getActualForIncome = (monthKey: string, categoryId: string) => {
+    return data.transactions
+      .filter(
+        (t) =>
+          t.category_id === categoryId &&
+          t.date.startsWith(monthKey) &&
+          t.type === "income",
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
   };
 
   const handlePlanChange = (categoryId: string, value: string) => {
@@ -84,26 +111,37 @@ export default function BudgetPlan() {
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Total Income</p>
-            <p className="text-xl font-bold text-primary">{formatVND(income)}</p>
+            <p className="text-xl font-bold text-primary">
+              {formatVND(income)}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Total Allocated</p>
-            <p className={`text-xl font-bold ${overAllocated ? "text-destructive" : ""}`}>{formatVND(totalAllocated)}</p>
+            <p
+              className={`text-xl font-bold ${overAllocated ? "text-destructive" : ""}`}
+            >
+              {formatVND(totalAllocated)}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Monthly Surplus</p>
-            <p className={`text-xl font-bold ${surplus >= 0 ? "text-primary" : "text-destructive"}`}>{formatVND(surplus)}</p>
+            <p
+              className={`text-xl font-bold ${surplus >= 0 ? "text-primary" : "text-destructive"}`}
+            >
+              {formatVND(surplus)}
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {overAllocated && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          ⚠️ Total allocated ({formatVND(totalAllocated)}) exceeds income ({formatVND(income)}). Please adjust.
+          ⚠️ Total allocated ({formatVND(totalAllocated)}) exceeds income (
+          {formatVND(income)}). Please adjust.
         </div>
       )}
 
@@ -112,7 +150,10 @@ export default function BudgetPlan() {
           <CardTitle className="flex items-center justify-between">
             <span>Budget Matrix</span>
             {!overAllocated && totalAllocated > 0 && (
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-normal">
+              <Badge
+                variant="outline"
+                className="bg-primary/10 text-primary border-primary/20 font-normal"
+              >
                 {formatVND(income - totalAllocated)} unallocated
               </Badge>
             )}
@@ -131,29 +172,142 @@ export default function BudgetPlan() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(grouped).map(([type, cats]) => {
+              {/* Income Section */}
+              {Object.entries(incomeGrouped).map(([type, cats]) => {
                 const totalPlanned = cats.reduce(
-                  (s, c) => s + (data.monthlyPlans[selectedMonth]?.[c.id]?.planned ?? 0), 0
+                  (s, c) =>
+                    s +
+                    (data.monthlyPlans[selectedMonth]?.[c.id]?.planned ?? 0),
+                  0,
                 );
                 const totalActual = cats.reduce(
-                  (s, c) => s + getActualForCategory(selectedMonth, c.id), 0
+                  (s, c) => s + getActualForIncome(selectedMonth, c.id),
+                  0,
                 );
                 const totalDiff = totalActual - totalPlanned;
-                const totalAlloc = cats.reduce((s, c) => s + (allocations[c.id] ?? 0), 0);
 
                 return (
-                  <> 
+                  <>
                     <TableRow key={`header-${type}`}>
-                      <TableCell colSpan={6} className="bg-muted/50 font-semibold text-sm">
+                      <TableCell
+                        colSpan={6}
+                        className="bg-muted/50 font-semibold text-sm"
+                      >
+                        {TYPE_LABELS[type] || type}
+                      </TableCell>
+                    </TableRow>
+                    {cats.map((cat) => {
+                      const planned =
+                        data.monthlyPlans[selectedMonth]?.[cat.id]?.planned ??
+                        0;
+                      const actual = getActualForIncome(selectedMonth, cat.id);
+                      const diff = actual - planned;
+                      return (
+                        <TableRow key={cat.id}>
+                          <TableCell className="text-sm">
+                            {cat.emoji} {cat.name}
+                          </TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">
+                            -
+                          </TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">
+                            -
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <PlannedInput
+                              value={planned}
+                              onChange={(raw) => handlePlanChange(cat.id, raw)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            {formatVND(actual)}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right text-sm font-medium ${
+                              diff < 0
+                                ? "text-destructive"
+                                : diff > 0
+                                  ? "text-primary"
+                                  : "text-muted-foreground"
+                            }`}
+                          >
+                            {diff > 0 ? "+" : ""}
+                            {formatVND(diff)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow key={`total-${type}`}>
+                      <TableCell className="font-semibold text-sm">
+                        Total
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm text-muted-foreground">
+                        -
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm text-muted-foreground">
+                        -
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm">
+                        {formatVND(totalPlanned)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm">
+                        {formatVND(totalActual)}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-semibold text-sm ${
+                          totalDiff < 0
+                            ? "text-destructive"
+                            : totalDiff > 0
+                              ? "text-primary"
+                              : "text-muted-foreground"
+                        }`}
+                      >
+                        {totalDiff > 0 ? "+" : ""}
+                        {formatVND(totalDiff)}
+                      </TableCell>
+                    </TableRow>
+                  </>
+                );
+              })}
+              {/* Expenses Section */}
+              {Object.entries(grouped).map(([type, cats]) => {
+                const totalPlanned = cats.reduce(
+                  (s, c) =>
+                    s +
+                    (data.monthlyPlans[selectedMonth]?.[c.id]?.planned ?? 0),
+                  0,
+                );
+                const totalActual = cats.reduce(
+                  (s, c) => s + getActualForCategory(selectedMonth, c.id),
+                  0,
+                );
+                const totalDiff = totalPlanned - totalActual;
+                const totalAlloc = cats.reduce(
+                  (s, c) => s + (allocations[c.id] ?? 0),
+                  0,
+                );
+
+                return (
+                  <>
+                    <TableRow key={`header-${type}`}>
+                      <TableCell
+                        colSpan={6}
+                        className="bg-muted/50 font-semibold text-sm"
+                      >
                         {TYPE_LABELS[type] || type}
                       </TableCell>
                     </TableRow>
                     {cats.map((cat) => {
                       const alloc = allocations[cat.id] ?? 0;
                       const pct = getPct(alloc);
-                      const planned = data.monthlyPlans[selectedMonth]?.[cat.id]?.planned ?? 0;
-                      const actual = getActualForCategory(selectedMonth, cat.id);
-                      const diff = actual - planned;
+                      const planned =
+                        data.monthlyPlans[selectedMonth]?.[cat.id]?.planned ??
+                        0;
+                      const actual = getActualForCategory(
+                        selectedMonth,
+                        cat.id,
+                      );
+                      const diff = planned - actual;
                       return (
                         <TableRow key={cat.id}>
                           <TableCell className="text-sm">
@@ -162,7 +316,9 @@ export default function BudgetPlan() {
                           <TableCell className="text-right">
                             <InlineAmount
                               value={alloc}
-                              onChange={(v) => updateCategoryAllocation(cat.id, v)}
+                              onChange={(v) =>
+                                updateCategoryAllocation(cat.id, v)
+                              }
                             />
                           </TableCell>
                           <TableCell className="text-right text-sm text-muted-foreground">
@@ -179,7 +335,11 @@ export default function BudgetPlan() {
                           </TableCell>
                           <TableCell
                             className={`text-right text-sm font-medium ${
-                              diff > 0 ? "text-destructive" : diff < 0 ? "text-primary" : "text-muted-foreground"
+                              diff < 0
+                                ? "text-destructive"
+                                : diff > 0
+                                  ? "text-primary"
+                                  : "text-muted-foreground"
                             }`}
                           >
                             {diff > 0 ? "+" : ""}
@@ -189,14 +349,28 @@ export default function BudgetPlan() {
                       );
                     })}
                     <TableRow key={`total-${type}`}>
-                      <TableCell className="font-semibold text-sm">Total</TableCell>
-                      <TableCell className="text-right font-semibold text-sm">{formatVND(totalAlloc)}</TableCell>
-                      <TableCell className="text-right font-semibold text-sm text-muted-foreground">{getPct(totalAlloc).toFixed(1)}%</TableCell>
-                      <TableCell className="text-right font-semibold text-sm">{formatVND(totalPlanned)}</TableCell>
-                      <TableCell className="text-right font-semibold text-sm">{formatVND(totalActual)}</TableCell>
+                      <TableCell className="font-semibold text-sm">
+                        Total
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm">
+                        {formatVND(totalAlloc)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm text-muted-foreground">
+                        {getPct(totalAlloc).toFixed(1)}%
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm">
+                        {formatVND(totalPlanned)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm">
+                        {formatVND(totalActual)}
+                      </TableCell>
                       <TableCell
                         className={`text-right font-semibold text-sm ${
-                          totalDiff > 0 ? "text-destructive" : totalDiff < 0 ? "text-primary" : "text-muted-foreground"
+                          totalDiff < 0
+                            ? "text-destructive"
+                            : totalDiff > 0
+                              ? "text-primary"
+                              : "text-muted-foreground"
                         }`}
                       >
                         {totalDiff > 0 ? "+" : ""}
@@ -214,7 +388,13 @@ export default function BudgetPlan() {
   );
 }
 
-function InlineAmount({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function InlineAmount({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
   const [isEditing, setIsEditing] = useState(false);
   const [temp, setTemp] = useState("");
 
@@ -230,7 +410,9 @@ function InlineAmount({ value, onChange }: { value: number; onChange: (v: number
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
-            onChange(parseFloat(temp.replace(/\./g, "").replace(",", ".")) || 0);
+            onChange(
+              parseFloat(temp.replace(/\./g, "").replace(",", ".")) || 0,
+            );
             setIsEditing(false);
           }
         }}
@@ -242,15 +424,28 @@ function InlineAmount({ value, onChange }: { value: number; onChange: (v: number
 
   return (
     <button
-      onClick={() => { setTemp(value ? value.toLocaleString("de-DE") : ""); setIsEditing(true); }}
+      onClick={() => {
+        setTemp(value ? value.toLocaleString("de-DE") : "");
+        setIsEditing(true);
+      }}
       className="text-sm hover:underline cursor-pointer"
     >
-      {value > 0 ? formatVND(value) : <span className="text-muted-foreground">0 ₫</span>}
+      {value > 0 ? (
+        formatVND(value)
+      ) : (
+        <span className="text-muted-foreground">0 ₫</span>
+      )}
     </button>
   );
 }
 
-function PlannedInput({ value, onChange }: { value: number; onChange: (raw: string) => void }) {
+function PlannedInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (raw: string) => void;
+}) {
   const [focused, setFocused] = useState(false);
   const [temp, setTemp] = useState("");
 
@@ -275,10 +470,17 @@ function PlannedInput({ value, onChange }: { value: number; onChange: (raw: stri
 
   return (
     <button
-      onClick={() => { setTemp(value ? value.toLocaleString("de-DE") : ""); setFocused(true); }}
+      onClick={() => {
+        setTemp(value ? value.toLocaleString("de-DE") : "");
+        setFocused(true);
+      }}
       className="text-sm hover:underline cursor-pointer"
     >
-      {value > 0 ? formatVND(value) : <span className="text-muted-foreground">0 ₫</span>}
+      {value > 0 ? (
+        formatVND(value)
+      ) : (
+        <span className="text-muted-foreground">0 ₫</span>
+      )}
     </button>
   );
 }

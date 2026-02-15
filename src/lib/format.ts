@@ -8,10 +8,28 @@ export function getMonthKey(date: Date = new Date()): string {
 
 export function getMonthLabel(key: string): string {
   const [year, month] = key.split("-");
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${monthNames[parseInt(month) - 1]} ${year}`;
 }
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+export function formatDate(dateString: string): string {
+  const [year, month, day] = dateString.split("-");
+  return `${day}/${month}/${year}`;
 }

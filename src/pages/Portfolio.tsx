@@ -288,7 +288,8 @@ export default function Portfolio() {
               <p
                 className={`text-sm font-medium ${totalGain >= 0 ? "text-green-600" : "text-destructive"}`}
               >
-                ({totalGain >= 0 ? "+" : ""}{formatVND(Math.ceil(totalGain))})
+                ({totalGain >= 0 ? "+" : ""}
+                {formatVND(Math.ceil(totalGain))})
               </p>
             </div>
           </CardContent>
@@ -328,10 +329,13 @@ export default function Portfolio() {
                   align="right"
                   wrapperStyle={{ fontSize: "12px" }}
                   formatter={(value: string) => {
-                    const item = categoryChartData.find((d) => d.name === value);
-                    const pct = item && totalCurrentValue > 0
-                      ? ((item.value / totalCurrentValue) * 100).toFixed(1)
-                      : "0";
+                    const item = categoryChartData.find(
+                      (d) => d.name === value,
+                    );
+                    const pct =
+                      item && totalCurrentValue > 0
+                        ? ((item.value / totalCurrentValue) * 100).toFixed(1)
+                        : "0";
                     return `${value} (${pct}%)`;
                   }}
                 />
@@ -436,6 +440,8 @@ export default function Portfolio() {
                   </TableCell>
                   <TableCell>
                     <Input
+                      type="number"
+                      step="0.01"
                       value={form.quantity}
                       onChange={(e) =>
                         setForm({ ...form, quantity: e.target.value })
@@ -541,10 +547,12 @@ export default function Portfolio() {
                         {group.roi.toFixed(1)}%
                       </TableCell>
                       <TableCell
-                        className={`text-right font-medium ${(group.totalValue - group.totalCost) >= 0 ? "text-green-600" : "text-destructive"}`}
+                        className={`text-right font-medium ${group.totalValue - group.totalCost >= 0 ? "text-green-600" : "text-destructive"}`}
                       >
-                        {(group.totalValue - group.totalCost) >= 0 ? "+" : ""}
-                        {formatVND(Math.ceil(group.totalValue - group.totalCost))}
+                        {group.totalValue - group.totalCost >= 0 ? "+" : ""}
+                        {formatVND(
+                          Math.ceil(group.totalValue - group.totalCost),
+                        )}
                       </TableCell>
                       <TableCell></TableCell>
                     </TableRow>
@@ -600,6 +608,7 @@ export default function Portfolio() {
                               <TableCell>
                                 <Input
                                   type="number"
+                                  step="0.01"
                                   value={editing.quantity}
                                   onChange={(e) =>
                                     setEditing({
@@ -688,7 +697,8 @@ export default function Portfolio() {
                             <TableCell
                               className={`text-right text-sm ${child.gain >= 0 ? "text-green-600" : "text-destructive"}`}
                             >
-                              {child.gain >= 0 ? "+" : ""}{formatVND(Math.ceil(child.gain))}
+                              {child.gain >= 0 ? "+" : ""}
+                              {formatVND(Math.ceil(child.gain))}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">

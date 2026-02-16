@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import financeLogo from "@/assets/finance-logo.png";
+import { Landmark } from "lucide-react";
 
 export default function Auth() {
   const { user, loading, signIn, signUp } = useAuth();
@@ -79,7 +79,7 @@ export default function Auth() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="flex items-center justify-center gap-2">
-            <img src={financeLogo} alt="Finance Hub" className="h-10 w-10" />
+            <Landmark className="h-8 w-8 text-primary" strokeWidth={1.5} />
             <CardTitle className="text-2xl font-bold text-primary">
               Finance Hub
             </CardTitle>

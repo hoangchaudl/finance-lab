@@ -41,9 +41,13 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
+
+type TxType = "income" | "expense" | "investing" | "saving" | "sell";
 
 export default function Transactions() {
   const {
@@ -58,9 +62,7 @@ export default function Transactions() {
   const { toast } = useToast();
 
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
-  const [formType, setFormType] = useState<
-    "income" | "expense" | "investing" | "saving"
-  >("expense");
+  const [formType, setFormType] = useState<TxType>("expense");
   const [formCategory, setFormCategory] = useState("");
   const [formAmount, setFormAmount] = useState("");
   const [formDate, setFormDate] = useState(
@@ -76,9 +78,7 @@ export default function Transactions() {
 
   // Edit state
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [editType, setEditType] = useState<
-    "income" | "expense" | "investing" | "saving"
-  >("expense");
+  const [editType, setEditType] = useState<TxType>("expense");
   const [editCategory, setEditCategory] = useState("");
   const [editAmount, setEditAmount] = useState("");
   const [editDate, setEditDate] = useState("");
@@ -87,41 +87,36 @@ export default function Transactions() {
   const [editPortfolioId, setEditPortfolioId] = useState<string>("none");
 
   const transactions = getMonthTransactions(selectedMonth).sort((a, b) => {
-    // First, sort by date descending (newer dates first)
     const dateComparison =
       new Date(b.date).getTime() - new Date(a.date).getTime();
     if (dateComparison !== 0) return dateComparison;
-    // If dates are the same, sort by ID descending (newer transactions first)
     return b.id.localeCompare(a.id);
   });
 
-  // Format amount with dot thousands separator for display
   const formatAmountDisplay = (value: string): string => {
     if (!value) return "";
     const numStr = value.replace(/\D/g, "");
     return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  // Parse formatted amount back to number
   const parseFormattedAmount = (value: string): string => {
     return value.replace(/\./g, "");
   };
 
   const filteredCategories = data.categories.filter((c) => {
     if (formType === "income") return c.type === "income";
-    if (formType === "investing") return c.type === "investment";
+    if (formType === "investing" || formType === "sell") return c.type === "investment";
     if (formType === "saving") return c.type === "savings";
     return c.type === "essential" || c.type === "nonessential";
   });
 
   const editFilteredCategories = data.categories.filter((c) => {
     if (editType === "income") return c.type === "income";
-    if (editType === "investing") return c.type === "investment";
+    if (editType === "investing" || editType === "sell") return c.type === "investment";
     if (editType === "saving") return c.type === "savings";
     return c.type === "essential" || c.type === "nonessential";
   });
 
-  // Merge categories and subscriptions into combobox options
   const getCategoryComboboxOptions = (
     categories: typeof filteredCategories,
   ): ComboboxOption[] => {
@@ -163,7 +158,12 @@ export default function Transactions() {
   };
 
   const isPortfolioType = formType === "investing" || formType === "saving";
+  const isSellType = formType === "sell";
+  const isAssetLinkedType = isPortfolioType || isSellType;
+
   const isEditPortfolioType = editType === "investing" || editType === "saving";
+  const isEditSellType = editType === "sell";
+  const isEditAssetLinkedType = isEditPortfolioType || isEditSellType;
 
   const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date();
@@ -175,6 +175,21 @@ export default function Transactions() {
     parseFloat(formAmount) && parseFloat(formQuantity)
       ? parseFloat(formAmount) / parseFloat(formQuantity)
       : 0;
+
+  // Sell profit preview
+  const selectedSellAsset = isSellType && formPortfolioId !== "none"
+    ? data.portfolio?.find((p) => p.id === formPortfolioId)
+    : null;
+
+  const sellProfitPreview = useMemo(() => {
+    if (!isSellType || !selectedSellAsset || !formAmount || !formQuantity) return null;
+    const saleAmount = parseFloat(formAmount);
+    const qty = parseFloat(formQuantity);
+    if (!saleAmount || !qty) return null;
+    const costBasis = selectedSellAsset.purchasePrice * qty;
+    const gain = saleAmount - costBasis;
+    return { gain, costBasis, salePrice: saleAmount / qty };
+  }, [isSellType, selectedSellAsset, formAmount, formQuantity]);
 
   const handleAmountChange = (value: string) => {
     const numeric = parseFormattedAmount(value);
@@ -190,7 +205,6 @@ export default function Transactions() {
     e.preventDefault();
     if (!formCategory || !formAmount) return;
 
-    // Handle subscription selections: sub_ prefix means it's a subscription, not a category
     let categoryId: string | null = formCategory;
     let note = formNote || undefined;
     if (formCategory.startsWith("sub_")) {
@@ -201,33 +215,45 @@ export default function Transactions() {
     }
 
     try {
+      // For sell type, calculate realized_gain
+      let realized_gain: number | undefined;
+      if (isSellType && selectedSellAsset) {
+        const qty = parseFloat(formQuantity) || 0;
+        const saleAmount = parseFloat(formAmount);
+        const costBasis = selectedSellAsset.purchasePrice * qty;
+        realized_gain = saleAmount - costBasis;
+      }
+
       await addTransaction({
         date: formDate,
         amount: parseFloat(formAmount),
-        quantity: isPortfolioType ? parseFloat(formQuantity) || 0 : undefined,
+        quantity: isAssetLinkedType ? parseFloat(formQuantity) || 0 : undefined,
         type: formType,
         category_id: categoryId as string,
         note,
         portfolio_entry_id:
-          isPortfolioType && formPortfolioId !== "none"
+          isAssetLinkedType && formPortfolioId !== "none"
             ? formPortfolioId
             : undefined,
+        realized_gain,
       });
 
       toast({
         title: "Success",
-        description: "Transaction added successfully",
+        description: isSellType
+          ? `Asset sold! Realized gain: ${formatVND(realized_gain || 0)}`
+          : "Transaction added successfully",
       });
 
       setFormAmount("");
       setFormQuantity("");
       setFormNote("");
       setFormCategory("");
-      if (isPortfolioType) setFormPortfolioId("none");
-    } catch (err) {
+      if (isAssetLinkedType) setFormPortfolioId("none");
+    } catch (err: any) {
       toast({
         title: "Error",
-        description: "Failed to add transaction",
+        description: err?.message || "Failed to add transaction",
         variant: "destructive",
       });
     }
@@ -260,12 +286,12 @@ export default function Transactions() {
     await updateTransaction(editingTx.id, {
       date: editDate,
       amount: parseFloat(editAmount),
-      quantity: isEditPortfolioType ? parseFloat(editQuantity) || 0 : undefined,
+      quantity: isEditAssetLinkedType ? parseFloat(editQuantity) || 0 : undefined,
       type: editType,
       category_id: categoryId as string,
       note,
       portfolio_entry_id:
-        isEditPortfolioType && editPortfolioId !== "none"
+        isEditAssetLinkedType && editPortfolioId !== "none"
           ? editPortfolioId
           : undefined,
     });
@@ -288,18 +314,13 @@ export default function Transactions() {
 
   const getCategoryById = (id?: string) => {
     if (!id) return undefined;
-    // Check if it's a subscription ID
     if (id.startsWith("sub_")) {
       const subId = id.replace("sub_", "");
       const subscription = data.subscriptions?.find((s) => s.id === subId);
       if (subscription) {
-        return {
-          emoji: "📅",
-          name: subscription.name,
-        };
+        return { emoji: "📅", name: subscription.name };
       }
     }
-    // Otherwise, it's a regular category
     return data.categories.find((c) => c.id === id);
   };
   const getPortfolioName = (id?: string) =>
@@ -324,6 +345,12 @@ export default function Transactions() {
         return (
           <Badge className="bg-purple-100 text-purple-700 border-purple-200">
             Save
+          </Badge>
+        );
+      case "sell":
+        return (
+          <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+            Sell
           </Badge>
         );
       default:
@@ -390,8 +417,10 @@ export default function Transactions() {
               <Select
                 value={formType}
                 onValueChange={(v) => {
-                  setFormType(v as any);
+                  setFormType(v as TxType);
                   setFormCategory("");
+                  setFormPortfolioId("none");
+                  setFormQuantity("");
                 }}
               >
                 <SelectTrigger>
@@ -402,6 +431,7 @@ export default function Transactions() {
                   <SelectItem value="expense">Expense</SelectItem>
                   <SelectItem value="investing">Investing</SelectItem>
                   <SelectItem value="saving">Saving</SelectItem>
+                  <SelectItem value="sell">Sell Asset</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -416,18 +446,18 @@ export default function Transactions() {
               />
             </div>
 
-            {isPortfolioType && (
+            {isAssetLinkedType && (
               <>
                 <div className="sm:col-span-2 lg:col-span-1">
-                  <Label className="text-blue-600 flex items-center gap-1">
-                    <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> Link Asset
+                  <Label className={`flex items-center gap-1 ${isSellType ? "text-amber-600" : "text-blue-600"}`}>
+                    <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> {isSellType ? "Sell Asset" : "Link Asset"}
                   </Label>
                   <Select
                     value={formPortfolioId}
                     onValueChange={setFormPortfolioId}
                     required
                   >
-                    <SelectTrigger className="border-blue-200 bg-blue-50/50">
+                    <SelectTrigger className={isSellType ? "border-amber-200 bg-amber-50/50" : "border-blue-200 bg-blue-50/50"}>
                       <SelectValue placeholder="Select Asset" />
                     </SelectTrigger>
                     <SelectContent>
@@ -436,28 +466,34 @@ export default function Transactions() {
                       </SelectItem>
                       {data.portfolio?.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
-                          {p.name} ({p.account})
+                          {p.name} ({p.account}) {isSellType ? `- Qty: ${p.quantity}` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {isSellType && selectedSellAsset && (
+                    <span className="text-[10px] text-muted-foreground">
+                      Avg Cost: {formatVND(selectedSellAsset.purchasePrice)} · Qty: {selectedSellAsset.quantity}
+                    </span>
+                  )}
                 </div>
                 <div>
-                  <Label className="text-blue-600">Quantity</Label>
+                  <Label className={isSellType ? "text-amber-600" : "text-blue-600"}>Quantity</Label>
                   <Input
                     type="number"
                     value={formQuantity}
                     onChange={(e) => setFormQuantity(e.target.value)}
                     placeholder="0"
-                    className="border-blue-200"
+                    className={isSellType ? "border-amber-200" : "border-blue-200"}
                     required
+                    max={isSellType && selectedSellAsset ? selectedSellAsset.quantity : undefined}
                   />
                 </div>
               </>
             )}
 
-            <div className={isPortfolioType ? "" : "lg:col-span-1"}>
-              <Label>{isPortfolioType ? "Total Cost" : "Amount"}</Label>
+            <div className={isAssetLinkedType ? "" : "lg:col-span-1"}>
+              <Label>{isSellType ? "Sale Amount" : isPortfolioType ? "Total Cost" : "Amount"}</Label>
               <Input
                 type="text"
                 value={formatAmountDisplay(formAmount)}
@@ -465,12 +501,12 @@ export default function Transactions() {
                 placeholder="0"
               />
               {isPortfolioType && impliedPrice > 0 && (
-                <span className="text-[10px] text-muted-foreground absolute -bottom-5 right-0 lg:static lg:block">
+                <span className="text-[10px] text-muted-foreground">
                   @{formatVND(impliedPrice)} / unit
                 </span>
               )}
             </div>
-            <div className={isPortfolioType ? "" : "lg:col-span-1"}>
+            <div className={isAssetLinkedType ? "" : "lg:col-span-1"}>
               <Label>Date</Label>
               <Input
                 type="date"
@@ -479,7 +515,7 @@ export default function Transactions() {
               />
             </div>
             <div
-              className={isPortfolioType ? "lg:col-span-6" : "lg:col-span-1"}
+              className={isAssetLinkedType ? "lg:col-span-6" : "lg:col-span-1"}
             >
               <Label>Note</Label>
               <Input
@@ -488,8 +524,31 @@ export default function Transactions() {
                 placeholder="Optional"
               />
             </div>
+
+            {/* Sell Profit Preview */}
+            {isSellType && sellProfitPreview && (
+              <div className="lg:col-span-6">
+                <div className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium ${
+                  sellProfitPreview.gain >= 0
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                }`}>
+                  {sellProfitPreview.gain >= 0 ? (
+                    <TrendingUp className="h-4 w-4" strokeWidth={1.5} />
+                  ) : (
+                    <TrendingDown className="h-4 w-4" strokeWidth={1.5} />
+                  )}
+                  <span>
+                    Est. {sellProfitPreview.gain >= 0 ? "Profit" : "Loss"}:{" "}
+                    <strong>{formatVND(Math.abs(sellProfitPreview.gain))}</strong>
+                    {" "}(Sale @ {formatVND(sellProfitPreview.salePrice)} vs Avg Cost @ {formatVND(selectedSellAsset!.purchasePrice)})
+                  </span>
+                </div>
+              </div>
+            )}
+
             <Button type="submit" className="gap-1 lg:col-span-6">
-              <Plus className="h-4 w-4" strokeWidth={1.5} /> Add
+              <Plus className="h-4 w-4" strokeWidth={1.5} /> {isSellType ? "Sell" : "Add"}
             </Button>
           </form>
         </CardContent>
@@ -541,10 +600,18 @@ export default function Transactions() {
                     </TableCell>
                     <TableCell>{getTypeBadge(t.type)}</TableCell>
                     <TableCell
-                      className={`text-right font-medium ${t.type === "income" ? "text-primary" : "text-foreground"}`}
+                      className={`text-right font-medium ${
+                        t.type === "income" ? "text-primary" :
+                        t.type === "sell" ? "text-amber-600" : "text-foreground"
+                      }`}
                     >
-                      {t.type === "income" ? "+" : "-"}
+                      {t.type === "income" || t.type === "sell" ? "+" : "-"}
                       {formatVND(t.amount)}
+                      {t.type === "sell" && t.realized_gain !== undefined && (
+                        <span className={`block text-[10px] ${t.realized_gain >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {t.realized_gain >= 0 ? "+" : ""}{formatVND(t.realized_gain)} gain
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
                       {t.quantity ? t.quantity : "-"}
@@ -631,7 +698,7 @@ export default function Transactions() {
               <Select
                 value={editType}
                 onValueChange={(v) => {
-                  setEditType(v as any);
+                  setEditType(v as TxType);
                   setEditCategory("");
                 }}
               >
@@ -643,6 +710,7 @@ export default function Transactions() {
                   <SelectItem value="expense">Expense</SelectItem>
                   <SelectItem value="investing">Investing</SelectItem>
                   <SelectItem value="saving">Saving</SelectItem>
+                  <SelectItem value="sell">Sell Asset</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -657,17 +725,17 @@ export default function Transactions() {
               />
             </div>
 
-            {isEditPortfolioType && (
+            {isEditAssetLinkedType && (
               <>
                 <div>
-                  <Label className="text-blue-600 flex items-center gap-1">
-                    <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> Link Asset
+                  <Label className={`flex items-center gap-1 ${isEditSellType ? "text-amber-600" : "text-blue-600"}`}>
+                    <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> {isEditSellType ? "Sell Asset" : "Link Asset"}
                   </Label>
                   <Select
                     value={editPortfolioId}
                     onValueChange={setEditPortfolioId}
                   >
-                    <SelectTrigger className="border-blue-200 bg-blue-50/50">
+                    <SelectTrigger className={isEditSellType ? "border-amber-200 bg-amber-50/50" : "border-blue-200 bg-blue-50/50"}>
                       <SelectValue placeholder="Select Asset" />
                     </SelectTrigger>
                     <SelectContent>
@@ -681,20 +749,20 @@ export default function Transactions() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-blue-600">Quantity</Label>
+                  <Label className={isEditSellType ? "text-amber-600" : "text-blue-600"}>Quantity</Label>
                   <Input
                     type="number"
                     value={editQuantity}
                     onChange={(e) => setEditQuantity(e.target.value)}
                     placeholder="0"
-                    className="border-blue-200"
+                    className={isEditSellType ? "border-amber-200" : "border-blue-200"}
                   />
                 </div>
               </>
             )}
 
             <div>
-              <Label>{isEditPortfolioType ? "Total Cost" : "Amount"}</Label>
+              <Label>{isEditSellType ? "Sale Amount" : isEditPortfolioType ? "Total Cost" : "Amount"}</Label>
               <Input
                 type="text"
                 value={formatAmountDisplay(editAmount)}

@@ -32,18 +32,8 @@ import {
 type ReportType = "monthly" | "yearly";
 
 const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 export default function Report() {
@@ -54,10 +44,8 @@ export default function Report() {
   const [selectedYear, setSelectedYear] = useState<string>(
     new Date().getFullYear().toString(),
   );
-  // NEW: State for selected month ("all" or "01"-"12")
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
-  // 1. Extract unique years for the filter
   const years = useMemo(() => {
     const uniqueYears = Array.from(
       new Set(transactions.map((t) => new Date(t.date).getFullYear())),
@@ -65,12 +53,12 @@ export default function Report() {
     return uniqueYears.sort((a, b) => b - a).map(String);
   }, [transactions]);
 
-  // 2. Aggregate Data
   const reportData = useMemo(() => {
     const grouped: Record<
       string,
       {
         income: number;
+        capitalGains: number;
         expense: number;
         saving: number;
         investing: number;
@@ -83,20 +71,17 @@ export default function Report() {
       const year = date.getFullYear().toString();
       const month = (date.getMonth() + 1).toString().padStart(2, "0");
 
-      // Determine grouping key
       let key = view === "monthly" ? `${year}-${month}` : year;
 
-      // Filter Logic
       if (view === "monthly") {
-        // Filter by Year
         if (year !== selectedYear) return;
-        // Filter by Month (if specific month selected)
         if (selectedMonth !== "all" && month !== selectedMonth) return;
       }
 
       if (!grouped[key]) {
         grouped[key] = {
           income: 0,
+          capitalGains: 0,
           expense: 0,
           saving: 0,
           investing: 0,
@@ -108,6 +93,10 @@ export default function Report() {
       if (t.type === "income") {
         grouped[key].income += amount;
         grouped[key].netChange += amount;
+      } else if (t.type === "sell") {
+        const gain = t.realized_gain || 0;
+        grouped[key].capitalGains += gain;
+        grouped[key].netChange += amount; // full sale amount affects cash flow
       } else if (t.type === "expense") {
         grouped[key].expense += amount;
         grouped[key].netChange -= amount;
@@ -127,14 +116,14 @@ export default function Report() {
       .sort((a, b) => a.period.localeCompare(b.period));
   }, [transactions, view, selectedYear, selectedMonth]);
 
-  // Calculations for Summary Cards
   const totalIncome = reportData.reduce((s, d) => s + d.income, 0);
+  const totalCapitalGains = reportData.reduce((s, d) => s + d.capitalGains, 0);
   const totalExpenses = reportData.reduce((s, d) => s + d.expense, 0);
   const totalSavedInvested = reportData.reduce(
     (s, d) => s + d.saving + d.investing,
     0,
   );
-  const netChange = totalIncome - totalExpenses;
+  const netChange = totalIncome + totalCapitalGains - totalExpenses;
 
   return (
     <div className="space-y-6">
@@ -144,7 +133,6 @@ export default function Report() {
         <div className="flex flex-wrap items-center gap-2">
           {view === "monthly" && (
             <>
-              {/* Year Selector */}
               <Select value={selectedYear} onValueChange={setSelectedYear}>
                 <SelectTrigger className="w-[100px]">
                   <SelectValue placeholder="Year" />
@@ -152,9 +140,7 @@ export default function Report() {
                 <SelectContent>
                   {years.length > 0 ? (
                     years.map((y) => (
-                      <SelectItem key={y} value={y}>
-                        {y}
-                      </SelectItem>
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
                     ))
                   ) : (
                     <SelectItem value={new Date().getFullYear().toString()}>
@@ -164,7 +150,6 @@ export default function Report() {
                 </SelectContent>
               </Select>
 
-              {/* Month Selector */}
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Month" />
@@ -188,7 +173,7 @@ export default function Report() {
             value={view}
             onValueChange={(v) => {
               setView(v as ReportType);
-              if (v === "yearly") setSelectedMonth("all"); // Reset month filter when switching to yearly
+              if (v === "yearly") setSelectedMonth("all");
             }}
           >
             <TabsList>
@@ -200,7 +185,7 @@ export default function Report() {
       </div>
 
       {/* --- SUMMARY CARDS --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="py-4">
             <CardTitle className="text-sm text-muted-foreground">
@@ -209,6 +194,16 @@ export default function Report() {
           </CardHeader>
           <CardContent className="text-2xl font-bold text-green-600">
             {formatVND(totalIncome)}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm text-muted-foreground">
+              Capital Gains
+            </CardTitle>
+          </CardHeader>
+          <CardContent className={`text-2xl font-bold ${totalCapitalGains >= 0 ? "text-emerald-500" : "text-red-600"}`}>
+            {totalCapitalGains > 0 ? "+" : ""}{formatVND(totalCapitalGains)}
           </CardContent>
         </Card>
         <Card>
@@ -261,14 +256,22 @@ export default function Report() {
               <XAxis dataKey="period" />
               <YAxis tickFormatter={(val) => `${val / 1000000}M`} />
               <Tooltip
-                formatter={(val: number) => formatVND(val)}
+                formatter={(val: number, name: string) => [formatVND(val), name]}
                 labelStyle={{ color: "black" }}
               />
               <Legend />
               <Bar
                 dataKey="income"
                 name="Income"
-                fill="#22c55e"
+                stackId="income"
+                fill="#16a34a"
+                radius={[0, 0, 0, 0]}
+              />
+              <Bar
+                dataKey="capitalGains"
+                name="Capital Gains"
+                stackId="income"
+                fill="#86efac"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
@@ -301,6 +304,9 @@ export default function Report() {
                 <TableHead className="text-right text-green-600">
                   Income
                 </TableHead>
+                <TableHead className="text-right text-emerald-500">
+                  Capital Gains
+                </TableHead>
                 <TableHead className="text-right text-red-600">
                   Expenses
                 </TableHead>
@@ -317,7 +323,7 @@ export default function Report() {
               {reportData.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center py-8 text-muted-foreground"
                   >
                     No transaction data found for this period.
@@ -329,6 +335,9 @@ export default function Report() {
                     <TableCell className="font-medium">{row.period}</TableCell>
                     <TableCell className="text-right">
                       {formatVND(row.income)}
+                    </TableCell>
+                    <TableCell className={`text-right ${row.capitalGains >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                      {row.capitalGains > 0 ? "+" : ""}{formatVND(row.capitalGains)}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatVND(row.expense)}

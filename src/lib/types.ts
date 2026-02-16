@@ -17,10 +17,11 @@ export interface Transaction {
   amount: number;
   // New: quantity allows calculating the new average price when buying assets
   quantity?: number;
-  type: "income" | "expense" | "investing" | "saving";
+  type: "income" | "expense" | "investing" | "saving" | "sell";
   category_id: string;
   note?: string;
   portfolio_entry_id?: string;
+  realized_gain?: number;
 }
 
 export interface MonthlyPlan {

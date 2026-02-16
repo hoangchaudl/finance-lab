@@ -470,7 +470,7 @@ export default function Portfolio() {
                     />
                   </TableCell>
                   {/* --- UPDATED: FORMATTED PRICE INPUTS --- */}
-                  <TableCell>
+                  <TableCell className="min-w-[140px]">
                     <Input
                       value={form.purchasePrice}
                       onChange={(e) =>
@@ -480,10 +480,10 @@ export default function Portfolio() {
                         })
                       }
                       placeholder="Buy"
-                      className="h-8 text-right"
+                      className="h-8 text-right w-full"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="min-w-[140px]">
                     <Input
                       value={form.currentPrice}
                       onChange={(e) =>
@@ -493,7 +493,7 @@ export default function Portfolio() {
                         })
                       }
                       placeholder="Now"
-                      className="h-8 text-right"
+                      className="h-8 text-right w-full"
                     />
                   </TableCell>
                   {/* --------------------------------------- */}

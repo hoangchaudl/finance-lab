@@ -20,11 +20,12 @@ import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 
 const NAV_ITEMS = [
 { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-{ label: "Transactions", path: "/transactions", icon: ArrowRightLeft },
-{ label: "Budget Plan", path: "/budget", icon: Wallet },
-{ label: "Portfolio", path: "/portfolio", icon: PieChart },
 { label: "Reports", path: "/report", icon: BarChart3 },
-{ label: "Categories", path: "/categories", icon: FolderCog }];
+{ label: "Budget Plan", path: "/budget", icon: Wallet },
+{ label: "Transactions", path: "/transactions", icon: ArrowRightLeft },
+{ label: "Portfolio", path: "/portfolio", icon: PieChart },
+
+
 
 
 export default function Layout({ children }: {children: React.ReactNode;}) {
@@ -57,7 +58,7 @@ export default function Layout({ children }: {children: React.ReactNode;}) {
       <div className="md:hidden flex items-center justify-between p-4 border-b bg-white border-slate-200">
         <div className="flex items-center gap-2">
           <img src={financeLogo} alt="Finance Hub" className="h-7 w-7" />
-          <span className="font-bold text-lg text-slate-900">Finance Hub</span>
+          <span className="font-bold text-lg text-slate-900">Finance Lab</span>
         </div>
         <Button
           variant="ghost"

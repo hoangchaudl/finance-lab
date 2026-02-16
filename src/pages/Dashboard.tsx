@@ -19,7 +19,7 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { TrendingUp, Target, Save } from "lucide-react";
+import { TrendingUp, Target, Check, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -353,7 +353,7 @@ export default function Dashboard() {
               {formatVND(requiredMonthlySavings)}
             </div>
             <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
-              <TrendingUp className="h-3 w-3" />
+              <TrendingUp className="h-3 w-3" strokeWidth={1.5} />
               <span>
                 To retire in {yearsToGrow} years (@{returnRate}%)
               </span>
@@ -389,7 +389,7 @@ export default function Dashboard() {
                     onClick={handleSaveAge}
                     disabled={savingAge}
                   >
-                    <Save className="h-4 w-4 mr-2" />
+                    <Check className="h-4 w-4 mr-2" strokeWidth={1.5} />
                     {savingAge ? "Saving..." : "Save"}
                   </Button>
                   <Button

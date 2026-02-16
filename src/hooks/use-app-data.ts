@@ -135,9 +135,9 @@ export function useAppData() {
           returnRate: Number(
             profile?.return_rate ?? initialData.fireSettings.returnRate,
           ),
-          currentAge: Number(
-            profile?.current_age ?? initialData.fireSettings.currentAge,
-          ),
+          currentAge: profile?.birth_year
+            ? new Date().getFullYear() - Number(profile.birth_year)
+            : initialData.fireSettings.currentAge,
           birthYear: profile?.birth_year ?? initialData.fireSettings.birthYear,
         },
         incomeAllocations: {

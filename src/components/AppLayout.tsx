@@ -18,14 +18,6 @@ import { Input } from "./ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import financeLogo from "@/assets/finance-logo.png";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger } from
-"./ui/dropdown-menu";
 
 const NAV_ITEMS = [
 { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -144,42 +136,27 @@ export default function Layout({ children }: {children: React.ReactNode;}) {
 
         {/* Profile Card */}
         <div className="mx-3 mb-3 mt-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage
-                    src={avatarUrl}
-                    alt={user?.user_metadata?.full_name as string} />
-
-                  <AvatarFallback className="text-sm font-semibold bg-blue-100 text-blue-700">
-                    {getInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 text-left min-w-0">
-                  <p className="text-xs font-medium truncate text-slate-900">
-                    {user?.user_metadata?.full_name as string || user?.email}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate">
-                    {user?.email}
-                  </p>
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/profile")}>
-                <Settings className="mr-2 h-4 w-4" strokeWidth={1.5} />
-                <span>Account Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut} className="text-red-600">
-                <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
-                <span>Sign Out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button
+            onClick={() => navigate("/profile")}
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <Avatar className="h-10 w-10">
+              <AvatarImage
+                src={avatarUrl}
+                alt={user?.user_metadata?.full_name as string} />
+              <AvatarFallback className="text-sm font-semibold bg-blue-100 text-blue-700">
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-xs font-medium truncate text-slate-900">
+                {user?.user_metadata?.full_name as string || user?.email}
+              </p>
+              <p className="text-xs text-slate-500 truncate">
+                {user?.email}
+              </p>
+            </div>
+          </button>
         </div>
       </aside>
 

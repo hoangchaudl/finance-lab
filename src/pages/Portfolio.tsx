@@ -31,6 +31,8 @@ import {
   ChevronRight,
   PieChart as PieIcon,
 } from "lucide-react";
+
+const ICON_STROKE = 1.5;
 import {
   PieChart,
   Pie,
@@ -255,7 +257,7 @@ export default function Portfolio() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Portfolio Manager</h1>
         <Button onClick={() => setAdding(true)} disabled={adding}>
-          <Plus className="h-4 w-4 mr-1" /> Add Asset
+          <Plus className="h-4 w-4 mr-1" strokeWidth={ICON_STROKE} /> Add Asset
         </Button>
       </div>
 
@@ -303,7 +305,7 @@ export default function Portfolio() {
         <Card className="lg:col-span-1 flex flex-col">
           <CardHeader className="pb-0">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <PieIcon className="h-4 w-4" /> Allocation
+              <PieIcon className="h-4 w-4" strokeWidth={ICON_STROKE} /> Allocation
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 min-h-[200px]">
@@ -350,7 +352,7 @@ export default function Portfolio() {
         <Card className="lg:col-span-2">
           <CardHeader className="pb-4">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <Building2 className="h-4 w-4" /> Account Balances
+              <Building2 className="h-4 w-4" strokeWidth={ICON_STROKE} /> Account Balances
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -490,7 +492,7 @@ export default function Portfolio() {
                         className="h-8 w-8"
                         onClick={handleAdd}
                       >
-                        <Check className="h-4 w-4 text-green-600" />
+                        <Check className="h-4 w-4 text-green-600" strokeWidth={ICON_STROKE} />
                       </Button>
                       <Button
                         size="icon"
@@ -498,7 +500,7 @@ export default function Portfolio() {
                         className="h-8 w-8"
                         onClick={() => setAdding(false)}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4" strokeWidth={ICON_STROKE} />
                       </Button>
                     </div>
                   </TableCell>
@@ -517,9 +519,9 @@ export default function Portfolio() {
                       <TableCell>
                         <div className="flex items-center">
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-4 w-4" strokeWidth={ICON_STROKE} />
                           ) : (
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-4 w-4" strokeWidth={ICON_STROKE} />
                           )}
                         </div>
                       </TableCell>
@@ -659,7 +661,7 @@ export default function Portfolio() {
                                     className="h-8 w-8"
                                     onClick={handleSaveEdit}
                                   >
-                                    <Check className="h-4 w-4 text-green-600" />
+                                     <Check className="h-4 w-4 text-green-600" strokeWidth={ICON_STROKE} />
                                   </Button>
                                   <Button
                                     size="icon"
@@ -667,7 +669,7 @@ export default function Portfolio() {
                                     className="h-8 w-8"
                                     onClick={() => setEditing(null)}
                                   >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-4 w-4" strokeWidth={ICON_STROKE} />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -678,7 +680,7 @@ export default function Portfolio() {
                           <TableRow key={child.id}>
                             <TableCell></TableCell>
                             <TableCell className="pl-10 text-sm flex items-center gap-2">
-                              <Building2 className="h-3 w-3 text-muted-foreground" />
+                              <Building2 className="h-3 w-3 text-muted-foreground" strokeWidth={ICON_STROKE} />
                               {child.account}
                             </TableCell>
                             <TableCell></TableCell>
@@ -714,7 +716,7 @@ export default function Portfolio() {
                                     setEditing(child);
                                   }}
                                 >
-                                  <Pencil className="h-3 w-3" />
+                                  <Pencil className="h-3 w-3" strokeWidth={ICON_STROKE} />
                                 </Button>
                                 <Button
                                   size="icon"
@@ -725,7 +727,7 @@ export default function Portfolio() {
                                     deletePortfolioEntry(child.id);
                                   }}
                                 >
-                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                  <Trash2 className="h-3 w-3 text-destructive" strokeWidth={ICON_STROKE} />
                                 </Button>
                               </div>
                             </TableCell>

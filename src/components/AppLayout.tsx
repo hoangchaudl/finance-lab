@@ -2,10 +2,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   ArrowRightLeft,
-  PiggyBank,
-  Briefcase,
+  Wallet,
+  PieChart,
   BarChart3,
   FolderCog,
+  Flame,
   Menu,
   X,
   LogOut,
@@ -31,9 +32,10 @@ import {
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Transactions", path: "/transactions", icon: ArrowRightLeft },
-  { label: "Budget Plan", path: "/budget", icon: PiggyBank },
-  { label: "Portfolio", path: "/portfolio", icon: Briefcase },
+  { label: "Budget Plan", path: "/budget", icon: Wallet },
+  { label: "Portfolio", path: "/portfolio", icon: PieChart },
   { label: "Reports", path: "/report", icon: BarChart3 },
+  { label: "FIRE Goals", path: "/fire", icon: Flame },
   { label: "Categories", path: "/categories", icon: FolderCog },
 ];
 
@@ -95,14 +97,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </div>
               <span className="font-bold text-slate-900">Personal</span>
             </div>
-            <ChevronDown className="h-4 w-4 text-slate-500" />
+            <ChevronDown className="h-4 w-4 text-slate-500" strokeWidth={1.5} />
           </div>
         </div>
 
         {/* Search Bar */}
         <div className="p-4 pb-2">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" strokeWidth={1.5} />
             <Input
               type="text"
               placeholder="Search..."
@@ -129,7 +131,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5" strokeWidth={1.5} />
                   <span className="flex-1">{item.label}</span>
                 </Link>
               </div>
@@ -143,14 +145,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             onClick={() => navigate("/profile")}
             className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-4 w-4" strokeWidth={1.5} />
             <span>Settings</span>
           </button>
           <button
             onClick={signOut}
             className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4" strokeWidth={1.5} />
             <span>Sign Out</span>
           </button>
         </div>
@@ -183,12 +185,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate("/profile")}>
-                <Settings className="mr-2 h-4 w-4" />
+                <Settings className="mr-2 h-4 w-4" strokeWidth={1.5} />
                 <span>Account Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-red-600">
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
                 <span>Sign Out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -40,6 +40,7 @@ import {
   Pencil,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
@@ -391,7 +392,7 @@ export default function Transactions() {
               <>
                 <div className="sm:col-span-2 lg:col-span-1">
                   <Label className="text-blue-600 flex items-center gap-1">
-                    <LinkIcon className="h-3 w-3" /> Link Asset
+                    <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> Link Asset
                   </Label>
                   <Select
                     value={formPortfolioId}
@@ -460,7 +461,7 @@ export default function Transactions() {
               />
             </div>
             <Button type="submit" className="gap-1 lg:col-span-6">
-              <Plus className="h-4 w-4" /> Add
+              <Plus className="h-4 w-4" strokeWidth={1.5} /> Add
             </Button>
           </form>
         </CardContent>
@@ -505,7 +506,7 @@ export default function Transactions() {
                       </span>
                       {getPortfolioName(t.portfolio_entry_id) && (
                         <span className="text-[10px] text-blue-600 flex items-center gap-0.5">
-                          <LinkIcon className="h-2 w-2" />{" "}
+                          <LinkIcon className="h-2 w-2" strokeWidth={1.5} />{" "}
                           {getPortfolioName(t.portfolio_entry_id)}
                         </span>
                       )}
@@ -530,14 +531,14 @@ export default function Transactions() {
                           size="icon"
                           onClick={() => openEdit(t)}
                         >
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                          <Pencil className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(t.id)}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-4 w-4 text-destructive" strokeWidth={1.5} />
                         </Button>
                       </div>
                     </TableCell>
@@ -562,7 +563,7 @@ export default function Transactions() {
               onClick={handlePrevPage}
               disabled={currentPage === 1}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
             </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
@@ -581,7 +582,7 @@ export default function Transactions() {
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
             </Button>
           </div>
         </div>
@@ -632,7 +633,7 @@ export default function Transactions() {
               <>
                 <div>
                   <Label className="text-blue-600 flex items-center gap-1">
-                    <LinkIcon className="h-3 w-3" /> Link Asset
+                    <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> Link Asset
                   </Label>
                   <Select
                     value={editPortfolioId}

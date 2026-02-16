@@ -341,14 +341,16 @@ export function useAppData() {
   const updateFireSettings = useCallback(
     async (s: AppData["fireSettings"]) => {
       if (!user) return;
+      const birthYear = s.currentAge
+        ? new Date().getFullYear() - s.currentAge
+        : s.birthYear;
       await supabase
         .from("profiles")
         .update({
           monthly_expenses: s.monthlyExpenses,
           inflation_rate: s.inflationRate,
           return_rate: s.returnRate,
-          birth_year: s.birthYear,
-          current_age: s.currentAge,
+          birth_year: birthYear,
         })
         .eq("id", user.id);
       await loadFromDB();

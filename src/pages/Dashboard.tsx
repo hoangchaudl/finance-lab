@@ -19,15 +19,24 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { TrendingUp, Target, Check, Pencil, X } from "lucide-react";
+import { TrendingUp, Target, Check, Pencil, X, TrendingDown, Landmark, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-const COLORS = [
+const ALLOC_COLORS = [
   "hsl(160, 84%, 39%)",
   "hsl(38, 92%, 50%)",
   "hsl(217, 91%, 60%)",
 ];
+
+const PORTFOLIO_COLORS: Record<string, string> = {
+  Savings: "#22c55e",
+  Stocks: "#3b82f6",
+  Crypto: "#a855f7",
+  Gold: "#eab308",
+  ETF: "#14b8a6",
+  Other: "#64748b",
+};
 
 export default function Dashboard() {
   const {
@@ -288,7 +297,7 @@ export default function Dashboard() {
                     stroke="none"
                   >
                     {allocData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i]} />
+                      <Cell key={i} fill={ALLOC_COLORS[i]} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(v: number) => `${v}%`} />
@@ -300,7 +309,7 @@ export default function Dashboard() {
                 <div key={d.name} className="flex items-center gap-2">
                   <div
                     className="w-3 h-3 rounded-full"
-                    style={{ background: COLORS[i] }}
+                    style={{ background: ALLOC_COLORS[i] }}
                   />
                   <span>
                     {d.name}: {d.value}%
@@ -308,6 +317,86 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Portfolio Allocation Pie Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio Allocation</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center gap-6">
+            {(() => {
+              const portfolio = data.portfolio ?? [];
+              const investmentEntries = portfolio.filter((e) => e.type !== "Other");
+              const chartData = Object.entries(
+                investmentEntries.reduce(
+                  (acc, e) => {
+                    const val = Number(e.quantity) * Number(e.currentPrice);
+                    acc[e.type] = (acc[e.type] || 0) + val;
+                    return acc;
+                  },
+                  {} as Record<string, number>,
+                ),
+              )
+                .map(([name, value]) => ({ name, value: Math.ceil(value) }))
+                .filter((d) => d.value > 0);
+              const total = chartData.reduce((s, d) => s + d.value, 0);
+
+              if (chartData.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    No portfolio data yet.
+                  </p>
+                );
+              }
+
+              return (
+                <>
+                  <div className="w-32 h-32">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={30}
+                          outerRadius={55}
+                          dataKey="value"
+                          paddingAngle={2}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={PORTFOLIO_COLORS[entry.name] || "#8884d8"}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(val: number) => formatVND(val)}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    {chartData.map((d) => (
+                      <div key={d.name} className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{
+                            background:
+                              PORTFOLIO_COLORS[d.name] || "#8884d8",
+                          }}
+                        />
+                        <span>
+                          {d.name}: {total > 0 ? ((d.value / total) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
@@ -416,6 +505,7 @@ export default function Dashboard() {
                       setAgeInput(currentAge);
                     }}
                   >
+                    <Pencil className="h-4 w-4 mr-1" strokeWidth={1.5} />
                     Edit
                   </Button>
                 </>
@@ -434,12 +524,12 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-sm">Target Allocation</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm">📈 Stocks/Equity</span>
+                    <span className="text-sm flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-blue-500" strokeWidth={1.5} /> Stocks/Equity</span>
                     <span className="font-bold">{targetStockAllocation}%</span>
                   </div>
                   <Progress value={targetStockAllocation} className="h-2" />
                   <div className="flex justify-between items-center">
-                    <span className="text-sm">🏦 Bonds/Safe</span>
+                    <span className="text-sm flex items-center gap-1.5"><Landmark className="h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Bonds/Safe</span>
                     <span className="font-bold">{targetBondAllocation}%</span>
                   </div>
                   <Progress value={targetBondAllocation} className="h-2" />
@@ -451,7 +541,7 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-sm">Actual Allocation</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm">📈 Stocks/Equity</span>
+                    <span className="text-sm flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-blue-500" strokeWidth={1.5} /> Stocks/Equity</span>
                     <span className="font-bold">
                       {portfolioAllocation.stocks.toFixed(1)}%
                     </span>
@@ -461,7 +551,7 @@ export default function Dashboard() {
                     className="h-2"
                   />
                   <div className="flex justify-between items-center">
-                    <span className="text-sm">🏦 Bonds/Safe</span>
+                    <span className="text-sm flex items-center gap-1.5"><Landmark className="h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Bonds/Safe</span>
                     <span className="font-bold">
                       {portfolioAllocation.bonds.toFixed(1)}%
                     </span>

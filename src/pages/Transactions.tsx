@@ -194,7 +194,7 @@ export default function Transactions() {
       amount: parseFloat(formAmount),
       quantity: isPortfolioType ? parseFloat(formQuantity) || 0 : undefined,
       type: formType,
-      category_id: formCategory.startsWith("sub_") ? undefined : formCategory,
+      category_id: formCategory,
       note: formNote || undefined,
       portfolio_entry_id:
         isPortfolioType && formPortfolioId !== "none"
@@ -233,7 +233,7 @@ export default function Transactions() {
       amount: parseFloat(editAmount),
       quantity: isEditPortfolioType ? parseFloat(editQuantity) || 0 : undefined,
       type: editType,
-      category_id: editCategory.startsWith("sub_") ? undefined : editCategory,
+      category_id: editCategory,
       note: editNote || undefined,
       portfolio_entry_id:
         isEditPortfolioType && editPortfolioId !== "none"
@@ -257,8 +257,22 @@ export default function Transactions() {
     });
   };
 
-  const getCategoryById = (id?: string) =>
-    id ? data.categories.find((c) => c.id === id) : undefined;
+  const getCategoryById = (id?: string) => {
+    if (!id) return undefined;
+    // Check if it's a subscription ID
+    if (id.startsWith("sub_")) {
+      const subId = id.replace("sub_", "");
+      const subscription = data.subscriptions?.find((s) => s.id === subId);
+      if (subscription) {
+        return {
+          emoji: "📅",
+          name: subscription.name,
+        };
+      }
+    }
+    // Otherwise, it's a regular category
+    return data.categories.find((c) => c.id === id);
+  };
   const getPortfolioName = (id?: string) =>
     data.portfolio?.find((p) => p.id === id)?.name;
   const monthlyIncome = getTotalIncome(selectedMonth);

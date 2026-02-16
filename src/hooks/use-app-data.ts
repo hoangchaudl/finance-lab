@@ -43,38 +43,47 @@ export function useAppData() {
         supabase.from("goals").select("*").eq("user_id", user.id),
         supabase.from("subscriptions").select("*").eq("user_id", user.id),
         supabase.from("monthly_plans").select("*").eq("user_id", user.id),
-        supabase.from("category_allocations").select("*").eq("user_id", user.id),
+        supabase
+          .from("category_allocations")
+          .select("*")
+          .eq("user_id", user.id),
       ]);
 
       const profile = profileRes.data;
-      const categories: Category[] = (categoriesRes.data || []).map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        emoji: c.emoji,
-        type: c.type,
-      }));
+      const categories: Category[] = (categoriesRes.data || []).map(
+        (c: any) => ({
+          id: c.id,
+          name: c.name,
+          emoji: c.emoji,
+          type: c.type,
+        }),
+      );
 
-      const transactions: Transaction[] = (transactionsRes.data || []).map((t: any) => ({
-        id: t.id,
-        date: t.date,
-        amount: Number(t.amount),
-        quantity: t.quantity ? Number(t.quantity) : undefined,
-        type: t.type,
-        category_id: t.category_id,
-        note: t.note || undefined,
-        portfolio_entry_id: t.portfolio_entry_id || undefined,
-      }));
+      const transactions: Transaction[] = (transactionsRes.data || []).map(
+        (t: any) => ({
+          id: t.id,
+          date: t.date,
+          amount: Number(t.amount),
+          quantity: t.quantity ? Number(t.quantity) : undefined,
+          type: t.type,
+          category_id: t.category_id,
+          note: t.note || undefined,
+          portfolio_entry_id: t.portfolio_entry_id || undefined,
+        }),
+      );
 
-      const portfolio: PortfolioEntry[] = (portfolioRes.data || []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        type: p.type,
-        account: p.account,
-        quantity: Number(p.quantity),
-        purchasePrice: Number(p.purchase_price),
-        currentPrice: Number(p.current_price),
-        notes: p.notes || undefined,
-      }));
+      const portfolio: PortfolioEntry[] = (portfolioRes.data || []).map(
+        (p: any) => ({
+          id: p.id,
+          name: p.name,
+          type: p.type,
+          account: p.account,
+          quantity: Number(p.quantity),
+          purchasePrice: Number(p.purchase_price),
+          currentPrice: Number(p.current_price),
+          notes: p.notes || undefined,
+        }),
+      );
 
       const assets = (assetsRes.data || []).map((a: any) => ({
         id: a.id,
@@ -90,18 +99,22 @@ export function useAppData() {
         target: Number(g.target),
       }));
 
-      const subscriptions: Subscription[] = (subscriptionsRes.data || []).map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        amount: Number(s.amount),
-        due_day: s.due_day,
-      }));
+      const subscriptions: Subscription[] = (subscriptionsRes.data || []).map(
+        (s: any) => ({
+          id: s.id,
+          name: s.name,
+          amount: Number(s.amount),
+          due_day: s.due_day,
+        }),
+      );
 
       // Build monthlyPlans from flat rows
       const monthlyPlans: AppData["monthlyPlans"] = {};
       (plansRes.data || []).forEach((p: any) => {
         if (!monthlyPlans[p.month_key]) monthlyPlans[p.month_key] = {};
-        monthlyPlans[p.month_key][p.category_id] = { planned: Number(p.planned) };
+        monthlyPlans[p.month_key][p.category_id] = {
+          planned: Number(p.planned),
+        };
       });
 
       // Build categoryAllocations
@@ -112,16 +125,33 @@ export function useAppData() {
 
       setData({
         fireSettings: {
-          monthlyExpenses: Number(profile?.monthly_expenses ?? initialData.fireSettings.monthlyExpenses),
-          inflationRate: Number(profile?.inflation_rate ?? initialData.fireSettings.inflationRate),
-          returnRate: Number(profile?.return_rate ?? initialData.fireSettings.returnRate),
-          currentAge: 0, // derived from birthYear
+          monthlyExpenses: Number(
+            profile?.monthly_expenses ??
+              initialData.fireSettings.monthlyExpenses,
+          ),
+          inflationRate: Number(
+            profile?.inflation_rate ?? initialData.fireSettings.inflationRate,
+          ),
+          returnRate: Number(
+            profile?.return_rate ?? initialData.fireSettings.returnRate,
+          ),
+          currentAge: Number(
+            profile?.current_age ?? initialData.fireSettings.currentAge,
+          ),
           birthYear: profile?.birth_year ?? initialData.fireSettings.birthYear,
         },
         incomeAllocations: {
-          essentials_pct: Number(profile?.essentials_pct ?? initialData.incomeAllocations.essentials_pct),
-          lifestyle_pct: Number(profile?.lifestyle_pct ?? initialData.incomeAllocations.lifestyle_pct),
-          savings_pct: Number(profile?.savings_pct ?? initialData.incomeAllocations.savings_pct),
+          essentials_pct: Number(
+            profile?.essentials_pct ??
+              initialData.incomeAllocations.essentials_pct,
+          ),
+          lifestyle_pct: Number(
+            profile?.lifestyle_pct ??
+              initialData.incomeAllocations.lifestyle_pct,
+          ),
+          savings_pct: Number(
+            profile?.savings_pct ?? initialData.incomeAllocations.savings_pct,
+          ),
         },
         categories,
         transactions,
@@ -163,11 +193,19 @@ export function useAppData() {
         .select()
         .single();
 
-      if (error) { console.error(error); return; }
+      if (error) {
+        console.error(error);
+        return;
+      }
 
       // Update portfolio if linked
-      if (t.portfolio_entry_id && ["investing", "saving", "expense"].includes(t.type)) {
-        const entry = data.portfolio?.find((p) => p.id === t.portfolio_entry_id);
+      if (
+        t.portfolio_entry_id &&
+        ["investing", "saving", "expense"].includes(t.type)
+      ) {
+        const entry = data.portfolio?.find(
+          (p) => p.id === t.portfolio_entry_id,
+        );
         if (entry) {
           const txQty = Number(t.quantity) || 0;
           const txAmount = Number(t.amount) || 0;
@@ -196,11 +234,14 @@ export function useAppData() {
       const dbUpdate: any = {};
       if (updates.date !== undefined) dbUpdate.date = updates.date;
       if (updates.amount !== undefined) dbUpdate.amount = updates.amount;
-      if (updates.quantity !== undefined) dbUpdate.quantity = updates.quantity ?? null;
+      if (updates.quantity !== undefined)
+        dbUpdate.quantity = updates.quantity ?? null;
       if (updates.type !== undefined) dbUpdate.type = updates.type;
-      if (updates.category_id !== undefined) dbUpdate.category_id = updates.category_id;
+      if (updates.category_id !== undefined)
+        dbUpdate.category_id = updates.category_id;
       if (updates.note !== undefined) dbUpdate.note = updates.note ?? null;
-      if (updates.portfolio_entry_id !== undefined) dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
+      if (updates.portfolio_entry_id !== undefined)
+        dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
 
       await supabase.from("transactions").update(dbUpdate).eq("id", id);
       await loadFromDB();
@@ -214,8 +255,14 @@ export function useAppData() {
 
       const tx = data.transactions.find((t) => t.id === id);
 
-      if (tx && tx.portfolio_entry_id && ["investing", "saving", "expense"].includes(tx.type)) {
-        const entry = data.portfolio?.find((p) => p.id === tx.portfolio_entry_id);
+      if (
+        tx &&
+        tx.portfolio_entry_id &&
+        ["investing", "saving", "expense"].includes(tx.type)
+      ) {
+        const entry = data.portfolio?.find(
+          (p) => p.id === tx.portfolio_entry_id,
+        );
         if (entry) {
           const txQty = Number(tx.quantity) || 0;
           const txAmount = Number(tx.amount) || 0;
@@ -224,7 +271,8 @@ export function useAppData() {
           const newQty = currentQty - txQty;
           const currentTotalCost = currentQty * currentAvg;
           const newTotalCost = currentTotalCost - txAmount;
-          const newAvgPrice = newQty > 0 ? Math.ceil(newTotalCost / newQty) : currentAvg;
+          const newAvgPrice =
+            newQty > 0 ? Math.ceil(newTotalCost / newQty) : currentAvg;
 
           await supabase
             .from("portfolio_entries")
@@ -247,7 +295,7 @@ export function useAppData() {
         .from("monthly_plans")
         .upsert(
           { user_id: user.id, month_key: m, category_id: c, planned: p },
-          { onConflict: "user_id,month_key,category_id" }
+          { onConflict: "user_id,month_key,category_id" },
         );
       await loadFromDB();
     },
@@ -276,11 +324,14 @@ export function useAppData() {
   const updateAllocations = useCallback(
     async (a: AppData["incomeAllocations"]) => {
       if (!user) return;
-      await supabase.from("profiles").update({
-        essentials_pct: a.essentials_pct,
-        lifestyle_pct: a.lifestyle_pct,
-        savings_pct: a.savings_pct,
-      }).eq("id", user.id);
+      await supabase
+        .from("profiles")
+        .update({
+          essentials_pct: a.essentials_pct,
+          lifestyle_pct: a.lifestyle_pct,
+          savings_pct: a.savings_pct,
+        })
+        .eq("id", user.id);
       await loadFromDB();
     },
     [user, loadFromDB],
@@ -290,12 +341,16 @@ export function useAppData() {
   const updateFireSettings = useCallback(
     async (s: AppData["fireSettings"]) => {
       if (!user) return;
-      await supabase.from("profiles").update({
-        monthly_expenses: s.monthlyExpenses,
-        inflation_rate: s.inflationRate,
-        return_rate: s.returnRate,
-        birth_year: s.birthYear,
-      }).eq("id", user.id);
+      await supabase
+        .from("profiles")
+        .update({
+          monthly_expenses: s.monthlyExpenses,
+          inflation_rate: s.inflationRate,
+          return_rate: s.returnRate,
+          birth_year: s.birthYear,
+          current_age: s.currentAge,
+        })
+        .eq("id", user.id);
       await loadFromDB();
     },
     [user, loadFromDB],
@@ -326,7 +381,10 @@ export function useAppData() {
 
   const deleteCategory = useCallback(
     async (id: string) => {
-      await supabase.from("category_allocations").delete().eq("category_id", id);
+      await supabase
+        .from("category_allocations")
+        .delete()
+        .eq("category_id", id);
       await supabase.from("categories").delete().eq("id", id);
       await loadFromDB();
     },
@@ -340,7 +398,7 @@ export function useAppData() {
         .from("category_allocations")
         .upsert(
           { user_id: user.id, category_id: id, percentage: p },
-          { onConflict: "user_id,category_id" }
+          { onConflict: "user_id,category_id" },
         );
       await loadFromDB();
     },
@@ -404,7 +462,8 @@ export function useAppData() {
       if (u.type !== undefined) dbUpdate.type = u.type;
       if (u.account !== undefined) dbUpdate.account = u.account;
       if (u.quantity !== undefined) dbUpdate.quantity = u.quantity;
-      if (u.purchasePrice !== undefined) dbUpdate.purchase_price = u.purchasePrice;
+      if (u.purchasePrice !== undefined)
+        dbUpdate.purchase_price = u.purchasePrice;
       if (u.currentPrice !== undefined) dbUpdate.current_price = u.currentPrice;
       if (u.notes !== undefined) dbUpdate.notes = u.notes;
 

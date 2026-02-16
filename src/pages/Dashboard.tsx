@@ -3,8 +3,25 @@ import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { TrendingUp, Target } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+} from "recharts";
+import { TrendingUp, Target, Save } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const COLORS = [
   "hsl(160, 84%, 39%)",
@@ -21,7 +38,13 @@ export default function Dashboard() {
     getTotalSavings,
     getTotalInvestments,
     getTotalInvestmentCost,
+    updateFireSettings,
   } = useApp();
+  const { toast } = useToast();
+  const [editingAge, setEditingAge] = useState(false);
+  const [ageInput, setAgeInput] = useState(data.fireSettings.currentAge);
+  const [savingAge, setSavingAge] = useState(false);
+
   const monthKey = getMonthKey();
   const income = getTotalIncome(monthKey);
   const expenses = getTotalExpenses(monthKey);
@@ -61,9 +84,83 @@ export default function Dashboard() {
       ? (remainingTarget * r) / (Math.pow(1 + r, months) - 1)
       : 0;
 
-  // Stock/Bond allocation based on "100 minus age" rule
-  const stockAllocation = (requiredMonthlySavings * (100 - currentAge)) / 100;
-  const bondAllocation = (requiredMonthlySavings * currentAge) / 100;
+  // Stock/Bond allocation based on "110 minus age" rule
+  const targetStockAllocation = 110 - currentAge;
+  const targetBondAllocation = 100 - targetStockAllocation;
+
+  // Calculate actual portfolio allocation
+  const calculatePortfolioAllocation = () => {
+    if (!data.portfolio || data.portfolio.length === 0) {
+      return { stocks: 0, bonds: 0, other: 0, total: 0 };
+    }
+
+    const portfolioValue = data.portfolio.reduce((sum, p) => {
+      return sum + p.quantity * p.currentPrice;
+    }, 0);
+
+    if (portfolioValue === 0) {
+      return { stocks: 0, bonds: 0, other: 0, total: 0 };
+    }
+
+    const stocks = data.portfolio
+      .filter(
+        (p) =>
+          p.type.toLowerCase().includes("stock") ||
+          p.type.toLowerCase().includes("equity"),
+      )
+      .reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
+
+    const bonds = data.portfolio
+      .filter(
+        (p) =>
+          p.type.toLowerCase().includes("bond") ||
+          p.type.toLowerCase().includes("fixed"),
+      )
+      .reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
+
+    const other = portfolioValue - stocks - bonds;
+
+    return {
+      stocks: (stocks / portfolioValue) * 100,
+      bonds: (bonds / portfolioValue) * 100,
+      other: (other / portfolioValue) * 100,
+      total: portfolioValue,
+    };
+  };
+
+  const portfolioAllocation = calculatePortfolioAllocation();
+
+  const handleSaveAge = async () => {
+    if (ageInput < 0 || ageInput > 150) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid age (0-150)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingAge(true);
+    try {
+      await updateFireSettings({
+        ...data.fireSettings,
+        currentAge: ageInput,
+      });
+      toast({
+        title: "Success",
+        description: "Age saved successfully",
+      });
+      setEditingAge(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save age",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingAge(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -145,12 +242,17 @@ export default function Dashboard() {
             </p>
             {(() => {
               const cost = getTotalInvestmentCost();
-              const roi = cost > 0 ? ((totalInvestments - cost) / cost) * 100 : 0;
+              const roi =
+                cost > 0 ? ((totalInvestments - cost) / cost) * 100 : 0;
               const profit = totalInvestments - cost;
               const isPositive = profit >= 0;
               return (
-                <p className={`text-sm mt-1 ${isPositive ? "text-primary" : "text-destructive"}`}>
-                  {isPositive ? "+" : ""}{roi.toFixed(2)}% ({isPositive ? "+" : ""}{formatVND(Math.round(profit))})
+                <p
+                  className={`text-sm mt-1 ${isPositive ? "text-primary" : "text-destructive"}`}
+                >
+                  {isPositive ? "+" : ""}
+                  {roi.toFixed(2)}% ({isPositive ? "+" : ""}
+                  {formatVND(Math.round(profit))})
                 </p>
               );
             })()}
@@ -276,52 +378,147 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Stock / Bond Allocation */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-green-700 dark:text-green-400">
-              📈 Invest in Stocks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700 dark:text-green-400">
-              {formatVND(Math.ceil(stockAllocation))}
+      {/* Age Settings & Target Asset Allocation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Target Asset Allocation (Rule of 110)</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Age Input */}
+          <div className="space-y-3">
+            <Label>Your Current Age</Label>
+            <div className="flex items-center gap-3">
+              {editingAge ? (
+                <>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="150"
+                    value={ageInput}
+                    onChange={(e) => setAgeInput(parseInt(e.target.value) || 0)}
+                    className="w-32"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSaveAge}
+                    disabled={savingAge}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {savingAge ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditingAge(false);
+                      setAgeInput(currentAge);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-primary">
+                    {currentAge}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingAge(true)}
+                  >
+                    Edit
+                  </Button>
+                </>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {100 - currentAge}% of monthly contribution (Age: {currentAge})
+            <p className="text-xs text-muted-foreground">
+              Formula: Target Stocks = 110 - Age | Target Bonds = 100 - Stocks
             </p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-amber-700 dark:text-amber-400">
-              🏦 Invest in Bonds
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-700 dark:text-amber-400">
-              {formatVND(Math.ceil(bondAllocation))}
+          {/* Asset Allocation Comparison */}
+          <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Target Allocation */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm">Target Allocation</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">📈 Stocks/Equity</span>
+                    <span className="font-bold">{targetStockAllocation}%</span>
+                  </div>
+                  <Progress value={targetStockAllocation} className="h-2" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">🏦 Bonds/Safe</span>
+                    <span className="font-bold">{targetBondAllocation}%</span>
+                  </div>
+                  <Progress value={targetBondAllocation} className="h-2" />
+                </div>
+              </div>
+
+              {/* Actual Allocation */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm">Actual Allocation</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">📈 Stocks/Equity</span>
+                    <span className="font-bold">
+                      {portfolioAllocation.stocks.toFixed(1)}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={portfolioAllocation.stocks}
+                    className="h-2"
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">🏦 Bonds/Safe</span>
+                    <span className="font-bold">
+                      {portfolioAllocation.bonds.toFixed(1)}%
+                    </span>
+                  </div>
+                  <Progress value={portfolioAllocation.bonds} className="h-2" />
+                  {portfolioAllocation.other > 0 && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Other</span>
+                        <span className="font-bold">
+                          {portfolioAllocation.other.toFixed(1)}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={portfolioAllocation.other}
+                        className="h-2"
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {currentAge}% of monthly contribution (Age: {currentAge})
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Alert>
-        <Target className="h-4 w-4" />
-        <AlertTitle>Action Plan</AlertTitle>
-        <AlertDescription>
-          To reach Financial Independence by age {currentAge + yearsToGrow}, you
-          need to invest <strong>{formatVND(requiredMonthlySavings)}</strong>{" "}
-          every month — <strong>{formatVND(Math.ceil(stockAllocation))}</strong>{" "}
-          in stocks and <strong>{formatVND(Math.ceil(bondAllocation))}</strong>{" "}
-          in bonds.
-        </AlertDescription>
-      </Alert>
+            {/* Allocation Summary */}
+            {portfolioAllocation.total > 0 && (
+              <div className="bg-muted p-4 rounded-lg text-sm">
+                <p className="font-semibold mb-2">
+                  Portfolio Value: {formatVND(portfolioAllocation.total)}
+                </p>
+                <p className="text-muted-foreground">
+                  Your portfolio is currently{" "}
+                  {Math.abs(
+                    portfolioAllocation.stocks - targetStockAllocation,
+                  ).toFixed(1)}
+                  % off target for stocks.
+                  {portfolioAllocation.stocks > targetStockAllocation
+                    ? " Consider rebalancing towards bonds."
+                    : " Consider rebalancing towards stocks."}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

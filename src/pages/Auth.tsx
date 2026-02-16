@@ -80,9 +80,7 @@ export default function Auth() {
         <CardHeader className="text-center space-y-4">
           <div className="flex items-center justify-center gap-2">
             <Landmark className="h-8 w-8 text-primary" strokeWidth={1.5} />
-            <CardTitle className="text-2xl font-bold text-primary">
-              Finance Hub
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold text-primary">Finance Lab</CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create a new account"}
@@ -152,22 +150,12 @@ export default function Auth() {
                   minLength={6}
                 />
                 {confirmPassword && password !== confirmPassword && (
-                  <p className="text-xs text-destructive">
-                    Passwords do not match
-                  </p>
+                  <p className="text-xs text-destructive">Passwords do not match</p>
                 )}
               </div>
             )}
-            {error && (
-              <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-                {error}
-              </p>
-            )}
-            {message && (
-              <p className="text-sm text-primary bg-primary/10 p-2 rounded">
-                {message}
-              </p>
-            )}
+            {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
+            {message && <p className="text-sm text-primary bg-primary/10 p-2 rounded">{message}</p>}
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
@@ -187,9 +175,7 @@ export default function Auth() {
                 setPhone("");
               }}
             >
-              {isLogin
-                ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
+              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
             </button>
           </div>
         </CardContent>

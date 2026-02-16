@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
+import {
+  formatVND,
+  getMonthKey,
+  getMonthLabel,
+  formatDate,
+} from "@/lib/format";
 import { Transaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +33,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Link as LinkIcon, Pencil } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Link as LinkIcon,
+  Pencil,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Combobox, ComboboxOption } from "@/components/ui/combobox";
 
 export default function Transactions() {
   const {
@@ -40,6 +54,7 @@ export default function Transactions() {
     getActualForCategory,
     getTotalIncome,
   } = useApp();
+  const { toast } = useToast();
 
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
   const [formType, setFormType] = useState<
@@ -54,9 +69,15 @@ export default function Transactions() {
   const [formPortfolioId, setFormPortfolioId] = useState<string>("none");
   const [formQuantity, setFormQuantity] = useState("");
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Edit state
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [editType, setEditType] = useState<"income" | "expense" | "investing" | "saving">("expense");
+  const [editType, setEditType] = useState<
+    "income" | "expense" | "investing" | "saving"
+  >("expense");
   const [editCategory, setEditCategory] = useState("");
   const [editAmount, setEditAmount] = useState("");
   const [editDate, setEditDate] = useState("");
@@ -64,9 +85,26 @@ export default function Transactions() {
   const [editQuantity, setEditQuantity] = useState("");
   const [editPortfolioId, setEditPortfolioId] = useState<string>("none");
 
-  const transactions = getMonthTransactions(selectedMonth).sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  const transactions = getMonthTransactions(selectedMonth).sort((a, b) => {
+    // First, sort by date descending (newer dates first)
+    const dateComparison =
+      new Date(b.date).getTime() - new Date(a.date).getTime();
+    if (dateComparison !== 0) return dateComparison;
+    // If dates are the same, sort by ID descending (newer transactions first)
+    return b.id.localeCompare(a.id);
+  });
+
+  // Format amount with dot thousands separator for display
+  const formatAmountDisplay = (value: string): string => {
+    if (!value) return "";
+    const numStr = value.replace(/\D/g, "");
+    return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  // Parse formatted amount back to number
+  const parseFormattedAmount = (value: string): string => {
+    return value.replace(/\./g, "");
+  };
 
   const filteredCategories = data.categories.filter((c) => {
     if (formType === "income") return c.type === "income";
@@ -82,6 +120,47 @@ export default function Transactions() {
     return c.type === "essential" || c.type === "nonessential";
   });
 
+  // Merge categories and subscriptions into combobox options
+  const getCategoryComboboxOptions = (
+    categories: typeof filteredCategories,
+  ): ComboboxOption[] => {
+    const options: ComboboxOption[] = categories.map((c) => ({
+      value: c.id,
+      label: `${c.emoji} ${c.name}`,
+    }));
+
+    if (formType === "expense") {
+      data.subscriptions?.forEach((sub) => {
+        options.push({
+          value: `sub_${sub.id}`,
+          label: `📅 ${sub.name}`,
+        });
+      });
+    }
+
+    return options;
+  };
+
+  const getEditCategoryComboboxOptions = (
+    categories: typeof editFilteredCategories,
+  ): ComboboxOption[] => {
+    const options: ComboboxOption[] = categories.map((c) => ({
+      value: c.id,
+      label: `${c.emoji} ${c.name}`,
+    }));
+
+    if (editType === "expense") {
+      data.subscriptions?.forEach((sub) => {
+        options.push({
+          value: `sub_${sub.id}`,
+          label: `📅 ${sub.name}`,
+        });
+      });
+    }
+
+    return options;
+  };
+
   const isPortfolioType = formType === "investing" || formType === "saving";
   const isEditPortfolioType = editType === "investing" || editType === "saving";
 
@@ -96,6 +175,16 @@ export default function Transactions() {
       ? parseFloat(formAmount) / parseFloat(formQuantity)
       : 0;
 
+  const handleAmountChange = (value: string) => {
+    const numeric = parseFormattedAmount(value);
+    setFormAmount(numeric);
+  };
+
+  const handleEditAmountChange = (value: string) => {
+    const numeric = parseFormattedAmount(value);
+    setEditAmount(numeric);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formCategory || !formAmount) return;
@@ -105,12 +194,17 @@ export default function Transactions() {
       amount: parseFloat(formAmount),
       quantity: isPortfolioType ? parseFloat(formQuantity) || 0 : undefined,
       type: formType,
-      category_id: formCategory,
+      category_id: formCategory.startsWith("sub_") ? undefined : formCategory,
       note: formNote || undefined,
       portfolio_entry_id:
         isPortfolioType && formPortfolioId !== "none"
           ? formPortfolioId
           : undefined,
+    });
+
+    toast({
+      title: "Success",
+      description: "Transaction added successfully",
     });
 
     setFormAmount("");
@@ -139,7 +233,7 @@ export default function Transactions() {
       amount: parseFloat(editAmount),
       quantity: isEditPortfolioType ? parseFloat(editQuantity) || 0 : undefined,
       type: editType,
-      category_id: editCategory,
+      category_id: editCategory.startsWith("sub_") ? undefined : editCategory,
       note: editNote || undefined,
       portfolio_entry_id:
         isEditPortfolioType && editPortfolioId !== "none"
@@ -147,11 +241,24 @@ export default function Transactions() {
           : undefined,
     });
 
+    toast({
+      title: "Success",
+      description: "Transaction updated successfully",
+    });
+
     setEditingTx(null);
   };
 
-  const getCategoryById = (id: string) =>
-    data.categories.find((c) => c.id === id);
+  const handleDelete = (id: string) => {
+    deleteTransaction(id);
+    toast({
+      title: "Deleted",
+      description: "Transaction deleted successfully",
+    });
+  };
+
+  const getCategoryById = (id?: string) =>
+    id ? data.categories.find((c) => c.id === id) : undefined;
   const getPortfolioName = (id?: string) =>
     data.portfolio?.find((p) => p.id === id)?.name;
   const monthlyIncome = getTotalIncome(selectedMonth);
@@ -179,6 +286,22 @@ export default function Transactions() {
       default:
         return <Badge variant="secondary">Expense</Badge>;
     }
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedTransactions = transactions.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
   return (
@@ -241,18 +364,13 @@ export default function Transactions() {
             </div>
             <div>
               <Label>Category</Label>
-              <Select value={formCategory} onValueChange={setFormCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredCategories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.emoji} {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={getCategoryComboboxOptions(filteredCategories)}
+                value={formCategory}
+                onValueChange={setFormCategory}
+                placeholder="Select category..."
+                searchPlaceholder="Search categories..."
+              />
             </div>
 
             {isPortfolioType && (
@@ -298,9 +416,9 @@ export default function Transactions() {
             <div className={isPortfolioType ? "" : "lg:col-span-1"}>
               <Label>{isPortfolioType ? "Total Cost" : "Amount"}</Label>
               <Input
-                type="number"
-                value={formAmount}
-                onChange={(e) => setFormAmount(e.target.value)}
+                type="text"
+                value={formatAmountDisplay(formAmount)}
+                onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="0"
               />
               {isPortfolioType && impliedPrice > 0 && (
@@ -349,19 +467,23 @@ export default function Transactions() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.length === 0 ? (
+              {paginatedTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={7}
                     className="text-center text-muted-foreground py-8"
                   >
-                    No transactions yet
+                    {transactions.length === 0
+                      ? "No transactions yet"
+                      : "No transactions on this page"}
                   </TableCell>
                 </TableRow>
               ) : (
-                transactions.map((t) => (
+                paginatedTransactions.map((t) => (
                   <TableRow key={t.id}>
-                    <TableCell className="text-sm">{t.date}</TableCell>
+                    <TableCell className="text-sm">
+                      {formatDate(t.date)}
+                    </TableCell>
                     <TableCell>
                       <span className="text-sm block">
                         {getCategoryById(t.category_id)?.emoji}{" "}
@@ -399,7 +521,7 @@ export default function Transactions() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => deleteTransaction(t.id)}
+                          onClick={() => handleDelete(t.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -413,8 +535,49 @@ export default function Transactions() {
         </CardContent>
       </Card>
 
+      {/* Pagination Controls */}
+      {transactions.length > 0 && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages} ({transactions.length} total)
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className="min-w-10"
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Edit Dialog */}
-      <Dialog open={!!editingTx} onOpenChange={(open) => !open && setEditingTx(null)}>
+      <Dialog
+        open={!!editingTx}
+        onOpenChange={(open) => !open && setEditingTx(null)}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Transaction</DialogTitle>
@@ -442,18 +605,13 @@ export default function Transactions() {
             </div>
             <div>
               <Label>Category</Label>
-              <Select value={editCategory} onValueChange={setEditCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {editFilteredCategories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.emoji} {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={getEditCategoryComboboxOptions(editFilteredCategories)}
+                value={editCategory}
+                onValueChange={setEditCategory}
+                placeholder="Select category..."
+                searchPlaceholder="Search categories..."
+              />
             </div>
 
             {isEditPortfolioType && (
@@ -462,7 +620,10 @@ export default function Transactions() {
                   <Label className="text-blue-600 flex items-center gap-1">
                     <LinkIcon className="h-3 w-3" /> Link Asset
                   </Label>
-                  <Select value={editPortfolioId} onValueChange={setEditPortfolioId}>
+                  <Select
+                    value={editPortfolioId}
+                    onValueChange={setEditPortfolioId}
+                  >
                     <SelectTrigger className="border-blue-200 bg-blue-50/50">
                       <SelectValue placeholder="Select Asset" />
                     </SelectTrigger>
@@ -492,9 +653,9 @@ export default function Transactions() {
             <div>
               <Label>{isEditPortfolioType ? "Total Cost" : "Amount"}</Label>
               <Input
-                type="number"
-                value={editAmount}
-                onChange={(e) => setEditAmount(e.target.value)}
+                type="text"
+                value={formatAmountDisplay(editAmount)}
+                onChange={(e) => handleEditAmountChange(e.target.value)}
                 placeholder="0"
                 required
               />
@@ -517,7 +678,11 @@ export default function Transactions() {
               />
             </div>
             <div className="col-span-2 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditingTx(null)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingTx(null)}
+              >
                 Cancel
               </Button>
               <Button type="submit">Save Changes</Button>

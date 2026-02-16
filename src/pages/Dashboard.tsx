@@ -42,7 +42,7 @@ export default function Dashboard() {
   } = useApp();
   const { toast } = useToast();
   const [editingAge, setEditingAge] = useState(false);
-  const [ageInput, setAgeInput] = useState(data.fireSettings.currentAge);
+  const [ageInput, setAgeInput] = useState<number | null>(null);
   const [savingAge, setSavingAge] = useState(false);
 
   const monthKey = getMonthKey();
@@ -131,7 +131,7 @@ export default function Dashboard() {
   const portfolioAllocation = calculatePortfolioAllocation();
 
   const handleSaveAge = async () => {
-    if (ageInput < 0 || ageInput > 150) {
+    if (ageInput === null || ageInput < 0 || ageInput > 150) {
       toast({
         title: "Error",
         description: "Please enter a valid age (0-150)",
@@ -164,9 +164,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">
-        Overview — {getMonthLabel(monthKey)}
-      </h1>
+      <div className="flex justify-between items-start">
+        <h1 className="text-2xl font-bold">
+          Overview — {getMonthLabel(monthKey)}
+        </h1>
+      </div>
+
+      {/* Hero Balance Card */}
+      <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-3xl p-8 text-white shadow-lg">
+        <p className="text-sm text-blue-100 mb-2">Total Net Worth</p>
+        <h2 className="text-4xl font-bold">{formatVND(netWorth)}</h2>
+      </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -261,30 +269,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Net Worth */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Net Worth</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-primary mb-4">
-              {formatVND(netWorth)}
-            </p>
-            <div className="space-y-2">
-              {data.assets.map((a) => (
-                <div key={a.id} className="flex justify-between text-sm">
-                  <span>
-                    {a.emoji} {a.name}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {formatVND(a.value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Income Allocation */}
         <Card>
           <CardHeader>
@@ -396,7 +380,7 @@ export default function Dashboard() {
                     type="number"
                     min="0"
                     max="150"
-                    value={ageInput}
+                    value={ageInput ?? currentAge}
                     onChange={(e) => setAgeInput(parseInt(e.target.value) || 0)}
                     className="w-32"
                   />
@@ -413,7 +397,7 @@ export default function Dashboard() {
                     variant="outline"
                     onClick={() => {
                       setEditingAge(false);
-                      setAgeInput(currentAge);
+                      setAgeInput(null);
                     }}
                   >
                     Cancel
@@ -427,7 +411,10 @@ export default function Dashboard() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setEditingAge(true)}
+                    onClick={() => {
+                      setEditingAge(true);
+                      setAgeInput(currentAge);
+                    }}
                   >
                     Edit
                   </Button>

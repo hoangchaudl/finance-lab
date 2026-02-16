@@ -4,46 +4,51 @@
 
 @layer base {
   :root {
-    --background: 0 0% 95%;
-    --foreground: 0 0% 15%;
+    /* Light Gray/Blue Background */
+    --background: 210 20% 98%;
+    --foreground: 222.2 84% 4.9%;
 
+    /* Pure White Cards */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 15%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 15%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 100%;
+    /* Electric Blue Primary */
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 0 0% 93%;
-    --secondary-foreground: 0 0% 15%;
+    --secondary: 210 20% 98%;
+    --secondary-foreground: 222.2 84% 4.9%;
 
-    --muted: 0 0% 93%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 210 10% 88%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
     --accent: 0 0% 93%;
-    --accent-foreground: 0 0% 15%;
+    --accent-foreground: 222.2 84% 4.9%;
 
-    --destructive: 0 72% 51%;
+    /* Semantic Colors */
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
+    --success: 142.1 76.2% 36.3%;
 
-    --border: 0 0% 88%;
-    --input: 0 0% 88%;
-    --ring: 160 84% 39%;
+    --border: 210 20% 95%;
+    --input: 210 20% 95%;
+    --ring: 221.2 83.2% 53.3%;
 
-    --radius: 0.75rem;
+    --radius: 1.2rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 35%;
-    --sidebar-primary: 0 0% 15%;
+    --sidebar-primary: 221.2 83.2% 53.3%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 95%;
-    --sidebar-accent-foreground: 0 0% 15%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 160 84% 39%;
+    --sidebar-accent: 210 20% 98%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 210 20% 95%;
+    --sidebar-ring: 221.2 83.2% 53.3%;
 
-    --success: 160 84% 39%;
+    --success: 142.1 76.2% 36.3%;
     --warning: 38 92% 50%;
   }
 }
@@ -55,5 +60,24 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom shadow utilities for the design system */
+@layer components {
+  .card-shadow {
+    @apply shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)];
+  }
+
+  .floating-nav-shadow {
+    @apply shadow-[0_10px_40px_-10px_rgba(37,99,235,0.2)];
+  }
+
+  .card-base {
+    @apply bg-white rounded-2xl card-shadow border-0;
+  }
+
+  .hero-gradient {
+    @apply bg-gradient-to-br from-blue-600 to-blue-500;
   }
 }

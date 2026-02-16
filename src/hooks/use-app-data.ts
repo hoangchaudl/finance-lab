@@ -195,7 +195,7 @@ export function useAppData() {
 
       if (error) {
         console.error(error);
-        return;
+        throw new Error(error.message);
       }
 
       // Update portfolio if linked

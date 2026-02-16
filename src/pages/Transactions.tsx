@@ -186,32 +186,51 @@ export default function Transactions() {
     setEditAmount(numeric);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formCategory || !formAmount) return;
 
-    addTransaction({
-      date: formDate,
-      amount: parseFloat(formAmount),
-      quantity: isPortfolioType ? parseFloat(formQuantity) || 0 : undefined,
-      type: formType,
-      category_id: formCategory,
-      note: formNote || undefined,
-      portfolio_entry_id:
-        isPortfolioType && formPortfolioId !== "none"
-          ? formPortfolioId
-          : undefined,
-    });
+    // Handle subscription selections: sub_ prefix means it's a subscription, not a category
+    let categoryId: string | null = formCategory;
+    let note = formNote || undefined;
+    if (formCategory.startsWith("sub_")) {
+      const subId = formCategory.replace("sub_", "");
+      const subscription = data.subscriptions?.find((s) => s.id === subId);
+      categoryId = null;
+      note = subscription ? `📅 ${subscription.name}${formNote ? ` – ${formNote}` : ""}` : note;
+    }
 
-    toast({
-      title: "Success",
-      description: "Transaction added successfully",
-    });
+    try {
+      await addTransaction({
+        date: formDate,
+        amount: parseFloat(formAmount),
+        quantity: isPortfolioType ? parseFloat(formQuantity) || 0 : undefined,
+        type: formType,
+        category_id: categoryId as string,
+        note,
+        portfolio_entry_id:
+          isPortfolioType && formPortfolioId !== "none"
+            ? formPortfolioId
+            : undefined,
+      });
 
-    setFormAmount("");
-    setFormQuantity("");
-    setFormNote("");
-    if (isPortfolioType) setFormPortfolioId("none");
+      toast({
+        title: "Success",
+        description: "Transaction added successfully",
+      });
+
+      setFormAmount("");
+      setFormQuantity("");
+      setFormNote("");
+      setFormCategory("");
+      if (isPortfolioType) setFormPortfolioId("none");
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to add transaction",
+        variant: "destructive",
+      });
+    }
   };
 
   const openEdit = (t: Transaction) => {
@@ -225,17 +244,26 @@ export default function Transactions() {
     setEditPortfolioId(t.portfolio_entry_id || "none");
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTx || !editCategory || !editAmount) return;
 
-    updateTransaction(editingTx.id, {
+    let categoryId: string | null = editCategory;
+    let note = editNote || undefined;
+    if (editCategory.startsWith("sub_")) {
+      const subId = editCategory.replace("sub_", "");
+      const subscription = data.subscriptions?.find((s) => s.id === subId);
+      categoryId = null;
+      note = subscription ? `📅 ${subscription.name}${editNote ? ` – ${editNote}` : ""}` : note;
+    }
+
+    await updateTransaction(editingTx.id, {
       date: editDate,
       amount: parseFloat(editAmount),
       quantity: isEditPortfolioType ? parseFloat(editQuantity) || 0 : undefined,
       type: editType,
-      category_id: editCategory,
-      note: editNote || undefined,
+      category_id: categoryId as string,
+      note,
       portfolio_entry_id:
         isEditPortfolioType && editPortfolioId !== "none"
           ? editPortfolioId

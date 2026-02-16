@@ -85,15 +85,6 @@ export default function Layout({ children }: {children: React.ReactNode;}) {
         ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
 
-        {/* Header with Logo */}
-        <div className="p-4 border-b border-white">
-          
-
-
-
-
-
-        </div>
 
         {/* Search Bar */}
         <div className="p-4 pb-2">

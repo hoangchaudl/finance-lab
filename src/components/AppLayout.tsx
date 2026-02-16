@@ -9,7 +9,6 @@ import {
   Menu,
   X,
   LogOut,
-  Settings,
   Search } from
 "lucide-react";
 import { useState } from "react";
@@ -118,13 +117,6 @@ export default function Layout({ children }: {children: React.ReactNode;}) {
 
         {/* Footer Section */}
         <div className="border-t border-slate-200 p-3 space-y-2">
-          <button
-            onClick={() => navigate("/profile")}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-
-            <Settings className="h-4 w-4" strokeWidth={1.5} />
-            <span>Settings</span>
-          </button>
           <button
             onClick={signOut}
             className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">

@@ -217,7 +217,7 @@ export function useAppData() {
         // Do NOT change purchasePrice (avg cost stays the same)
         await supabase
           .from("portfolio_entries")
-          .update({ quantity: newQty })
+          .update({ quantity: newQty, updated_at: new Date().toISOString() })
           .eq("id", t.portfolio_entry_id);
       }
 
@@ -241,7 +241,7 @@ export function useAppData() {
 
           await supabase
             .from("portfolio_entries")
-            .update({ quantity: newQty, purchase_price: newAvgPrice })
+            .update({ quantity: newQty, purchase_price: newAvgPrice, updated_at: new Date().toISOString() })
             .eq("id", t.portfolio_entry_id);
         }
       }
@@ -289,7 +289,7 @@ export function useAppData() {
           const newQty = Number(entry.quantity) + sellQty;
           await supabase
             .from("portfolio_entries")
-            .update({ quantity: newQty })
+            .update({ quantity: newQty, updated_at: new Date().toISOString() })
             .eq("id", tx.portfolio_entry_id);
         }
       }
@@ -316,7 +316,7 @@ export function useAppData() {
 
           await supabase
             .from("portfolio_entries")
-            .update({ quantity: newQty, purchase_price: newAvgPrice })
+            .update({ quantity: newQty, purchase_price: newAvgPrice, updated_at: new Date().toISOString() })
             .eq("id", tx.portfolio_entry_id);
         }
       }
@@ -510,6 +510,7 @@ export function useAppData() {
       if (u.currentPrice !== undefined) dbUpdate.current_price = u.currentPrice;
       if (u.notes !== undefined) dbUpdate.notes = u.notes;
 
+      dbUpdate.updated_at = new Date().toISOString();
       await supabase.from("portfolio_entries").update(dbUpdate).eq("id", id);
       await loadFromDB();
     },

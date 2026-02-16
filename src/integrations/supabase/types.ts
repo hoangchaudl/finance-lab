@@ -167,6 +167,7 @@ export type Database = {
           purchase_price: number
           quantity: number
           type: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -179,6 +180,7 @@ export type Database = {
           purchase_price?: number
           quantity?: number
           type: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -191,6 +193,7 @@ export type Database = {
           purchase_price?: number
           quantity?: number
           type?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

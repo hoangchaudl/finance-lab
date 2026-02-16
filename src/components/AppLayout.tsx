@@ -15,7 +15,7 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import financeLogo from "@/assets/finance-logo.png";
+import { Landmark } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 
 const NAV_ITEMS = [
@@ -56,7 +56,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b bg-white border-slate-200">
         <div className="flex items-center gap-2">
-          <img src={financeLogo} alt="Finance Hub" className="h-7 w-7" />
+          <Landmark className="h-7 w-7 text-primary" strokeWidth={1.5} />
           <span className="font-bold text-lg text-slate-900">Finance Lab</span>
         </div>
         <Button

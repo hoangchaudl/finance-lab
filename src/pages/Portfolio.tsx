@@ -31,8 +31,6 @@ import {
   ChevronRight,
   PieChart as PieIcon,
 } from "lucide-react";
-
-const ICON_STROKE = 1.5;
 import {
   PieChart,
   Pie,
@@ -41,6 +39,8 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+
+const ICON_STROKE = 1.5;
 
 const TYPE_OPTIONS = [
   "Savings",
@@ -60,10 +60,22 @@ const CHART_COLORS: Record<string, string> = {
   Other: "#64748b",
 };
 
-// Formatting helpers
-const formatNumberInput = (num: number) =>
-  num ? num.toLocaleString("de-DE") : "";
-const parseNumberInput = (str: string) =>
+// --- HELPER: FORMAT INPUT AS 1.000.000 ---
+const formatInputWithDots = (value: string) => {
+  // 1. Remove everything except digits and comma (for decimals if needed)
+  let clean = value.replace(/[^\d]/g, "");
+
+  // 2. Remove leading zeros
+  clean = clean.replace(/^0+/, "");
+
+  if (!clean) return "";
+
+  // 3. Add dots every 3 digits
+  return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+// Helper to parse "1.000.000" back to number 1000000
+const parseFormattedNumber = (str: string) =>
   parseFloat(str.replace(/\./g, "").replace(",", ".")) || 0;
 
 interface EditState {
@@ -72,8 +84,9 @@ interface EditState {
   type: string;
   account: string;
   quantity: number;
-  purchasePrice: number;
-  currentPrice: number;
+  // Store these as strings in Edit state to support formatting while typing
+  purchasePrice: string;
+  currentPrice: string;
   notes?: string;
 }
 
@@ -88,12 +101,10 @@ export default function Portfolio() {
 
   // --- 1. CALCULATIONS & GROUPING ---
   const calculatedEntries = entries.map((entry) => {
-    // Force numbers
     const qty = Number(entry.quantity) || 0;
     const buy = Number(entry.purchasePrice) || 0;
     const cur = Number(entry.currentPrice) || 0;
 
-    // ROUND UP EVERYTHING
     const costBasis = Math.ceil(qty * buy);
     const currentValue = Math.ceil(qty * cur);
 
@@ -151,7 +162,6 @@ export default function Portfolio() {
       g.totalCost > 0 ? ((g.totalValue - g.totalCost) / g.totalCost) * 100 : 0,
   }));
 
-  // Exclude "Other" type from reports/charts/cost basis
   const investmentEntries = calculatedEntries.filter((e) => e.type !== "Other");
 
   const totalCostBasis = investmentEntries.reduce((s, e) => s + e.costBasis, 0);
@@ -217,9 +227,9 @@ export default function Portfolio() {
       name: form.name.trim(),
       type: form.type,
       account: form.account.trim() || "General",
-      quantity: parseNumberInput(form.quantity),
-      purchasePrice: parseNumberInput(form.purchasePrice),
-      currentPrice: parseNumberInput(form.currentPrice),
+      quantity: parseFormattedNumber(form.quantity),
+      purchasePrice: parseFormattedNumber(form.purchasePrice),
+      currentPrice: parseFormattedNumber(form.currentPrice),
       notes: form.notes || undefined,
     });
     setForm({
@@ -241,8 +251,8 @@ export default function Portfolio() {
       type: editing.type,
       account: editing.account,
       quantity: editing.quantity,
-      purchasePrice: editing.purchasePrice,
-      currentPrice: editing.currentPrice,
+      purchasePrice: parseFormattedNumber(editing.purchasePrice),
+      currentPrice: parseFormattedNumber(editing.currentPrice),
       notes: editing.notes || undefined,
     });
     setEditing(null);
@@ -250,7 +260,8 @@ export default function Portfolio() {
 
   // Live Calc for Add Form
   const addFormValue =
-    parseNumberInput(form.quantity) * parseNumberInput(form.currentPrice);
+    parseFormattedNumber(form.quantity) *
+    parseFormattedNumber(form.currentPrice);
 
   return (
     <div className="space-y-6">
@@ -305,7 +316,8 @@ export default function Portfolio() {
         <Card className="lg:col-span-1 flex flex-col">
           <CardHeader className="pb-0">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <PieIcon className="h-4 w-4" strokeWidth={ICON_STROKE} /> Allocation
+              <PieIcon className="h-4 w-4" strokeWidth={ICON_STROKE} />{" "}
+              Allocation
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 min-h-[200px]">
@@ -352,7 +364,8 @@ export default function Portfolio() {
         <Card className="lg:col-span-2">
           <CardHeader className="pb-4">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <Building2 className="h-4 w-4" strokeWidth={ICON_STROKE} /> Account Balances
+              <Building2 className="h-4 w-4" strokeWidth={ICON_STROKE} />{" "}
+              Account Balances
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -394,6 +407,7 @@ export default function Portfolio() {
                 </TableHead>
                 <TableHead className="text-right">ROI %</TableHead>
                 <TableHead className="text-right">ROI ₫</TableHead>
+                <TableHead className="text-right">Last Edited</TableHead>
                 <TableHead className="text-right w-16"></TableHead>
               </TableRow>
             </TableHeader>
@@ -455,11 +469,15 @@ export default function Portfolio() {
                       className="h-8 text-right"
                     />
                   </TableCell>
+                  {/* --- UPDATED: FORMATTED PRICE INPUTS --- */}
                   <TableCell>
                     <Input
                       value={form.purchasePrice}
                       onChange={(e) =>
-                        setForm({ ...form, purchasePrice: e.target.value })
+                        setForm({
+                          ...form,
+                          purchasePrice: formatInputWithDots(e.target.value),
+                        })
                       }
                       placeholder="Buy"
                       className="h-8 text-right"
@@ -469,15 +487,18 @@ export default function Portfolio() {
                     <Input
                       value={form.currentPrice}
                       onChange={(e) =>
-                        setForm({ ...form, currentPrice: e.target.value })
+                        setForm({
+                          ...form,
+                          currentPrice: formatInputWithDots(e.target.value),
+                        })
                       }
                       placeholder="Now"
                       className="h-8 text-right"
                     />
                   </TableCell>
-                  {/* LIVE CALCULATION DISPLAY */}
+                  {/* --------------------------------------- */}
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="text-center text-xs font-bold text-primary"
                   >
                     {addFormValue > 0
@@ -492,7 +513,10 @@ export default function Portfolio() {
                         className="h-8 w-8"
                         onClick={handleAdd}
                       >
-                        <Check className="h-4 w-4 text-green-600" strokeWidth={ICON_STROKE} />
+                        <Check
+                          className="h-4 w-4 text-green-600"
+                          strokeWidth={ICON_STROKE}
+                        />
                       </Button>
                       <Button
                         size="icon"
@@ -509,6 +533,25 @@ export default function Portfolio() {
 
               {groupedAssets.map((group) => {
                 const isExpanded = expandedGroups[group.name];
+
+                // Calculate Last Edited
+                const lastEditedTimestamp = group.children
+                  .map((c) =>
+                    c.updatedAt ? new Date(c.updatedAt).getTime() : 0,
+                  )
+                  .reduce((max, current) => Math.max(max, current), 0);
+
+                const lastEditedString =
+                  lastEditedTimestamp > 0
+                    ? new Date(lastEditedTimestamp).toLocaleDateString(
+                        undefined,
+                        {
+                          month: "short",
+                          day: "numeric",
+                        },
+                      )
+                    : null;
+
                 return (
                   <>
                     <TableRow
@@ -519,15 +562,23 @@ export default function Portfolio() {
                       <TableCell>
                         <div className="flex items-center">
                           {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" strokeWidth={ICON_STROKE} />
+                            <ChevronDown
+                              className="h-4 w-4"
+                              strokeWidth={ICON_STROKE}
+                            />
                           ) : (
-                            <ChevronRight className="h-4 w-4" strokeWidth={ICON_STROKE} />
+                            <ChevronRight
+                              className="h-4 w-4"
+                              strokeWidth={ICON_STROKE}
+                            />
                           )}
                         </div>
                       </TableCell>
+
                       <TableCell className="font-bold text-base">
                         {group.name}
                       </TableCell>
+
                       <TableCell>
                         <Badge variant="outline">{group.type}</Badge>
                       </TableCell>
@@ -559,6 +610,11 @@ export default function Portfolio() {
                           Math.ceil(group.totalValue - group.totalCost),
                         )}
                       </TableCell>
+
+                      <TableCell className="text-right text-xs text-muted-foreground">
+                        {lastEditedString || "—"}
+                      </TableCell>
+
                       <TableCell></TableCell>
                     </TableRow>
 
@@ -624,15 +680,16 @@ export default function Portfolio() {
                                   className="h-8 text-right"
                                 />
                               </TableCell>
+                              {/* --- UPDATED: FORMATTED PRICE INPUTS (EDIT) --- */}
                               <TableCell>
                                 <Input
-                                  type="number"
                                   value={editing.purchasePrice}
                                   onChange={(e) =>
                                     setEditing({
                                       ...editing,
-                                      purchasePrice:
-                                        parseFloat(e.target.value) || 0,
+                                      purchasePrice: formatInputWithDots(
+                                        e.target.value,
+                                      ),
                                     })
                                   }
                                   className="h-8 text-right"
@@ -640,19 +697,20 @@ export default function Portfolio() {
                               </TableCell>
                               <TableCell>
                                 <Input
-                                  type="number"
                                   value={editing.currentPrice}
                                   onChange={(e) =>
                                     setEditing({
                                       ...editing,
-                                      currentPrice:
-                                        parseFloat(e.target.value) || 0,
+                                      currentPrice: formatInputWithDots(
+                                        e.target.value,
+                                      ),
                                     })
                                   }
                                   className="h-8 text-right"
                                 />
                               </TableCell>
-                              <TableCell colSpan={3}></TableCell>
+                              {/* ------------------------------------------- */}
+                              <TableCell colSpan={4}></TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
                                   <Button
@@ -661,7 +719,10 @@ export default function Portfolio() {
                                     className="h-8 w-8"
                                     onClick={handleSaveEdit}
                                   >
-                                     <Check className="h-4 w-4 text-green-600" strokeWidth={ICON_STROKE} />
+                                    <Check
+                                      className="h-4 w-4 text-green-600"
+                                      strokeWidth={ICON_STROKE}
+                                    />
                                   </Button>
                                   <Button
                                     size="icon"
@@ -669,7 +730,10 @@ export default function Portfolio() {
                                     className="h-8 w-8"
                                     onClick={() => setEditing(null)}
                                   >
-                                    <X className="h-4 w-4" strokeWidth={ICON_STROKE} />
+                                    <X
+                                      className="h-4 w-4"
+                                      strokeWidth={ICON_STROKE}
+                                    />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -680,7 +744,10 @@ export default function Portfolio() {
                           <TableRow key={child.id}>
                             <TableCell></TableCell>
                             <TableCell className="pl-10 text-sm flex items-center gap-2">
-                              <Building2 className="h-3 w-3 text-muted-foreground" strokeWidth={ICON_STROKE} />
+                              <Building2
+                                className="h-3 w-3 text-muted-foreground"
+                                strokeWidth={ICON_STROKE}
+                              />
                               {child.account}
                             </TableCell>
                             <TableCell></TableCell>
@@ -705,6 +772,19 @@ export default function Portfolio() {
                               {child.gain >= 0 ? "+" : ""}
                               {formatVND(Math.ceil(child.gain))}
                             </TableCell>
+
+                            <TableCell className="text-right text-xs text-muted-foreground">
+                              {child.updatedAt
+                                ? new Date(child.updatedAt).toLocaleDateString(
+                                    undefined,
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                    },
+                                  )
+                                : "—"}
+                            </TableCell>
+
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
                                 <Button
@@ -713,10 +793,19 @@ export default function Portfolio() {
                                   className="h-7 w-7"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditing(child);
+                                    setEditing({
+                                      ...child,
+                                      purchasePrice:
+                                        child.purchasePrice.toString(),
+                                      currentPrice:
+                                        child.currentPrice.toString(),
+                                    });
                                   }}
                                 >
-                                  <Pencil className="h-3 w-3" strokeWidth={ICON_STROKE} />
+                                  <Pencil
+                                    className="h-3 w-3"
+                                    strokeWidth={ICON_STROKE}
+                                  />
                                 </Button>
                                 <Button
                                   size="icon"
@@ -727,7 +816,10 @@ export default function Portfolio() {
                                     deletePortfolioEntry(child.id);
                                   }}
                                 >
-                                  <Trash2 className="h-3 w-3 text-destructive" strokeWidth={ICON_STROKE} />
+                                  <Trash2
+                                    className="h-3 w-3 text-destructive"
+                                    strokeWidth={ICON_STROKE}
+                                  />
                                 </Button>
                               </div>
                             </TableCell>

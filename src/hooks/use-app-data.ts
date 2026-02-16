@@ -83,6 +83,7 @@ export function useAppData() {
           purchasePrice: Number(p.purchase_price),
           currentPrice: Number(p.current_price),
           notes: p.notes || undefined,
+          updatedAt: p.updated_at,
         }),
       );
 
@@ -208,7 +209,9 @@ export function useAppData() {
         if (!entry) throw new Error("Portfolio entry not found");
         const sellQty = Number(t.quantity) || 0;
         if (sellQty > entry.quantity) {
-          throw new Error(`Insufficient quantity. You only have ${entry.quantity} units.`);
+          throw new Error(
+            `Insufficient quantity. You only have ${entry.quantity} units.`,
+          );
         }
         const newQty = entry.quantity - sellQty;
         // Do NOT change purchasePrice (avg cost stays the same)
@@ -263,6 +266,7 @@ export function useAppData() {
       if (updates.portfolio_entry_id !== undefined)
         dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
 
+      dbUpdate.updated_at = new Date().toISOString();
       await supabase.from("transactions").update(dbUpdate).eq("id", id);
       await loadFromDB();
     },
@@ -487,6 +491,7 @@ export function useAppData() {
         purchase_price: e.purchasePrice,
         current_price: e.currentPrice,
         notes: e.notes ?? null,
+        updated_at: new Date().toISOString(),
       });
       await loadFromDB();
     },
@@ -544,7 +549,9 @@ export function useAppData() {
         .filter((t) => t.date.startsWith(m) && t.type === "income")
         .reduce((s, t) => s + t.amount, 0);
       const capitalGains = data.transactions
-        .filter((t) => t.date.startsWith(m) && t.type === "sell" && t.realized_gain)
+        .filter(
+          (t) => t.date.startsWith(m) && t.type === "sell" && t.realized_gain,
+        )
         .reduce((s, t) => s + (t.realized_gain || 0), 0);
       return regularIncome + capitalGains;
     },

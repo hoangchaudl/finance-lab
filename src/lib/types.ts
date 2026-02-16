@@ -58,6 +58,7 @@ export interface PortfolioEntry {
   purchasePrice: number;
   currentPrice: number;
   notes?: string;
+  updatedAt?: string;
 }
 
 export interface AppData {

@@ -69,6 +69,7 @@ export function useAppData() {
           category_id: t.category_id,
           note: t.note || undefined,
           portfolio_entry_id: t.portfolio_entry_id || undefined,
+          realized_gain: t.realized_gain ? Number(t.realized_gain) : undefined,
         }),
       );
 
@@ -189,6 +190,7 @@ export function useAppData() {
           category_id: t.category_id,
           note: t.note ?? null,
           portfolio_entry_id: t.portfolio_entry_id ?? null,
+          realized_gain: t.realized_gain ?? null,
         })
         .select()
         .single();
@@ -198,7 +200,25 @@ export function useAppData() {
         throw new Error(error.message);
       }
 
-      // Update portfolio if linked
+      // Handle sell: validate quantity and reduce portfolio
+      if (t.type === "sell" && t.portfolio_entry_id) {
+        const entry = data.portfolio?.find(
+          (p) => p.id === t.portfolio_entry_id,
+        );
+        if (!entry) throw new Error("Portfolio entry not found");
+        const sellQty = Number(t.quantity) || 0;
+        if (sellQty > entry.quantity) {
+          throw new Error(`Insufficient quantity. You only have ${entry.quantity} units.`);
+        }
+        const newQty = entry.quantity - sellQty;
+        // Do NOT change purchasePrice (avg cost stays the same)
+        await supabase
+          .from("portfolio_entries")
+          .update({ quantity: newQty })
+          .eq("id", t.portfolio_entry_id);
+      }
+
+      // Update portfolio if linked (buy)
       if (
         t.portfolio_entry_id &&
         ["investing", "saving", "expense"].includes(t.type)
@@ -255,6 +275,22 @@ export function useAppData() {
 
       const tx = data.transactions.find((t) => t.id === id);
 
+      // Reverse sell: add quantity back
+      if (tx && tx.portfolio_entry_id && tx.type === "sell") {
+        const entry = data.portfolio?.find(
+          (p) => p.id === tx.portfolio_entry_id,
+        );
+        if (entry) {
+          const sellQty = Number(tx.quantity) || 0;
+          const newQty = Number(entry.quantity) + sellQty;
+          await supabase
+            .from("portfolio_entries")
+            .update({ quantity: newQty })
+            .eq("id", tx.portfolio_entry_id);
+        }
+      }
+
+      // Reverse buy: reduce quantity and recalc avg
       if (
         tx &&
         tx.portfolio_entry_id &&
@@ -503,10 +539,15 @@ export function useAppData() {
   );
 
   const getTotalIncome = useCallback(
-    (m: string) =>
-      data.transactions
+    (m: string) => {
+      const regularIncome = data.transactions
         .filter((t) => t.date.startsWith(m) && t.type === "income")
-        .reduce((s, t) => s + t.amount, 0),
+        .reduce((s, t) => s + t.amount, 0);
+      const capitalGains = data.transactions
+        .filter((t) => t.date.startsWith(m) && t.type === "sell" && t.realized_gain)
+        .reduce((s, t) => s + (t.realized_gain || 0), 0);
+      return regularIncome + capitalGains;
+    },
     [data.transactions],
   );
 

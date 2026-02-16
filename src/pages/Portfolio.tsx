@@ -543,13 +543,13 @@ export default function Portfolio() {
 
                 const lastEditedString =
                   lastEditedTimestamp > 0
-                    ? new Date(lastEditedTimestamp).toLocaleDateString(
-                        undefined,
-                        {
-                          month: "short",
-                          day: "numeric",
-                        },
-                      )
+                    ? (() => {
+                        const d = new Date(lastEditedTimestamp);
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        const yyyy = d.getFullYear();
+                        return `${dd}/${mm}/${yyyy}`;
+                      })()
                     : null;
 
                 return (
@@ -681,7 +681,7 @@ export default function Portfolio() {
                                 />
                               </TableCell>
                               {/* --- UPDATED: FORMATTED PRICE INPUTS (EDIT) --- */}
-                              <TableCell>
+                              <TableCell className="min-w-[140px]">
                                 <Input
                                   value={editing.purchasePrice}
                                   onChange={(e) =>
@@ -692,10 +692,10 @@ export default function Portfolio() {
                                       ),
                                     })
                                   }
-                                  className="h-8 text-right"
+                                  className="h-8 text-right w-full"
                                 />
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="min-w-[140px]">
                                 <Input
                                   value={editing.currentPrice}
                                   onChange={(e) =>
@@ -706,7 +706,7 @@ export default function Portfolio() {
                                       ),
                                     })
                                   }
-                                  className="h-8 text-right"
+                                  className="h-8 text-right w-full"
                                 />
                               </TableCell>
                               {/* ------------------------------------------- */}
@@ -775,13 +775,13 @@ export default function Portfolio() {
 
                             <TableCell className="text-right text-xs text-muted-foreground">
                               {child.updatedAt
-                                ? new Date(child.updatedAt).toLocaleDateString(
-                                    undefined,
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                    },
-                                  )
+                                ? (() => {
+                                    const d = new Date(child.updatedAt);
+                                    const dd = String(d.getDate()).padStart(2, '0');
+                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                    const yyyy = d.getFullYear();
+                                    return `${dd}/${mm}/${yyyy}`;
+                                  })()
                                 : "—"}
                             </TableCell>
 
@@ -795,10 +795,12 @@ export default function Portfolio() {
                                     e.stopPropagation();
                                     setEditing({
                                       ...child,
-                                      purchasePrice:
-                                        child.purchasePrice.toString(),
-                                      currentPrice:
-                                        child.currentPrice.toString(),
+                                      purchasePrice: formatInputWithDots(
+                                        Math.ceil(child.purchasePrice).toString(),
+                                      ),
+                                      currentPrice: formatInputWithDots(
+                                        Math.ceil(child.currentPrice).toString(),
+                                      ),
                                     });
                                   }}
                                 >

@@ -6,12 +6,10 @@ import {
   PieChart,
   BarChart3,
   FolderCog,
-  Flame,
   Menu,
   X,
   LogOut,
   Settings,
-  ChevronDown,
   Search,
 } from "lucide-react";
 import { useState } from "react";
@@ -35,7 +33,6 @@ const NAV_ITEMS = [
   { label: "Budget Plan", path: "/budget", icon: Wallet },
   { label: "Portfolio", path: "/portfolio", icon: PieChart },
   { label: "Reports", path: "/report", icon: BarChart3 },
-  { label: "FIRE Goals", path: "/fire", icon: Flame },
   { label: "Categories", path: "/categories", icon: FolderCog },
 ];
 
@@ -64,7 +61,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-slate-50 flex flex-col md:flex-row">
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b bg-white border-slate-200">
         <div className="flex items-center gap-2">
@@ -88,16 +85,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >
-        {/* Header with Logo and Dropdown */}
+        {/* Header with Logo */}
         <div className="p-4 border-b border-slate-200">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <img src={financeLogo} alt="Finance Hub" className="h-5 w-5" />
-              </div>
-              <span className="font-bold text-slate-900">Personal</span>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <img src={financeLogo} alt="Finance Hub" className="h-5 w-5" />
             </div>
-            <ChevronDown className="h-4 w-4 text-slate-500" strokeWidth={1.5} />
+            <span className="font-bold text-slate-900">Finance Hub</span>
           </div>
         </div>
 
@@ -199,7 +193,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-50">
+      <main className="flex-1 h-full overflow-y-auto p-4 md:p-8 bg-slate-50">
         <div className="max-w-6xl mx-auto">{children}</div>
       </main>
 

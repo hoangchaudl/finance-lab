@@ -12,6 +12,7 @@ import BudgetPlan from "@/pages/BudgetPlan";
 import FireGoals from "@/pages/FireGoals";
 import CategoriesManager from "@/pages/CategoriesManager";
 import Portfolio from "@/pages/Portfolio";
+import Profile from "@/pages/Profile";
 import NotFound from "./pages/NotFound";
 import Report from "@/pages/Report";
 import Auth from "@/pages/Auth";
@@ -42,6 +43,7 @@ function ProtectedRoutes() {
           <Route path="/categories" element={<CategoriesManager />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/report" element={<Report />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   ArrowRightLeft,
@@ -9,11 +9,21 @@ import {
   Menu,
   X,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import financeLogo from "@/assets/finance-logo.png";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -26,8 +36,22 @@ const NAV_ITEMS = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { signOut, user } = useAuth();
+
+  const getInitials = () => {
+    const metadata = user?.user_metadata || {};
+    const fullName = metadata.full_name as string;
+    if (!fullName) return user?.email?.charAt(0).toUpperCase() || "U";
+    return fullName
+      .split(" ")
+      .map((name) => name.charAt(0))
+      .join("")
+      .toUpperCase();
+  };
+
+  const avatarUrl = (user?.user_metadata as any)?.avatar_url;
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
@@ -50,17 +74,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <aside
         className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out
-        md:relative md:translate-x-0 flex flex-col
+        md:relative md:translate-x-0 flex flex-col h-full
         ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >
         <div className="p-6">
-          <div className="flex items-center gap-2 hidden md:flex">
+          <div className="hidden md:flex items-center gap-2">
             <img src={financeLogo} alt="Finance Hub" className="h-8 w-8" />
             <h1 className="text-2xl font-bold text-primary">Finance Hub</h1>
           </div>
         </div>
-        <nav className="space-y-1 px-3 flex-1">
+
+        {/* Scrollable Navigation */}
+        <nav className="space-y-1 px-3 flex-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -81,17 +107,45 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-3 border-t">
-          <p className="text-xs text-muted-foreground truncate px-3 mb-2">{user?.email}</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
-            onClick={signOut}
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+
+        {/* Fixed Footer with Profile and Sign Out */}
+        <div className="p-3 border-t space-y-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 w-full px-2 py-1 rounded-md hover:bg-muted transition-colors">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage
+                    src={avatarUrl}
+                    alt={user?.user_metadata?.full_name as string}
+                  />
+                  <AvatarFallback className="text-sm font-semibold">
+                    {getInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-xs font-medium truncate">
+                    {(user?.user_metadata?.full_name as string) || user?.email}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.email}
+                  </p>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/profile")}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Account Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut} className="text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign Out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 

@@ -17,17 +17,17 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
-} from "recharts";
+  Legend } from
+"recharts";
 import { TrendingUp, Target, Check, Pencil, X, TrendingDown, Landmark, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const ALLOC_COLORS = [
-  "hsl(160, 84%, 39%)",
-  "hsl(38, 92%, 50%)",
-  "hsl(217, 91%, 60%)",
-];
+"hsl(160, 84%, 39%)",
+"hsl(38, 92%, 50%)",
+"hsl(217, 91%, 60%)"];
+
 
 const PORTFOLIO_COLORS: Record<string, string> = {
   Savings: "#22c55e",
@@ -35,7 +35,7 @@ const PORTFOLIO_COLORS: Record<string, string> = {
   Crypto: "#a855f7",
   Gold: "#eab308",
   ETF: "#14b8a6",
-  Other: "#64748b",
+  Other: "#64748b"
 };
 
 export default function Dashboard() {
@@ -47,7 +47,7 @@ export default function Dashboard() {
     getTotalSavings,
     getTotalInvestments,
     getTotalInvestmentCost,
-    updateFireSettings,
+    updateFireSettings
   } = useApp();
   const { toast } = useToast();
   const [editingAge, setEditingAge] = useState(false);
@@ -58,30 +58,30 @@ export default function Dashboard() {
   const income = getTotalIncome(monthKey);
   const expenses = getTotalExpenses(monthKey);
   const savings = income - expenses;
-  const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : "0";
+  const ratio = income > 0 ? (expenses / income * 100).toFixed(1) : "0";
   const netWorth = getNetWorth();
   const totalSavings = getTotalSavings();
   const totalInvestments = getTotalInvestments();
 
   const allocData = [
-    { name: "Essentials", value: data.incomeAllocations.essentials_pct },
-    { name: "Lifestyle", value: data.incomeAllocations.lifestyle_pct },
-    { name: "Savings", value: data.incomeAllocations.savings_pct },
-  ];
+  { name: "Essentials", value: data.incomeAllocations.essentials_pct },
+  { name: "Lifestyle", value: data.incomeAllocations.lifestyle_pct },
+  { name: "Savings", value: data.incomeAllocations.savings_pct }];
+
 
   // FIRE Goals Calculation
   const {
     monthlyExpenses,
     returnRate,
     currentAge: fireCurrentAge,
-    birthYear,
+    birthYear
   } = data.fireSettings;
   const currentAge =
-    fireCurrentAge || (birthYear ? new Date().getFullYear() - birthYear : 0);
+  fireCurrentAge || (birthYear ? new Date().getFullYear() - birthYear : 0);
   const annualExpenses = monthlyExpenses * 12;
   const fiNumber = annualExpenses * 25;
   const currentNetWorth = getNetWorth();
-  const fireProgress = Math.min(100, (currentNetWorth / fiNumber) * 100);
+  const fireProgress = Math.min(100, currentNetWorth / fiNumber * 100);
 
   const yearsToGrow = 14;
   const months = yearsToGrow * 12;
@@ -89,9 +89,9 @@ export default function Dashboard() {
   const fvPrincipal = currentNetWorth * Math.pow(1 + r, months);
   const remainingTarget = fiNumber - fvPrincipal;
   const requiredMonthlySavings =
-    remainingTarget > 0
-      ? (remainingTarget * r) / (Math.pow(1 + r, months) - 1)
-      : 0;
+  remainingTarget > 0 ?
+  remainingTarget * r / (Math.pow(1 + r, months) - 1) :
+  0;
 
   // Stock/Bond allocation based on "110 minus age" rule
   const targetStockAllocation = 110 - currentAge;
@@ -111,29 +111,29 @@ export default function Dashboard() {
       return { stocks: 0, bonds: 0, other: 0, total: 0 };
     }
 
-    const stocks = data.portfolio
-      .filter(
-        (p) =>
-          p.type.toLowerCase().includes("stock") ||
-          p.type.toLowerCase().includes("equity"),
-      )
-      .reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
+    const stocks = data.portfolio.
+    filter(
+      (p) =>
+      p.type.toLowerCase().includes("stock") ||
+      p.type.toLowerCase().includes("equity")
+    ).
+    reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
 
-    const bonds = data.portfolio
-      .filter(
-        (p) =>
-          p.type.toLowerCase().includes("bond") ||
-          p.type.toLowerCase().includes("fixed"),
-      )
-      .reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
+    const bonds = data.portfolio.
+    filter(
+      (p) =>
+      p.type.toLowerCase().includes("bond") ||
+      p.type.toLowerCase().includes("fixed")
+    ).
+    reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
 
     const other = portfolioValue - stocks - bonds;
 
     return {
-      stocks: (stocks / portfolioValue) * 100,
-      bonds: (bonds / portfolioValue) * 100,
-      other: (other / portfolioValue) * 100,
-      total: portfolioValue,
+      stocks: stocks / portfolioValue * 100,
+      bonds: bonds / portfolioValue * 100,
+      other: other / portfolioValue * 100,
+      total: portfolioValue
     };
   };
 
@@ -144,7 +144,7 @@ export default function Dashboard() {
       toast({
         title: "Error",
         description: "Please enter a valid age (0-150)",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -153,18 +153,18 @@ export default function Dashboard() {
     try {
       await updateFireSettings({
         ...data.fireSettings,
-        currentAge: ageInput,
+        currentAge: ageInput
       });
       toast({
         title: "Success",
-        description: "Age saved successfully",
+        description: "Age saved successfully"
       });
       setEditingAge(false);
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to save age",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setSavingAge(false);
@@ -182,7 +182,7 @@ export default function Dashboard() {
       {/* Hero Balance Card */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-3xl p-8 text-white shadow-lg">
         <p className="text-sm text-blue-100 mb-2">Total Net Worth</p>
-        <h2 className="text-4xl font-bold">{formatVND(netWorth)}</h2>
+        <h2 className="font-bold text-3xl">{formatVND(netWorth)}</h2>
       </div>
 
       {/* Summary cards */}
@@ -219,22 +219,22 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p
-              className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}
-            >
+              className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}>
+
               {formatVND(savings)}
             </p>
           </CardContent>
         </Card>
         {/* <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">
-              Expense Ratio
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{ratio}%</p>
-          </CardContent>
-        </Card> */}
+           <CardHeader className="pb-2">
+             <CardTitle className="text-sm text-muted-foreground">
+               Expense Ratio
+             </CardTitle>
+           </CardHeader>
+           <CardContent>
+             <p className="text-2xl font-bold">{ratio}%</p>
+           </CardContent>
+          </Card> */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">
@@ -260,18 +260,18 @@ export default function Dashboard() {
             {(() => {
               const cost = getTotalInvestmentCost();
               const roi =
-                cost > 0 ? ((totalInvestments - cost) / cost) * 100 : 0;
+              cost > 0 ? (totalInvestments - cost) / cost * 100 : 0;
               const profit = totalInvestments - cost;
               const isPositive = profit >= 0;
               return (
                 <p
-                  className={`text-sm mt-1 ${isPositive ? "text-primary" : "text-destructive"}`}
-                >
+                  className={`text-sm mt-1 ${isPositive ? "text-primary" : "text-destructive"}`}>
+
                   {isPositive ? "+" : ""}
                   {roi.toFixed(2)}% ({isPositive ? "+" : ""}
                   {formatVND(Math.round(profit))})
-                </p>
-              );
+                </p>);
+
             })()}
           </CardContent>
         </Card>
@@ -294,28 +294,28 @@ export default function Dashboard() {
                     innerRadius={30}
                     outerRadius={55}
                     dataKey="value"
-                    stroke="none"
-                  >
-                    {allocData.map((_, i) => (
-                      <Cell key={i} fill={ALLOC_COLORS[i]} />
-                    ))}
+                    stroke="none">
+
+                    {allocData.map((_, i) =>
+                    <Cell key={i} fill={ALLOC_COLORS[i]} />
+                    )}
                   </Pie>
                   <Tooltip formatter={(v: number) => `${v}%`} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <div className="space-y-2 text-sm">
-              {allocData.map((d, i) => (
-                <div key={d.name} className="flex items-center gap-2">
+              {allocData.map((d, i) =>
+              <div key={d.name} className="flex items-center gap-2">
                   <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ background: ALLOC_COLORS[i] }}
-                  />
+                  className="w-3 h-3 rounded-full"
+                  style={{ background: ALLOC_COLORS[i] }} />
+
                   <span>
                     {d.name}: {d.value}%
                   </span>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -336,19 +336,19 @@ export default function Dashboard() {
                     acc[e.type] = (acc[e.type] || 0) + val;
                     return acc;
                   },
-                  {} as Record<string, number>,
-                ),
-              )
-                .map(([name, value]) => ({ name, value: Math.ceil(value) }))
-                .filter((d) => d.value > 0);
+                  {} as Record<string, number>
+                )
+              ).
+              map(([name, value]) => ({ name, value: Math.ceil(value) })).
+              filter((d) => d.value > 0);
               const total = chartData.reduce((s, d) => s + d.value, 0);
 
               if (chartData.length === 0) {
                 return (
                   <p className="text-sm text-muted-foreground">
                     No portfolio data yet.
-                  </p>
-                );
+                  </p>);
+
               }
 
               return (
@@ -363,39 +363,39 @@ export default function Dashboard() {
                           innerRadius={30}
                           outerRadius={55}
                           dataKey="value"
-                          paddingAngle={2}
-                        >
-                          {chartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={PORTFOLIO_COLORS[entry.name] || "#8884d8"}
-                            />
-                          ))}
+                          paddingAngle={2}>
+
+                          {chartData.map((entry, index) =>
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={PORTFOLIO_COLORS[entry.name] || "#8884d8"} />
+
+                          )}
                         </Pie>
                         <Tooltip
-                          formatter={(val: number) => formatVND(val)}
-                        />
+                          formatter={(val: number) => formatVND(val)} />
+
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="space-y-2 text-sm">
-                    {chartData.map((d) => (
-                      <div key={d.name} className="flex items-center gap-2">
+                    {chartData.map((d) =>
+                    <div key={d.name} className="flex items-center gap-2">
                         <div
-                          className="w-3 h-3 rounded-full"
-                          style={{
-                            background:
-                              PORTFOLIO_COLORS[d.name] || "#8884d8",
-                          }}
-                        />
+                        className="w-3 h-3 rounded-full"
+                        style={{
+                          background:
+                          PORTFOLIO_COLORS[d.name] || "#8884d8"
+                        }} />
+
                         <span>
-                          {d.name}: {total > 0 ? ((d.value / total) * 100).toFixed(1) : 0}%
+                          {d.name}: {total > 0 ? (d.value / total * 100).toFixed(1) : 0}%
                         </span>
                       </div>
-                    ))}
+                    )}
                   </div>
-                </>
-              );
+                </>);
+
             })()}
           </CardContent>
         </Card>
@@ -463,53 +463,53 @@ export default function Dashboard() {
           <div className="space-y-3">
             <Label>Your Current Age</Label>
             <div className="flex items-center gap-3">
-              {editingAge ? (
-                <>
+              {editingAge ?
+              <>
                   <Input
-                    type="number"
-                    min="0"
-                    max="150"
-                    value={ageInput ?? currentAge}
-                    onChange={(e) => setAgeInput(parseInt(e.target.value) || 0)}
-                    className="w-32"
-                  />
+                  type="number"
+                  min="0"
+                  max="150"
+                  value={ageInput ?? currentAge}
+                  onChange={(e) => setAgeInput(parseInt(e.target.value) || 0)}
+                  className="w-32" />
+
                   <Button
-                    size="sm"
-                    onClick={handleSaveAge}
-                    disabled={savingAge}
-                  >
+                  size="sm"
+                  onClick={handleSaveAge}
+                  disabled={savingAge}>
+
                     <Check className="h-4 w-4 mr-2" strokeWidth={1.5} />
                     {savingAge ? "Saving..." : "Save"}
                   </Button>
                   <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setEditingAge(false);
-                      setAgeInput(null);
-                    }}
-                  >
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingAge(false);
+                    setAgeInput(null);
+                  }}>
+
                     Cancel
                   </Button>
-                </>
-              ) : (
-                <>
+                </> :
+
+              <>
                   <div className="text-2xl font-bold text-primary">
                     {currentAge}
                   </div>
                   <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setEditingAge(true);
-                      setAgeInput(currentAge);
-                    }}
-                  >
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingAge(true);
+                    setAgeInput(currentAge);
+                  }}>
+
                     <Pencil className="h-4 w-4 mr-1" strokeWidth={1.5} />
                     Edit
                   </Button>
                 </>
-              )}
+              }
             </div>
             <p className="text-xs text-muted-foreground">
               Formula: Target Stocks = 110 - Age | Target Bonds = 100 - Stocks
@@ -548,8 +548,8 @@ export default function Dashboard() {
                   </div>
                   <Progress
                     value={portfolioAllocation.stocks}
-                    className="h-2"
-                  />
+                    className="h-2" />
+
                   <div className="flex justify-between items-center">
                     <span className="text-sm flex items-center gap-1.5"><Landmark className="h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Bonds/Safe</span>
                     <span className="font-bold">
@@ -557,8 +557,8 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <Progress value={portfolioAllocation.bonds} className="h-2" />
-                  {portfolioAllocation.other > 0 && (
-                    <>
+                  {portfolioAllocation.other > 0 &&
+                  <>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Other</span>
                         <span className="font-bold">
@@ -566,36 +566,36 @@ export default function Dashboard() {
                         </span>
                       </div>
                       <Progress
-                        value={portfolioAllocation.other}
-                        className="h-2"
-                      />
+                      value={portfolioAllocation.other}
+                      className="h-2" />
+
                     </>
-                  )}
+                  }
                 </div>
               </div>
             </div>
 
             {/* Allocation Summary */}
-            {portfolioAllocation.total > 0 && (
-              <div className="bg-muted p-4 rounded-lg text-sm">
+            {portfolioAllocation.total > 0 &&
+            <div className="bg-muted p-4 rounded-lg text-sm">
                 <p className="font-semibold mb-2">
                   Portfolio Value: {formatVND(portfolioAllocation.total)}
                 </p>
                 <p className="text-muted-foreground">
                   Your portfolio is currently{" "}
                   {Math.abs(
-                    portfolioAllocation.stocks - targetStockAllocation,
-                  ).toFixed(1)}
+                  portfolioAllocation.stocks - targetStockAllocation
+                ).toFixed(1)}
                   % off target for stocks.
-                  {portfolioAllocation.stocks > targetStockAllocation
-                    ? " Consider rebalancing towards bonds."
-                    : " Consider rebalancing towards stocks."}
+                  {portfolioAllocation.stocks > targetStockAllocation ?
+                " Consider rebalancing towards bonds." :
+                " Consider rebalancing towards stocks."}
                 </p>
               </div>
-            )}
+            }
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>);
+
 }

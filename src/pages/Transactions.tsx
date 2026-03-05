@@ -278,8 +278,8 @@ export default function Transactions() {
 
   const openEdit = (t: Transaction) => {
     setEditingTx(t);
-    setEditType(t.type);
-    setEditCategory(t.category_id);
+    setEditType(t.type as TxType);
+    setEditCategory(t.category_id || "");
     setEditAmount(String(t.amount));
     setEditDate(t.date);
     setEditNote(t.note || "");

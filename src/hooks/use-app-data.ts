@@ -201,6 +201,19 @@ export function useAppData() {
         throw new Error(error.message);
       }
 
+      // Optimistically add the transaction to local state
+      const newTx: Transaction = {
+        id: inserted.id,
+        date: inserted.date,
+        amount: Number(inserted.amount),
+        quantity: inserted.quantity ? Number(inserted.quantity) : undefined,
+        type: inserted.type as Transaction["type"],
+        category_id: inserted.category_id ?? "",
+        note: inserted.note || undefined,
+        portfolio_entry_id: inserted.portfolio_entry_id || undefined,
+        realized_gain: inserted.realized_gain ? Number(inserted.realized_gain) : undefined,
+      };
+
       // Handle sell: validate quantity and reduce portfolio
       if (t.type === "sell" && t.portfolio_entry_id) {
         const entry = data.portfolio?.find(
@@ -214,7 +227,6 @@ export function useAppData() {
           );
         }
         const newQty = entry.quantity - sellQty;
-        // Do NOT change purchasePrice (avg cost stays the same)
         await supabase
           .from("portfolio_entries")
           .update({ quantity: newQty, updated_at: new Date().toISOString() })
@@ -246,7 +258,15 @@ export function useAppData() {
         }
       }
 
-      await loadFromDB();
+      // Reload only if portfolio was affected, otherwise optimistic update
+      if (t.portfolio_entry_id) {
+        await loadFromDB();
+      } else {
+        setData((prev) => ({
+          ...prev,
+          transactions: [...prev.transactions, newTx],
+        }));
+      }
     },
     [user, data.portfolio, loadFromDB],
   );
@@ -267,10 +287,18 @@ export function useAppData() {
         dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
 
       dbUpdate.updated_at = new Date().toISOString();
-      await supabase.from("transactions").update(dbUpdate).eq("id", id);
-      await loadFromDB();
+      const { error } = await supabase.from("transactions").update(dbUpdate).eq("id", id);
+      if (error) throw new Error(error.message);
+      
+      // Optimistic update
+      setData((prev) => ({
+        ...prev,
+        transactions: prev.transactions.map((t) =>
+          t.id === id ? { ...t, ...updates } : t
+        ),
+      }));
     },
-    [user, loadFromDB],
+    [user],
   );
 
   const deleteTransaction = useCallback(
@@ -321,8 +349,18 @@ export function useAppData() {
         }
       }
 
-      await supabase.from("transactions").delete().eq("id", id);
-      await loadFromDB();
+      const { error } = await supabase.from("transactions").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      
+      // Reload if portfolio affected, otherwise optimistic
+      if (tx?.portfolio_entry_id) {
+        await loadFromDB();
+      } else {
+        setData((prev) => ({
+          ...prev,
+          transactions: prev.transactions.filter((t) => t.id !== id),
+        }));
+      }
     },
     [user, data.transactions, data.portfolio, loadFromDB],
   );

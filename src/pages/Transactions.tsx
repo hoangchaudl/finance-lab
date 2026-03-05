@@ -34,6 +34,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Trash2,
   Plus,
   Link as LinkIcon,
@@ -75,6 +85,10 @@ export default function Transactions() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Delete confirmation state
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Edit state
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
@@ -203,7 +217,7 @@ export default function Transactions() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formCategory || !formAmount) return;
+    if (!formCategory || !formAmount || isSubmitting) return;
 
     let categoryId: string | null = formCategory;
     let note = formNote || undefined;
@@ -214,6 +228,7 @@ export default function Transactions() {
       note = subscription ? `📅 ${subscription.name}${formNote ? ` – ${formNote}` : ""}` : note;
     }
 
+    setIsSubmitting(true);
     try {
       // For sell type, calculate realized_gain
       let realized_gain: number | undefined;
@@ -256,13 +271,15 @@ export default function Transactions() {
         description: err?.message || "Failed to add transaction",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const openEdit = (t: Transaction) => {
     setEditingTx(t);
-    setEditType(t.type);
-    setEditCategory(t.category_id);
+    setEditType(t.type as TxType);
+    setEditCategory(t.category_id || "");
     setEditAmount(String(t.amount));
     setEditDate(t.date);
     setEditNote(t.note || "");
@@ -272,7 +289,7 @@ export default function Transactions() {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingTx || !editCategory || !editAmount) return;
+    if (!editingTx || !editCategory || !editAmount || isSubmitting) return;
 
     let categoryId: string | null = editCategory;
     let note = editNote || undefined;
@@ -283,33 +300,57 @@ export default function Transactions() {
       note = subscription ? `📅 ${subscription.name}${editNote ? ` – ${editNote}` : ""}` : note;
     }
 
-    await updateTransaction(editingTx.id, {
-      date: editDate,
-      amount: parseFloat(editAmount),
-      quantity: isEditAssetLinkedType ? parseFloat(editQuantity) || 0 : undefined,
-      type: editType,
-      category_id: categoryId as string,
-      note,
-      portfolio_entry_id:
-        isEditAssetLinkedType && editPortfolioId !== "none"
-          ? editPortfolioId
-          : undefined,
-    });
+    setIsSubmitting(true);
+    try {
+      await updateTransaction(editingTx.id, {
+        date: editDate,
+        amount: parseFloat(editAmount),
+        quantity: isEditAssetLinkedType ? parseFloat(editQuantity) || 0 : undefined,
+        type: editType,
+        category_id: categoryId as string,
+        note,
+        portfolio_entry_id:
+          isEditAssetLinkedType && editPortfolioId !== "none"
+            ? editPortfolioId
+            : undefined,
+      });
 
-    toast({
-      title: "Success",
-      description: "Transaction updated successfully",
-    });
+      toast({
+        title: "Success",
+        description: "Transaction updated successfully",
+      });
 
-    setEditingTx(null);
+      setEditingTx(null);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to update transaction",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteTransaction(id);
-    toast({
-      title: "Deleted",
-      description: "Transaction deleted successfully",
-    });
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setIsSubmitting(true);
+    try {
+      await deleteTransaction(deletingId);
+      toast({
+        title: "Deleted",
+        description: "Transaction deleted successfully",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to delete transaction",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+      setIsSubmitting(false);
+    }
   };
 
   const getCategoryById = (id?: string) => {
@@ -547,8 +588,8 @@ export default function Transactions() {
               </div>
             )}
 
-            <Button type="submit" className="gap-1 lg:col-span-6">
-              <Plus className="h-4 w-4" strokeWidth={1.5} /> {isSellType ? "Sell" : "Add"}
+            <Button type="submit" className="gap-1 lg:col-span-6" disabled={isSubmitting}>
+              <Plus className="h-4 w-4" strokeWidth={1.5} /> {isSubmitting ? "Processing..." : isSellType ? "Sell" : "Add"}
             </Button>
           </form>
         </CardContent>
@@ -631,7 +672,7 @@ export default function Transactions() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(t.id)}
+                          onClick={() => setDeletingId(t.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" strokeWidth={1.5} />
                         </Button>
@@ -796,11 +837,31 @@ export default function Transactions() {
               >
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the transaction.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isSubmitting}>
+              {isSubmitting ? "Deleting..." : "Confirm Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

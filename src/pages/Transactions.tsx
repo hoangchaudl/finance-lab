@@ -289,7 +289,7 @@ export default function Transactions() {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingTx || !editCategory || !editAmount) return;
+    if (!editingTx || !editCategory || !editAmount || isSubmitting) return;
 
     let categoryId: string | null = editCategory;
     let note = editNote || undefined;
@@ -300,33 +300,57 @@ export default function Transactions() {
       note = subscription ? `📅 ${subscription.name}${editNote ? ` – ${editNote}` : ""}` : note;
     }
 
-    await updateTransaction(editingTx.id, {
-      date: editDate,
-      amount: parseFloat(editAmount),
-      quantity: isEditAssetLinkedType ? parseFloat(editQuantity) || 0 : undefined,
-      type: editType,
-      category_id: categoryId as string,
-      note,
-      portfolio_entry_id:
-        isEditAssetLinkedType && editPortfolioId !== "none"
-          ? editPortfolioId
-          : undefined,
-    });
+    setIsSubmitting(true);
+    try {
+      await updateTransaction(editingTx.id, {
+        date: editDate,
+        amount: parseFloat(editAmount),
+        quantity: isEditAssetLinkedType ? parseFloat(editQuantity) || 0 : undefined,
+        type: editType,
+        category_id: categoryId as string,
+        note,
+        portfolio_entry_id:
+          isEditAssetLinkedType && editPortfolioId !== "none"
+            ? editPortfolioId
+            : undefined,
+      });
 
-    toast({
-      title: "Success",
-      description: "Transaction updated successfully",
-    });
+      toast({
+        title: "Success",
+        description: "Transaction updated successfully",
+      });
 
-    setEditingTx(null);
+      setEditingTx(null);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to update transaction",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteTransaction(id);
-    toast({
-      title: "Deleted",
-      description: "Transaction deleted successfully",
-    });
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setIsSubmitting(true);
+    try {
+      await deleteTransaction(deletingId);
+      toast({
+        title: "Deleted",
+        description: "Transaction deleted successfully",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to delete transaction",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+      setIsSubmitting(false);
+    }
   };
 
   const getCategoryById = (id?: string) => {

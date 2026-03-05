@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -854,20 +854,69 @@ function PlannedInput({
 }) {
   const [focused, setFocused] = useState(false);
   const [temp, setTemp] = useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const parseRaw = (str: string): number => {
+    const digits = str.replace(/\D/g, "");
+    return parseInt(digits, 10) || 0;
+  };
+
+  const formatWithDots = (num: number): string => {
+    if (num === 0) return "";
+    return num.toLocaleString("de-DE");
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    const num = parseInt(raw, 10) || 0;
+    const formatted = formatWithDots(num);
+    
+    // Calculate cursor position relative to end
+    const el = e.target;
+    const distFromEnd = el.value.length - (el.selectionStart || 0);
+    
+    setTemp(formatted);
+
+    // Restore cursor position after React re-render
+    requestAnimationFrame(() => {
+      if (inputRef.current) {
+        const newPos = Math.max(0, formatted.length - distFromEnd);
+        inputRef.current.setSelectionRange(newPos, newPos);
+      }
+    });
+  };
+
+  const submit = () => {
+    const num = parseRaw(temp);
+    onChange(String(num));
+    setFocused(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submit();
+    }
+    if (e.key === "Escape") {
+      setFocused(false);
+    }
+    // Allow: digits, backspace, delete, arrows, tab
+    const allowed = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Home", "End"];
+    if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
 
   if (focused) {
     return (
       <Input
+        ref={inputRef}
         type="text"
+        inputMode="numeric"
         value={temp}
-        onChange={(e) => {
-          setTemp(e.target.value);
-          onChange(e.target.value.replace(/\./g, ""));
-        }}
-        onFocus={() => {}}
-        onBlur={() => {
-          setFocused(false);
-        }}
+        onChange={handleChange}
+        onBlur={submit}
+        onKeyDown={handleKeyDown}
         className="w-32 ml-auto text-right h-8"
         autoFocus
       />
@@ -877,7 +926,7 @@ function PlannedInput({
   return (
     <button
       onClick={() => {
-        setTemp(value ? value.toLocaleString("de-DE") : "");
+        setTemp(value ? formatWithDots(value) : "");
         setFocused(true);
       }}
       className="text-sm hover:underline cursor-pointer"

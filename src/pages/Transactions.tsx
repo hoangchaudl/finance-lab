@@ -588,8 +588,8 @@ export default function Transactions() {
               </div>
             )}
 
-            <Button type="submit" className="gap-1 lg:col-span-6">
-              <Plus className="h-4 w-4" strokeWidth={1.5} /> {isSellType ? "Sell" : "Add"}
+            <Button type="submit" className="gap-1 lg:col-span-6" disabled={isSubmitting}>
+              <Plus className="h-4 w-4" strokeWidth={1.5} /> {isSubmitting ? "Processing..." : isSellType ? "Sell" : "Add"}
             </Button>
           </form>
         </CardContent>

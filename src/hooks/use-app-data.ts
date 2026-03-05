@@ -207,7 +207,7 @@ export function useAppData() {
         date: inserted.date,
         amount: Number(inserted.amount),
         quantity: inserted.quantity ? Number(inserted.quantity) : undefined,
-        type: inserted.type,
+        type: inserted.type as Transaction["type"],
         category_id: inserted.category_id ?? "",
         note: inserted.note || undefined,
         portfolio_entry_id: inserted.portfolio_entry_id || undefined,

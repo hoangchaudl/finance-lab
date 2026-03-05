@@ -1,1 +1,4 @@
 project_id = "kozjptxyelcvkpzamvtb"
+
+[functions.send-budget-reminder]
+verify_jwt = false

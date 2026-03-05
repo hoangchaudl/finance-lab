@@ -86,6 +86,10 @@ export default function Transactions() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Delete confirmation state
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Edit state
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [editType, setEditType] = useState<TxType>("expense");

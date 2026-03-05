@@ -201,6 +201,19 @@ export function useAppData() {
         throw new Error(error.message);
       }
 
+      // Optimistically add the transaction to local state
+      const newTx: Transaction = {
+        id: inserted.id,
+        date: inserted.date,
+        amount: Number(inserted.amount),
+        quantity: inserted.quantity ? Number(inserted.quantity) : undefined,
+        type: inserted.type,
+        category_id: inserted.category_id ?? "",
+        note: inserted.note || undefined,
+        portfolio_entry_id: inserted.portfolio_entry_id || undefined,
+        realized_gain: inserted.realized_gain ? Number(inserted.realized_gain) : undefined,
+      };
+
       // Handle sell: validate quantity and reduce portfolio
       if (t.type === "sell" && t.portfolio_entry_id) {
         const entry = data.portfolio?.find(
@@ -214,7 +227,6 @@ export function useAppData() {
           );
         }
         const newQty = entry.quantity - sellQty;
-        // Do NOT change purchasePrice (avg cost stays the same)
         await supabase
           .from("portfolio_entries")
           .update({ quantity: newQty, updated_at: new Date().toISOString() })
@@ -246,7 +258,15 @@ export function useAppData() {
         }
       }
 
-      await loadFromDB();
+      // Reload only if portfolio was affected, otherwise optimistic update
+      if (t.portfolio_entry_id) {
+        await loadFromDB();
+      } else {
+        setData((prev) => ({
+          ...prev,
+          transactions: [...prev.transactions, newTx],
+        }));
+      }
     },
     [user, data.portfolio, loadFromDB],
   );

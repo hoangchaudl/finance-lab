@@ -217,7 +217,7 @@ export default function Transactions() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formCategory || !formAmount) return;
+    if (!formCategory || !formAmount || isSubmitting) return;
 
     let categoryId: string | null = formCategory;
     let note = formNote || undefined;
@@ -228,6 +228,7 @@ export default function Transactions() {
       note = subscription ? `📅 ${subscription.name}${formNote ? ` – ${formNote}` : ""}` : note;
     }
 
+    setIsSubmitting(true);
     try {
       // For sell type, calculate realized_gain
       let realized_gain: number | undefined;
@@ -270,6 +271,8 @@ export default function Transactions() {
         description: err?.message || "Failed to add transaction",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

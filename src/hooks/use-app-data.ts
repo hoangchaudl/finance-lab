@@ -349,8 +349,18 @@ export function useAppData() {
         }
       }
 
-      await supabase.from("transactions").delete().eq("id", id);
-      await loadFromDB();
+      const { error } = await supabase.from("transactions").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      
+      // Reload if portfolio affected, otherwise optimistic
+      if (tx?.portfolio_entry_id) {
+        await loadFromDB();
+      } else {
+        setData((prev) => ({
+          ...prev,
+          transactions: prev.transactions.filter((t) => t.id !== id),
+        }));
+      }
     },
     [user, data.transactions, data.portfolio, loadFromDB],
   );

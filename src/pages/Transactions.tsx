@@ -672,7 +672,7 @@ export default function Transactions() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(t.id)}
+                          onClick={() => setDeletingId(t.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" strokeWidth={1.5} />
                         </Button>

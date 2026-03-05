@@ -287,10 +287,18 @@ export function useAppData() {
         dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
 
       dbUpdate.updated_at = new Date().toISOString();
-      await supabase.from("transactions").update(dbUpdate).eq("id", id);
-      await loadFromDB();
+      const { error } = await supabase.from("transactions").update(dbUpdate).eq("id", id);
+      if (error) throw new Error(error.message);
+      
+      // Optimistic update
+      setData((prev) => ({
+        ...prev,
+        transactions: prev.transactions.map((t) =>
+          t.id === id ? { ...t, ...updates } : t
+        ),
+      }));
     },
-    [user, loadFromDB],
+    [user],
   );
 
   const deleteTransaction = useCallback(

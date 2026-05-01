@@ -139,6 +139,37 @@ export default function Dashboard() {
 
   const portfolioAllocation = calculatePortfolioAllocation();
 
+  // Crossover Point Calculation
+  const dividendByMonth: Record<string, number> = {};
+  data.transactions
+    .filter((t) => t.type === "dividend")
+    .forEach((t) => {
+      const month = t.date.slice(0, 7);
+      dividendByMonth[month] = (dividendByMonth[month] || 0) + t.amount;
+    });
+  const recentDividendMonths = Object.keys(dividendByMonth)
+    .sort()
+    .slice(-3)
+    .map((k) => dividendByMonth[k]);
+  const passiveIncomePerMonth =
+    recentDividendMonths.length > 0
+      ? recentDividendMonths.reduce((s, v) => s + v, 0) / recentDividendMonths.length
+      : 0;
+  const coveragePct =
+    monthlyExpenses > 0 ? (passiveIncomePerMonth / monthlyExpenses) * 100 : 0;
+  const crossoverYears =
+    passiveIncomePerMonth > 0
+      ? Math.log(monthlyExpenses / passiveIncomePerMonth) / Math.log(1 + returnRate / 100)
+      : null;
+  const insightText =
+    coveragePct < 10
+      ? "Start logging dividend income to track your passive income growth."
+      : coveragePct < 50
+      ? "Good start. Keep building your income-generating assets."
+      : coveragePct < 100
+      ? "Almost there — passive income is nearly covering your expenses!"
+      : "You've reached the crossover point!";
+
   const handleSaveAge = async () => {
     if (ageInput === null || ageInput < 0 || ageInput > 150) {
       toast({
@@ -400,6 +431,45 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Crossover Point */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-emerald-500" strokeWidth={1.5} />
+            Passive Income &amp; Crossover Point
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm text-muted-foreground">Avg Monthly Dividend</p>
+              <p className="text-2xl font-bold text-emerald-600">
+                {formatVND(Math.round(passiveIncomePerMonth))}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Expense Coverage</p>
+              <p className="text-2xl font-bold">{coveragePct.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">
+                Covers {coveragePct.toFixed(1)}% of your monthly expenses
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Years to Crossover</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {crossoverYears === null
+                  ? "—"
+                  : crossoverYears <= 0
+                  ? "Now!"
+                  : crossoverYears.toFixed(1)}
+              </p>
+            </div>
+          </div>
+          <Progress value={Math.min(100, coveragePct)} className="h-2" />
+          <p className="text-sm text-muted-foreground">{insightText}</p>
+        </CardContent>
+      </Card>
 
       {/* FIRE Goals Section */}
       <div className="grid gap-4 md:grid-cols-3">

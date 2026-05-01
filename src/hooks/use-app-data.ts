@@ -78,6 +78,7 @@ export function useAppData() {
           id: p.id,
           name: p.name,
           type: p.type,
+          tier: p.tier || "Tăng Trưởng",
           account: p.account,
           quantity: Number(p.quantity),
           purchasePrice: Number(p.purchase_price),
@@ -542,6 +543,7 @@ export function useAppData() {
           user_id: user.id,
           name: e.name,
           type: e.type,
+          tier: e.tier,
           account: e.account,
           quantity: e.quantity,
           purchase_price: e.purchasePrice,
@@ -572,6 +574,7 @@ export function useAppData() {
       const dbUpdate: any = {};
       if (u.name !== undefined) dbUpdate.name = u.name;
       if (u.type !== undefined) dbUpdate.type = u.type;
+      if (u.tier !== undefined) dbUpdate.tier = u.tier;
       if (u.account !== undefined) dbUpdate.account = u.account;
       if (u.quantity !== undefined) dbUpdate.quantity = u.quantity;
       if (u.purchasePrice !== undefined)

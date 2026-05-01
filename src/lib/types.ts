@@ -53,6 +53,7 @@ export interface PortfolioEntry {
   id: string;
   name: string;
   type: string;
+  tier: string;
   account: string;
   quantity: number;
   purchasePrice: number;

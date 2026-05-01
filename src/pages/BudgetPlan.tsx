@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ export default function BudgetPlan() {
     getTotalIncome,
     getTotalExpenses,
   } = useApp();
+  const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
 
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -154,9 +156,13 @@ export default function BudgetPlan() {
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
-  const handlePlanChange = (categoryId: string, value: string) => {
+  const handlePlanChange = async (categoryId: string, value: string) => {
     const num = parseFloat(value) || 0;
-    updatePlan(selectedMonth, categoryId, num);
+    try {
+      await updatePlan(selectedMonth, categoryId, num);
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Something went wrong. Please try again.", variant: "destructive" });
+    }
   };
 
   return (

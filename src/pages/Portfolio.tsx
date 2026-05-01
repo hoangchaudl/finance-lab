@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,6 +136,7 @@ export default function Portfolio() {
     updatePortfolioEntry,
     deletePortfolioEntry,
   } = useApp();
+  const { toast } = useToast();
   const entries = data.portfolio ?? [];
 
   // --- 1. CALCULATIONS & GROUPING ---
@@ -260,44 +262,43 @@ export default function Portfolio() {
     new Set(entries.map((e) => e.account).filter(Boolean)),
   );
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name.trim() || !form.currentPrice) return;
-    addPortfolioEntry({
-      name: form.name.trim(),
-      type: form.type,
-      tier: form.tier,
-      account: form.account.trim() || "General",
-      quantity: parseFormattedNumber(form.quantity),
-      purchasePrice: parseFormattedNumber(form.purchasePrice),
-      currentPrice: parseFormattedNumber(form.currentPrice),
-      notes: form.notes || undefined,
-    });
-    setForm({
-      name: "",
-      type: "Stocks",
-      tier: "Growth",
-      account: "",
-      quantity: "",
-      purchasePrice: "",
-      currentPrice: "",
-      notes: "",
-    });
-    setAdding(false);
+    try {
+      await addPortfolioEntry({
+        name: form.name.trim(),
+        type: form.type,
+        tier: form.tier,
+        account: form.account.trim() || "General",
+        quantity: parseFormattedNumber(form.quantity),
+        purchasePrice: parseFormattedNumber(form.purchasePrice),
+        currentPrice: parseFormattedNumber(form.currentPrice),
+        notes: form.notes || undefined,
+      });
+      setForm({ name: "", type: "Stocks", tier: "Growth", account: "", quantity: "", purchasePrice: "", currentPrice: "", notes: "" });
+      setAdding(false);
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Something went wrong. Please try again.", variant: "destructive" });
+    }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editing || !editing.name.trim()) return;
-    updatePortfolioEntry(editing.id, {
-      name: editing.name,
-      type: editing.type,
-      tier: editing.tier,
-      account: editing.account,
-      quantity: editing.quantity,
-      purchasePrice: parseFormattedNumber(editing.purchasePrice),
-      currentPrice: parseFormattedNumber(editing.currentPrice),
-      notes: editing.notes || undefined,
-    });
-    setEditing(null);
+    try {
+      await updatePortfolioEntry(editing.id, {
+        name: editing.name,
+        type: editing.type,
+        tier: editing.tier,
+        account: editing.account,
+        quantity: editing.quantity,
+        purchasePrice: parseFormattedNumber(editing.purchasePrice),
+        currentPrice: parseFormattedNumber(editing.currentPrice),
+        notes: editing.notes || undefined,
+      });
+      setEditing(null);
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Something went wrong. Please try again.", variant: "destructive" });
+    }
   };
 
   // Tower calculations
@@ -934,9 +935,13 @@ export default function Portfolio() {
                                   size="icon"
                                   variant="ghost"
                                   className="h-7 w-7"
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
-                                    deletePortfolioEntry(child.id);
+                                    try {
+                                      await deletePortfolioEntry(child.id);
+                                    } catch (err) {
+                                      toast({ title: "Error", description: err instanceof Error ? err.message : "Something went wrong. Please try again.", variant: "destructive" });
+                                    }
                                   }}
                                 >
                                   <Trash2

@@ -14,6 +14,7 @@ export function useAppData() {
   const { user } = useAuth();
   const [data, setData] = useState<AppData>(initialData);
   const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   // Load all data from Supabase
   const loadFromDB = useCallback(async () => {
@@ -127,6 +128,7 @@ export function useAppData() {
         categoryAllocations[a.category_id] = Number(a.percentage);
       });
 
+      setDbError(null);
       setData({
         fireSettings: {
           monthlyExpenses: Number(
@@ -168,6 +170,7 @@ export function useAppData() {
       });
     } catch (e) {
       console.error("Failed to load data from database:", e);
+      setDbError("Failed to load your data. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -677,10 +680,14 @@ export function useAppData() {
   );
 
   const resetData = useCallback(() => setData(initialData), []);
+  const resetError = useCallback(() => setDbError(null), []);
 
   return {
     data,
     loading,
+    dbError,
+    resetError,
+    loadFromDB,
     addTransaction,
     updateTransaction,
     deleteTransaction,

@@ -22,6 +22,7 @@ export interface Transaction {
   note?: string;
   portfolio_entry_id?: string;
   realized_gain?: number;
+  quality?: "active" | "scalable" | "passive";
 }
 
 export interface MonthlyPlan {

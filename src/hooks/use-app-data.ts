@@ -70,6 +70,7 @@ export function useAppData() {
           note: t.note || undefined,
           portfolio_entry_id: t.portfolio_entry_id || undefined,
           realized_gain: t.realized_gain ? Number(t.realized_gain) : undefined,
+          quality: (t.quality as Transaction["quality"]) || undefined,
         }),
       );
 
@@ -193,6 +194,7 @@ export function useAppData() {
           note: t.note ?? null,
           portfolio_entry_id: t.portfolio_entry_id ?? null,
           realized_gain: t.realized_gain ?? null,
+          quality: t.quality ?? null,
         })
         .select()
         .single();
@@ -215,6 +217,7 @@ export function useAppData() {
         realized_gain: inserted.realized_gain
           ? Number(inserted.realized_gain)
           : undefined,
+        quality: (inserted.quality as Transaction["quality"]) || undefined,
       };
 
       // Handle sell: validate quantity and reduce portfolio
@@ -292,6 +295,7 @@ export function useAppData() {
       if (updates.note !== undefined) dbUpdate.note = updates.note ?? null;
       if (updates.portfolio_entry_id !== undefined)
         dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
+      if (updates.quality !== undefined) dbUpdate.quality = updates.quality ?? null;
 
       dbUpdate.updated_at = new Date().toISOString();
       const { error } = await supabase

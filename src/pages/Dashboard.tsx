@@ -471,6 +471,98 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
+      {/* Income Quality */}
+      {(() => {
+        const monthIncomeTransactions = data.transactions.filter(
+          (t) => t.date.startsWith(monthKey) && t.type === "income"
+        );
+        const totalIncomeAmt = monthIncomeTransactions.reduce((s, t) => s + t.amount, 0);
+        const activeAmt = monthIncomeTransactions
+          .filter((t) => !t.quality || t.quality === "active")
+          .reduce((s, t) => s + t.amount, 0);
+        const scalableAmt = monthIncomeTransactions
+          .filter((t) => t.quality === "scalable")
+          .reduce((s, t) => s + t.amount, 0);
+        const passiveAmt = monthIncomeTransactions
+          .filter((t) => t.quality === "passive")
+          .reduce((s, t) => s + t.amount, 0);
+        const activePct = totalIncomeAmt > 0 ? (activeAmt / totalIncomeAmt) * 100 : 0;
+        const scalablePct = totalIncomeAmt > 0 ? (scalableAmt / totalIncomeAmt) * 100 : 0;
+        const passivePct = totalIncomeAmt > 0 ? (passiveAmt / totalIncomeAmt) * 100 : 0;
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
+                Income Quality
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {totalIncomeAmt === 0 ? (
+                <p className="text-sm text-muted-foreground">No income transactions this month.</p>
+              ) : (
+                <>
+                  <div className="flex rounded-full overflow-hidden h-4">
+                    {activePct > 0 && (
+                      <div
+                        style={{ width: `${activePct}%` }}
+                        className="bg-red-400 transition-all"
+                        title={`Active: ${activePct.toFixed(1)}%`}
+                      />
+                    )}
+                    {scalablePct > 0 && (
+                      <div
+                        style={{ width: `${scalablePct}%` }}
+                        className="bg-yellow-400 transition-all"
+                        title={`Scalable: ${scalablePct.toFixed(1)}%`}
+                      />
+                    )}
+                    {passivePct > 0 && (
+                      <div
+                        style={{ width: `${passivePct}%` }}
+                        className="bg-green-400 transition-all"
+                        title={`Passive: ${passivePct.toFixed(1)}%`}
+                      />
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                        Active
+                      </div>
+                      <p className="font-semibold">{activePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">{formatVND(Math.round(activeAmt))}</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                        Scalable
+                      </div>
+                      <p className="font-semibold">{scalablePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">{formatVND(Math.round(scalableAmt))}</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                        Passive
+                      </div>
+                      <p className="font-semibold">{passivePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">{formatVND(Math.round(passiveAmt))}</p>
+                    </div>
+                  </div>
+                  <p className={`text-xs ${passivePct >= 30 ? "text-green-600" : "text-muted-foreground"}`}>
+                    Target: &gt;30% Passive — currently {passivePct.toFixed(1)}%
+                    {passivePct >= 30 ? " ✓" : ""}
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* FIRE Goals Section */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

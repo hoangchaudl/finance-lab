@@ -81,6 +81,7 @@ export default function Transactions() {
   const [formNote, setFormNote] = useState("");
   const [formPortfolioId, setFormPortfolioId] = useState<string>("none");
   const [formQuantity, setFormQuantity] = useState("");
+  const [formQuality, setFormQuality] = useState<"active" | "scalable" | "passive">("active");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -99,6 +100,7 @@ export default function Transactions() {
   const [editNote, setEditNote] = useState("");
   const [editQuantity, setEditQuantity] = useState("");
   const [editPortfolioId, setEditPortfolioId] = useState<string>("none");
+  const [editQuality, setEditQuality] = useState<"active" | "scalable" | "passive">("active");
 
   const transactions = getMonthTransactions(selectedMonth).sort((a, b) => {
     const dateComparison =
@@ -253,6 +255,7 @@ export default function Transactions() {
             ? formPortfolioId
             : undefined,
         realized_gain,
+        quality: formType === "income" ? formQuality : undefined,
       });
 
       toast({
@@ -287,6 +290,7 @@ export default function Transactions() {
     setEditNote(t.note || "");
     setEditQuantity(t.quantity ? String(t.quantity) : "");
     setEditPortfolioId(t.portfolio_entry_id || "none");
+    setEditQuality(t.quality || "active");
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -315,6 +319,7 @@ export default function Transactions() {
           (isEditAssetLinkedType || isEditDividendType) && editPortfolioId !== "none"
             ? editPortfolioId
             : undefined,
+        quality: editType === "income" ? editQuality : undefined,
       });
 
       toast({
@@ -407,6 +412,19 @@ export default function Transactions() {
     }
   };
 
+  const getQualityBadge = (quality?: string) => {
+    switch (quality) {
+      case "active":
+        return <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">🔴 Active</Badge>;
+      case "scalable":
+        return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">🟡 Scalable</Badge>;
+      case "passive":
+        return <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">🟢 Passive</Badge>;
+      default:
+        return null;
+    }
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(transactions.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -485,6 +503,24 @@ export default function Transactions() {
                 </SelectContent>
               </Select>
             </div>
+            {formType === "income" && (
+              <div>
+                <Label>Quality</Label>
+                <Select
+                  value={formQuality}
+                  onValueChange={(v) => setFormQuality(v as typeof formQuality)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">🔴 Active (lương, freelance)</SelectItem>
+                    <SelectItem value="scalable">🟡 Scalable (khóa học, SaaS)</SelectItem>
+                    <SelectItem value="passive">🟢 Passive (cổ tức, lãi suất)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Category</Label>
               <Combobox
@@ -669,7 +705,12 @@ export default function Transactions() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>{getTypeBadge(t.type)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {getTypeBadge(t.type)}
+                        {t.type === "income" && getQualityBadge(t.quality)}
+                      </div>
+                    </TableCell>
                     <TableCell
                       className={`text-right font-medium ${
                         t.type === "income" || t.type === "dividend" ? "text-primary" :
@@ -786,6 +827,24 @@ export default function Transactions() {
                 </SelectContent>
               </Select>
             </div>
+            {editType === "income" && (
+              <div>
+                <Label>Quality</Label>
+                <Select
+                  value={editQuality}
+                  onValueChange={(v) => setEditQuality(v as typeof editQuality)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">🔴 Active (lương, freelance)</SelectItem>
+                    <SelectItem value="scalable">🟡 Scalable (khóa học, SaaS)</SelectItem>
+                    <SelectItem value="passive">🟢 Passive (cổ tức, lãi suất)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Category</Label>
               <Combobox

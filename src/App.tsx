@@ -16,6 +16,7 @@ import Profile from "@/pages/Profile";
 import NotFound from "./pages/NotFound";
 import Report from "@/pages/Report";
 import Auth from "@/pages/Auth";
+import ResetPassword from "@/pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </AuthProvider>

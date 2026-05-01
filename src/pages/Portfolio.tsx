@@ -44,27 +44,38 @@ import {
 const ICON_STROKE = 1.5;
 
 const TIER_OPTIONS = [
-  { value: "Phòng Thủ", emoji: "🛡️" },
-  { value: "An Toàn", emoji: "🏦" },
-  { value: "Thu Nhập", emoji: "💰" },
-  { value: "Tăng Trưởng", emoji: "📈" },
-  { value: "Mạo Hiểm", emoji: "🔥" },
+  { value: "Defensive", emoji: "🛡️" },
+  { value: "Safe", emoji: "🏦" },
+  { value: "Income", emoji: "💰" },
+  { value: "Growth", emoji: "📈" },
+  { value: "Risk", emoji: "🔥" },
 ];
 
 const TOWER_TIERS = TIER_OPTIONS;
 
-const getTierBadge = (name: string, value: number, pct: number) => {
+const getTierBadge = (name: string, value: number, pct: number, isPortfolioEmpty: boolean) => {
   const ok = <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">✅ OK</Badge>;
   const warn = (msg: string) => <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">⚠️ {msg}</Badge>;
   const danger = (msg: string) => <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">🔴 {msg}</Badge>;
-  if (name === "Phòng Thủ") return value > 0 ? ok : warn("Trống");
-  if (name === "An Toàn") return pct >= 20 && pct <= 30 ? ok : warn("Ngoài vùng");
-  if (name === "Thu Nhập") {
-    if (pct >= 30 && pct <= 40) return ok;
-    return pct < 30 ? warn("Dưới mục tiêu") : warn("Ngoài vùng");
+
+  // When entire portfolio is empty, Risk target is 0% so it's OK; all others are empty
+  if (isPortfolioEmpty) return name === "Risk" ? ok : warn("Empty");
+
+  if (name === "Defensive") return value > 0 ? ok : warn("Empty");
+  if (name === "Safe") {
+    if (pct === 0) return warn("Empty");
+    return pct >= 20 && pct <= 30 ? ok : warn("Out of range");
   }
-  if (name === "Tăng Trưởng") return pct >= 15 && pct <= 25 ? ok : warn("Ngoài vùng");
-  if (name === "Mạo Hiểm") return pct <= 10 ? ok : danger("Vượt giới hạn");
+  if (name === "Income") {
+    if (pct === 0) return warn("Empty");
+    if (pct >= 30 && pct <= 40) return ok;
+    return pct < 30 ? warn("Below target") : warn("Out of range");
+  }
+  if (name === "Growth") {
+    if (pct === 0) return warn("Empty");
+    return pct >= 15 && pct <= 25 ? ok : warn("Out of range");
+  }
+  if (name === "Risk") return pct <= 10 ? ok : danger("Exceeded limit");
   return null;
 };
 
@@ -238,7 +249,7 @@ export default function Portfolio() {
   const [form, setForm] = useState({
     name: "",
     type: "Stocks",
-    tier: "Tăng Trưởng",
+    tier: "Growth",
     account: "",
     quantity: "",
     purchasePrice: "",
@@ -264,7 +275,7 @@ export default function Portfolio() {
     setForm({
       name: "",
       type: "Stocks",
-      tier: "Tăng Trưởng",
+      tier: "Growth",
       account: "",
       quantity: "",
       purchasePrice: "",
@@ -432,25 +443,28 @@ export default function Portfolio() {
         </Card>
       </div>
 
-      {/* Tháp Tài Sản */}
+      {/* Asset Tower */}
       <Card>
         <CardHeader>
-          <CardTitle>🏛️ Tháp Tài Sản</CardTitle>
+          <CardTitle>🏛️ Asset Tower</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {towerData.map(({ name, emoji, value, pct }) => (
+          {(() => {
+            const isPortfolioEmpty = towerTotal === 0;
+            return towerData.map(({ name, emoji, value, pct }) => (
             <div key={name} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">{emoji} {name}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-muted-foreground">{formatVND(Math.round(value))}</span>
                   <span className="font-semibold w-14 text-right">{pct.toFixed(1)}%</span>
-                  {getTierBadge(name, value, pct)}
+                  {getTierBadge(name, value, pct, isPortfolioEmpty)}
                 </div>
               </div>
               <Progress value={Math.min(100, pct)} className="h-1.5" />
             </div>
-          ))}
+          ));
+          })()}
         </CardContent>
       </Card>
 

@@ -22,6 +22,7 @@ import {
 import { TrendingUp, Target, Check, Pencil, X, TrendingDown, Landmark, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import OnboardingModal from "@/components/OnboardingModal";
 
 const ALLOC_COLORS = [
 "hsl(160, 84%, 39%)",
@@ -53,6 +54,13 @@ export default function Dashboard() {
   const [editingAge, setEditingAge] = useState(false);
   const [ageInput, setAgeInput] = useState<number | null>(null);
   const [savingAge, setSavingAge] = useState(false);
+
+  const isFirstVisit =
+    !localStorage.getItem("onboarding_complete") &&
+    data.transactions.length === 0 &&
+    (data.portfolio?.length ?? 0) === 0 &&
+    data.categories.length === 0;
+  const [showOnboarding, setShowOnboarding] = useState(isFirstVisit);
 
   const monthKey = getMonthKey();
   const income = getTotalIncome(monthKey);
@@ -758,6 +766,8 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <OnboardingModal open={showOnboarding} onClose={() => setShowOnboarding(false)} />
     </div>);
 
 }

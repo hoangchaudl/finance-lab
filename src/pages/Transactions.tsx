@@ -514,9 +514,9 @@ export default function Transactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">🔴 Active (lương, freelance)</SelectItem>
-                    <SelectItem value="scalable">🟡 Scalable (khóa học, SaaS)</SelectItem>
-                    <SelectItem value="passive">🟢 Passive (cổ tức, lãi suất)</SelectItem>
+                    <SelectItem value="active">🔴 Active (salary, freelance)</SelectItem>
+                    <SelectItem value="scalable">🟡 Scalable (courses, SaaS)</SelectItem>
+                    <SelectItem value="passive">🟢 Passive (dividends, interest)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -838,9 +838,9 @@ export default function Transactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">🔴 Active (lương, freelance)</SelectItem>
-                    <SelectItem value="scalable">🟡 Scalable (khóa học, SaaS)</SelectItem>
-                    <SelectItem value="passive">🟢 Passive (cổ tức, lãi suất)</SelectItem>
+                    <SelectItem value="active">🔴 Active (salary, freelance)</SelectItem>
+                    <SelectItem value="scalable">🟡 Scalable (courses, SaaS)</SelectItem>
+                    <SelectItem value="passive">🟢 Passive (dividends, interest)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

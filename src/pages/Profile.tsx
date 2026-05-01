@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,11 @@ import { Camera, Loader2 } from "lucide-react";
 
 export default function Profile() {
   const { user } = useAuth();
+  const { data, updateFireSettings } = useApp();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Profile info
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string>("");
@@ -21,7 +24,19 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
-  // Load user metadata on mount
+  // Change password
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [changePwLoading, setChangePwLoading] = useState(false);
+
+  // Financial settings
+  const [fireExpenses, setFireExpenses] = useState("");
+  const [fireReturnRate, setFireReturnRate] = useState("");
+  const [fireTargetAge, setFireTargetAge] = useState("");
+  const [fireLoading, setFireLoading] = useState(false);
+
   useEffect(() => {
     if (user) {
       const metadata = user.user_metadata || {};
@@ -30,6 +45,12 @@ export default function Profile() {
       setAvatarUrl(metadata.avatar_url || "");
     }
   }, [user]);
+
+  useEffect(() => {
+    setFireExpenses(String(data.fireSettings.monthlyExpenses));
+    setFireReturnRate(String(data.fireSettings.returnRate));
+    setFireTargetAge(String(data.fireSettings.currentAge));
+  }, [data.fireSettings]);
 
   const getInitials = () => {
     if (!fullName) return user?.email?.charAt(0).toUpperCase() || "U";
@@ -40,123 +61,75 @@ export default function Profile() {
       .toUpperCase();
   };
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleAvatarClick = () => fileInputRef.current?.click();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Please select an image file",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
       return;
     }
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "File size must be less than 5MB",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "File size must be less than 5MB", variant: "destructive" });
       return;
     }
 
     setUploading(true);
-
     try {
       if (!user?.id) throw new Error("User not found");
-
-      // Create a unique file name
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      // Upload to Supabase Storage (path must start with user ID for RLS)
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) {
-        // Check if it's a bucket not found error
         if (uploadError.message.includes("Bucket not found")) {
-          throw new Error(
-            "Storage bucket 'avatars' not found. Please create it in your Supabase project first.",
-          );
+          throw new Error("Storage bucket 'avatars' not found. Please create it in your Supabase project first.");
         }
         throw uploadError;
       }
 
-      // Get public URL
       const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
       const publicUrl = data.publicUrl;
 
-      // Update user metadata with avatar URL
       const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          full_name: fullName,
-          phone: phone,
-          avatar_url: publicUrl,
-        },
+        data: { full_name: fullName, phone, avatar_url: publicUrl },
       });
-
       if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
-      toast({
-        title: "Success",
-        description: "Profile picture updated successfully",
-      });
+      toast({ title: "Success", description: "Profile picture updated successfully" });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to upload profile picture";
       toast({
         title: "Error",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : "Failed to upload profile picture",
         variant: "destructive",
       });
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: fullName,
-          phone: phone,
-          avatar_url: avatarUrl,
-        },
+        data: { full_name: fullName, phone, avatar_url: avatarUrl },
       });
-
       if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      toast({ title: "Success", description: "Profile updated successfully" });
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to update profile";
       toast({
         title: "Error",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : "Failed to update profile",
         variant: "destructive",
       });
     } finally {
@@ -164,15 +137,67 @@ export default function Profile() {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPw !== confirmPw) {
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    if (newPw.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    setChangePwLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPw });
+      if (error) throw error;
+      toast({ title: "Success", description: "Password updated successfully!" });
+      setShowChangePw(false);
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setChangePwLoading(false);
+    }
+  };
+
+  const displayAmount = (raw: string) =>
+    raw.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  const handleFireSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFireLoading(true);
+    try {
+      const expenses = parseFloat(fireExpenses) || 0;
+      const rate = parseFloat(fireReturnRate) || 0;
+      const age = parseInt(fireTargetAge) || 0;
+      await updateFireSettings({
+        ...data.fireSettings,
+        monthlyExpenses: expenses,
+        returnRate: rate,
+        currentAge: age,
+        birthYear: new Date().getFullYear() - age,
+      });
+      toast({ title: "Success", description: "Financial settings saved!" });
+    } catch {
+      toast({ title: "Error", description: "Failed to save settings", variant: "destructive" });
+    } finally {
+      setFireLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">My Profile</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your account settings
-        </p>
+        <p className="text-muted-foreground mt-2">Manage your account settings</p>
       </div>
 
+      {/* Profile Picture */}
       <Card>
         <CardHeader>
           <CardTitle>Profile Picture</CardTitle>
@@ -208,9 +233,7 @@ export default function Profile() {
             </div>
             <div>
               <p className="text-sm font-medium">Profile Picture</p>
-              <p className="text-xs text-muted-foreground">
-                JPG, PNG or GIF (Max 5MB)
-              </p>
+              <p className="text-xs text-muted-foreground">JPG, PNG or GIF (Max 5MB)</p>
               <Button
                 type="button"
                 variant="outline"
@@ -226,6 +249,7 @@ export default function Profile() {
         </CardContent>
       </Card>
 
+      {/* Personal Information */}
       <Card>
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
@@ -234,18 +258,9 @@ export default function Profile() {
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                value={user?.email || ""}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground">
-                Email cannot be changed
-              </p>
+              <Input id="email" type="email" value={user?.email || ""} disabled className="bg-muted" />
+              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
               <Input
@@ -256,7 +271,6 @@ export default function Profile() {
                 placeholder="Enter your full name"
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input
@@ -267,17 +281,130 @@ export default function Profile() {
                 placeholder="Enter your phone number"
               />
             </div>
-
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={loading}>
                 {loading ? "Saving..." : "Save Changes"}
               </Button>
-              {isSaved && (
-                <span className="text-sm text-green-600 font-medium">
-                  ✓ Saved
-                </span>
-              )}
+              {isSaved && <span className="text-sm text-green-600 font-medium">✓ Saved</span>}
             </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Security */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Security</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!showChangePw ? (
+            <Button variant="outline" onClick={() => setShowChangePw(true)}>
+              Change Password
+            </Button>
+          ) : (
+            <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
+              <div className="space-y-2">
+                <Label htmlFor="currentPw">Current Password</Label>
+                <Input
+                  id="currentPw"
+                  type="password"
+                  value={currentPw}
+                  onChange={(e) => setCurrentPw(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPw">New Password</Label>
+                <Input
+                  id="newPw"
+                  type="password"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPw">Confirm New Password</Label>
+                <Input
+                  id="confirmPw"
+                  type="password"
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                />
+                {confirmPw && newPw !== confirmPw && (
+                  <p className="text-xs text-destructive">Passwords do not match</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={changePwLoading}>
+                  {changePwLoading ? "Saving..." : "Save Password"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowChangePw(false);
+                    setCurrentPw(""); setNewPw(""); setConfirmPw("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Financial Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Financial Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleFireSave} className="space-y-4 max-w-sm">
+            <div className="space-y-2">
+              <Label htmlFor="fireExpenses">Monthly Expenses (VND)</Label>
+              <Input
+                id="fireExpenses"
+                type="text"
+                value={displayAmount(fireExpenses)}
+                onChange={(e) => setFireExpenses(e.target.value.replace(/\D/g, ""))}
+                placeholder="14.000.000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fireReturnRate">Expected Return Rate (%)</Label>
+              <Input
+                id="fireReturnRate"
+                type="number"
+                value={fireReturnRate}
+                onChange={(e) => setFireReturnRate(e.target.value)}
+                placeholder="10"
+                min={1}
+                max={30}
+                step={0.5}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fireTargetAge">Target Retirement Age</Label>
+              <Input
+                id="fireTargetAge"
+                type="number"
+                value={fireTargetAge}
+                onChange={(e) => setFireTargetAge(e.target.value)}
+                placeholder="45"
+                min={20}
+                max={80}
+              />
+            </div>
+            <Button type="submit" disabled={fireLoading}>
+              {fireLoading ? "Saving..." : "Save Settings"}
+            </Button>
           </form>
         </CardContent>
       </Card>

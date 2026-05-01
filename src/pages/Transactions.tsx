@@ -57,7 +57,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
 
-type TxType = "income" | "expense" | "investing" | "saving" | "sell";
+type TxType = "income" | "expense" | "investing" | "saving" | "sell" | "dividend";
 
 export default function Transactions() {
   const {
@@ -81,6 +81,7 @@ export default function Transactions() {
   const [formNote, setFormNote] = useState("");
   const [formPortfolioId, setFormPortfolioId] = useState<string>("none");
   const [formQuantity, setFormQuantity] = useState("");
+  const [formQuality, setFormQuality] = useState<"active" | "scalable" | "passive">("active");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -99,6 +100,7 @@ export default function Transactions() {
   const [editNote, setEditNote] = useState("");
   const [editQuantity, setEditQuantity] = useState("");
   const [editPortfolioId, setEditPortfolioId] = useState<string>("none");
+  const [editQuality, setEditQuality] = useState<"active" | "scalable" | "passive">("active");
 
   const transactions = getMonthTransactions(selectedMonth).sort((a, b) => {
     const dateComparison =
@@ -118,14 +120,14 @@ export default function Transactions() {
   };
 
   const filteredCategories = data.categories.filter((c) => {
-    if (formType === "income") return c.type === "income";
+    if (formType === "income" || formType === "dividend") return c.type === "income";
     if (formType === "investing" || formType === "sell") return c.type === "investment";
     if (formType === "saving") return c.type === "savings";
     return c.type === "essential" || c.type === "nonessential";
   });
 
   const editFilteredCategories = data.categories.filter((c) => {
-    if (editType === "income") return c.type === "income";
+    if (editType === "income" || editType === "dividend") return c.type === "income";
     if (editType === "investing" || editType === "sell") return c.type === "investment";
     if (editType === "saving") return c.type === "savings";
     return c.type === "essential" || c.type === "nonessential";
@@ -173,10 +175,12 @@ export default function Transactions() {
 
   const isPortfolioType = formType === "investing" || formType === "saving";
   const isSellType = formType === "sell";
+  const isDividendType = formType === "dividend";
   const isAssetLinkedType = isPortfolioType || isSellType;
 
   const isEditPortfolioType = editType === "investing" || editType === "saving";
   const isEditSellType = editType === "sell";
+  const isEditDividendType = editType === "dividend";
   const isEditAssetLinkedType = isEditPortfolioType || isEditSellType;
 
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -247,10 +251,11 @@ export default function Transactions() {
         category_id: categoryId as string,
         note,
         portfolio_entry_id:
-          isAssetLinkedType && formPortfolioId !== "none"
+          (isAssetLinkedType || isDividendType) && formPortfolioId !== "none"
             ? formPortfolioId
             : undefined,
         realized_gain,
+        quality: formType === "income" ? formQuality : undefined,
       });
 
       toast({
@@ -264,7 +269,7 @@ export default function Transactions() {
       setFormQuantity("");
       setFormNote("");
       setFormCategory("");
-      if (isAssetLinkedType) setFormPortfolioId("none");
+      if (isAssetLinkedType || isDividendType) setFormPortfolioId("none");
     } catch (err: any) {
       toast({
         title: "Error",
@@ -285,6 +290,7 @@ export default function Transactions() {
     setEditNote(t.note || "");
     setEditQuantity(t.quantity ? String(t.quantity) : "");
     setEditPortfolioId(t.portfolio_entry_id || "none");
+    setEditQuality(t.quality || "active");
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -310,9 +316,10 @@ export default function Transactions() {
         category_id: categoryId as string,
         note,
         portfolio_entry_id:
-          isEditAssetLinkedType && editPortfolioId !== "none"
+          (isEditAssetLinkedType || isEditDividendType) && editPortfolioId !== "none"
             ? editPortfolioId
             : undefined,
+        quality: editType === "income" ? editQuality : undefined,
       });
 
       toast({
@@ -394,8 +401,27 @@ export default function Transactions() {
             Sell
           </Badge>
         );
+      case "dividend":
+        return (
+          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+            Dividend
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">Expense</Badge>;
+    }
+  };
+
+  const getQualityBadge = (quality?: string) => {
+    switch (quality) {
+      case "active":
+        return <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">🔴 Active</Badge>;
+      case "scalable":
+        return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">🟡 Scalable</Badge>;
+      case "passive":
+        return <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">🟢 Passive</Badge>;
+      default:
+        return null;
     }
   };
 
@@ -473,9 +499,28 @@ export default function Transactions() {
                   <SelectItem value="investing">Investing</SelectItem>
                   <SelectItem value="saving">Saving</SelectItem>
                   <SelectItem value="sell">Sell Asset</SelectItem>
+                  <SelectItem value="dividend">Dividend</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {formType === "income" && (
+              <div>
+                <Label>Quality</Label>
+                <Select
+                  value={formQuality}
+                  onValueChange={(v) => setFormQuality(v as typeof formQuality)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">🔴 Active (salary, freelance)</SelectItem>
+                    <SelectItem value="scalable">🟡 Scalable (courses, SaaS)</SelectItem>
+                    <SelectItem value="passive">🟢 Passive (dividends, interest)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Category</Label>
               <Combobox
@@ -531,6 +576,27 @@ export default function Transactions() {
                   />
                 </div>
               </>
+            )}
+
+            {isDividendType && (
+              <div className="sm:col-span-2 lg:col-span-1">
+                <Label className="flex items-center gap-1 text-emerald-600">
+                  <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> Source Holding
+                </Label>
+                <Select value={formPortfolioId} onValueChange={setFormPortfolioId}>
+                  <SelectTrigger className="border-emerald-200 bg-emerald-50/50">
+                    <SelectValue placeholder="Select Asset (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {data.portfolio?.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} ({p.account})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
 
             <div className={isAssetLinkedType ? "" : "lg:col-span-1"}>
@@ -639,14 +705,19 @@ export default function Transactions() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>{getTypeBadge(t.type)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {getTypeBadge(t.type)}
+                        {t.type === "income" && getQualityBadge(t.quality)}
+                      </div>
+                    </TableCell>
                     <TableCell
                       className={`text-right font-medium ${
-                        t.type === "income" ? "text-primary" :
+                        t.type === "income" || t.type === "dividend" ? "text-primary" :
                         t.type === "sell" ? "text-amber-600" : "text-foreground"
                       }`}
                     >
-                      {t.type === "income" || t.type === "sell" ? "+" : "-"}
+                      {t.type === "income" || t.type === "sell" || t.type === "dividend" ? "+" : "-"}
                       {formatVND(t.amount)}
                       {t.type === "sell" && t.realized_gain !== undefined && (
                         <span className={`block text-[10px] ${t.realized_gain >= 0 ? "text-green-600" : "text-red-600"}`}>
@@ -752,9 +823,28 @@ export default function Transactions() {
                   <SelectItem value="investing">Investing</SelectItem>
                   <SelectItem value="saving">Saving</SelectItem>
                   <SelectItem value="sell">Sell Asset</SelectItem>
+                  <SelectItem value="dividend">Dividend</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {editType === "income" && (
+              <div>
+                <Label>Quality</Label>
+                <Select
+                  value={editQuality}
+                  onValueChange={(v) => setEditQuality(v as typeof editQuality)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">🔴 Active (salary, freelance)</SelectItem>
+                    <SelectItem value="scalable">🟡 Scalable (courses, SaaS)</SelectItem>
+                    <SelectItem value="passive">🟢 Passive (dividends, interest)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Category</Label>
               <Combobox
@@ -800,6 +890,27 @@ export default function Transactions() {
                   />
                 </div>
               </>
+            )}
+
+            {isEditDividendType && (
+              <div>
+                <Label className="flex items-center gap-1 text-emerald-600">
+                  <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> Source Holding
+                </Label>
+                <Select value={editPortfolioId} onValueChange={setEditPortfolioId}>
+                  <SelectTrigger className="border-emerald-200 bg-emerald-50/50">
+                    <SelectValue placeholder="Select Asset (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {data.portfolio?.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} ({p.account})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
 
             <div>

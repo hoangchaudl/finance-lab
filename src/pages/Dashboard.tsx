@@ -22,6 +22,7 @@ import {
 import { TrendingUp, Target, Check, Pencil, X, TrendingDown, Landmark, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import OnboardingModal from "@/components/OnboardingModal";
 
 const ALLOC_COLORS = [
 "hsl(160, 84%, 39%)",
@@ -53,6 +54,13 @@ export default function Dashboard() {
   const [editingAge, setEditingAge] = useState(false);
   const [ageInput, setAgeInput] = useState<number | null>(null);
   const [savingAge, setSavingAge] = useState(false);
+
+  const isFirstVisit =
+    !localStorage.getItem("onboarding_complete") &&
+    data.transactions.length === 0 &&
+    (data.portfolio?.length ?? 0) === 0 &&
+    data.categories.length === 0;
+  const [showOnboarding, setShowOnboarding] = useState(isFirstVisit);
 
   const monthKey = getMonthKey();
   const income = getTotalIncome(monthKey);
@@ -138,6 +146,37 @@ export default function Dashboard() {
   };
 
   const portfolioAllocation = calculatePortfolioAllocation();
+
+  // Crossover Point Calculation
+  const dividendByMonth: Record<string, number> = {};
+  data.transactions
+    .filter((t) => t.type === "dividend")
+    .forEach((t) => {
+      const month = t.date.slice(0, 7);
+      dividendByMonth[month] = (dividendByMonth[month] || 0) + t.amount;
+    });
+  const recentDividendMonths = Object.keys(dividendByMonth)
+    .sort()
+    .slice(-3)
+    .map((k) => dividendByMonth[k]);
+  const passiveIncomePerMonth =
+    recentDividendMonths.length > 0
+      ? recentDividendMonths.reduce((s, v) => s + v, 0) / recentDividendMonths.length
+      : 0;
+  const coveragePct =
+    monthlyExpenses > 0 ? (passiveIncomePerMonth / monthlyExpenses) * 100 : 0;
+  const crossoverYears =
+    passiveIncomePerMonth > 0
+      ? Math.log(monthlyExpenses / passiveIncomePerMonth) / Math.log(1 + returnRate / 100)
+      : null;
+  const insightText =
+    coveragePct < 10
+      ? "Start logging dividend income to track your passive income growth."
+      : coveragePct < 50
+      ? "Good start. Keep building your income-generating assets."
+      : coveragePct < 100
+      ? "Almost there — passive income is nearly covering your expenses!"
+      : "You've reached the crossover point!";
 
   const handleSaveAge = async () => {
     if (ageInput === null || ageInput < 0 || ageInput > 150) {
@@ -401,6 +440,137 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Crossover Point */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-emerald-500" strokeWidth={1.5} />
+            Passive Income &amp; Crossover Point
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm text-muted-foreground">Avg Monthly Dividend</p>
+              <p className="text-2xl font-bold text-emerald-600">
+                {formatVND(Math.round(passiveIncomePerMonth))}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Expense Coverage</p>
+              <p className="text-2xl font-bold">{coveragePct.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">
+                Covers {coveragePct.toFixed(1)}% of your monthly expenses
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Years to Crossover</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {crossoverYears === null
+                  ? "—"
+                  : crossoverYears <= 0
+                  ? "Now!"
+                  : crossoverYears.toFixed(1)}
+              </p>
+            </div>
+          </div>
+          <Progress value={Math.min(100, coveragePct)} className="h-2" />
+          <p className="text-sm text-muted-foreground">{insightText}</p>
+        </CardContent>
+      </Card>
+
+      {/* Income Quality */}
+      {(() => {
+        const monthIncomeTransactions = data.transactions.filter(
+          (t) => t.date.startsWith(monthKey) && t.type === "income"
+        );
+        const totalIncomeAmt = monthIncomeTransactions.reduce((s, t) => s + t.amount, 0);
+        const activeAmt = monthIncomeTransactions
+          .filter((t) => !t.quality || t.quality === "active")
+          .reduce((s, t) => s + t.amount, 0);
+        const scalableAmt = monthIncomeTransactions
+          .filter((t) => t.quality === "scalable")
+          .reduce((s, t) => s + t.amount, 0);
+        const passiveAmt = monthIncomeTransactions
+          .filter((t) => t.quality === "passive")
+          .reduce((s, t) => s + t.amount, 0);
+        const activePct = totalIncomeAmt > 0 ? (activeAmt / totalIncomeAmt) * 100 : 0;
+        const scalablePct = totalIncomeAmt > 0 ? (scalableAmt / totalIncomeAmt) * 100 : 0;
+        const passivePct = totalIncomeAmt > 0 ? (passiveAmt / totalIncomeAmt) * 100 : 0;
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
+                Income Quality
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {totalIncomeAmt === 0 ? (
+                <p className="text-sm text-muted-foreground">No income transactions this month.</p>
+              ) : (
+                <>
+                  <div className="flex rounded-full overflow-hidden h-4">
+                    {activePct > 0 && (
+                      <div
+                        style={{ width: `${activePct}%` }}
+                        className="bg-red-400 transition-all"
+                        title={`Active: ${activePct.toFixed(1)}%`}
+                      />
+                    )}
+                    {scalablePct > 0 && (
+                      <div
+                        style={{ width: `${scalablePct}%` }}
+                        className="bg-yellow-400 transition-all"
+                        title={`Scalable: ${scalablePct.toFixed(1)}%`}
+                      />
+                    )}
+                    {passivePct > 0 && (
+                      <div
+                        style={{ width: `${passivePct}%` }}
+                        className="bg-green-400 transition-all"
+                        title={`Passive: ${passivePct.toFixed(1)}%`}
+                      />
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                        Active
+                      </div>
+                      <p className="font-semibold">{activePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">{formatVND(Math.round(activeAmt))}</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                        Scalable
+                      </div>
+                      <p className="font-semibold">{scalablePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">{formatVND(Math.round(scalableAmt))}</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                        Passive
+                      </div>
+                      <p className="font-semibold">{passivePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">{formatVND(Math.round(passiveAmt))}</p>
+                    </div>
+                  </div>
+                  <p className={`text-xs ${passivePct >= 30 ? "text-green-600" : "text-muted-foreground"}`}>
+                    Target: &gt;30% Passive — currently {passivePct.toFixed(1)}%
+                    {passivePct >= 30 ? " ✓" : ""}
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* FIRE Goals Section */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -596,6 +766,8 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <OnboardingModal open={showOnboarding} onClose={() => setShowOnboarding(false)} />
     </div>);
 
 }

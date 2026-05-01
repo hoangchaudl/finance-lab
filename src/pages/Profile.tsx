@@ -281,6 +281,31 @@ export default function Profile() {
                 placeholder="Enter your phone number"
               />
             </div>
+            {(() => {
+              const dob = (user?.user_metadata as any)?.date_of_birth as string | undefined;
+              const formatted = dob
+                ? new Date(dob).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+                : null;
+              const age = dob
+                ? Math.floor((Date.now() - new Date(dob).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+                : null;
+              return (
+                <div className="space-y-2">
+                  <Label>Date of Birth</Label>
+                  <div className="flex items-center gap-3 px-3 py-2 rounded-md border bg-muted text-sm">
+                    {formatted ? (
+                      <>
+                        <span>{formatted}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">Age: {age}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">Not provided</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={loading}>
                 {loading ? "Saving..." : "Save Changes"}

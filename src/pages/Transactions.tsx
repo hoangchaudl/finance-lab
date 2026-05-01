@@ -53,6 +53,7 @@ import {
   X,
   TrendingUp,
   TrendingDown,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
@@ -441,22 +442,62 @@ export default function Transactions() {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
+  const handleExportCSV = () => {
+    const headers = ["Date", "Type", "Category", "Amount", "Quality", "Note", "Portfolio Asset"];
+    const rows = transactions.map((t) => {
+      const cat = getCategoryById(t.category_id);
+      const category = cat ? `${cat.emoji} ${cat.name}` : "";
+      const portfolioAsset = getPortfolioName(t.portfolio_entry_id) ?? "";
+      return [
+        t.date,
+        t.type,
+        category,
+        t.amount,
+        t.quality ?? "",
+        t.note ?? "",
+        portfolioAsset,
+      ];
+    });
+
+    const escape = (v: string | number) => {
+      const s = String(v);
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+
+    const csv = [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().slice(0, 10);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `finance-lab-transactions-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Transactions</h1>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((m) => (
-              <SelectItem key={m} value={m}>
-                {getMonthLabel(m)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {getMonthLabel(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={transactions.length === 0}>
+            <Download className="h-4 w-4 mr-1" strokeWidth={1.5} /> Export CSV
+          </Button>
+        </div>
       </div>
 
       <Card className="border-primary/20 bg-primary/5">

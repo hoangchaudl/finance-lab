@@ -17,7 +17,7 @@ export interface Transaction {
   amount: number;
   // New: quantity allows calculating the new average price when buying assets
   quantity?: number;
-  type: "income" | "expense" | "investing" | "saving" | "sell";
+  type: "income" | "expense" | "investing" | "saving" | "sell" | "dividend";
   category_id: string;
   note?: string;
   portfolio_entry_id?: string;

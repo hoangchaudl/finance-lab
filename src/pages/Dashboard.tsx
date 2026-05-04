@@ -34,6 +34,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import OnboardingModal from "@/components/OnboardingModal";
 import HintBanner from "@/components/HintBanner";
+import PageTourButton from "@/components/PageTourButton";
+import { usePageTour } from "@/hooks/use-page-tour";
 
 const ALLOC_COLORS = [
   "hsl(160, 84%, 39%)",

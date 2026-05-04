@@ -1,12 +1,15 @@
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
 import HintBanner from "@/components/HintBanner";
+import PageTourButton from "@/components/PageTourButton";
+import { usePageTour } from "@/hooks/use-page-tour";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TrendingUp, Target, CalendarClock } from "lucide-react";
 
 export default function FireGoals() {
+  const { startTour } = usePageTour("fire");
   const { data, getNetWorth } = useApp();
   const { monthlyExpenses, returnRate, currentAge } = data.fireSettings;
 
@@ -36,7 +39,10 @@ export default function FireGoals() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">F.I.R.E Roadmap</h1>
+      <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
+        F.I.R.E Roadmap
+        <PageTourButton onClick={startTour} />
+      </h1>
 
       <HintBanner
         pageKey="fire"
@@ -45,7 +51,7 @@ export default function FireGoals() {
 
       {/* Top Level Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card data-tour="fire-target">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">
               F.I. Target (Rule of 25)
@@ -73,7 +79,7 @@ export default function FireGoals() {
           </CardContent>
         </Card>
 
-        <Card className="bg-blue-50/50 border-blue-100">
+        <Card data-tour="fire-savings" className="bg-blue-50/50 border-blue-100">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-blue-600">
               Required Monthly Savings

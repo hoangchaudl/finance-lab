@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import HintBanner from "@/components/HintBanner";
+import PageTourButton from "@/components/PageTourButton";
+import { usePageTour } from "@/hooks/use-page-tour";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -186,6 +188,7 @@ export default function Portfolio() {
     deletePortfolioEntry,
   } = useApp();
   const { toast } = useToast();
+  const { startTour } = usePageTour("portfolio");
   const entries = data.portfolio ?? [];
 
   // --- 1. CALCULATIONS & GROUPING ---
@@ -396,8 +399,11 @@ export default function Portfolio() {
       />
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Portfolio Manager</h1>
-        <Button onClick={() => setAdding(true)} disabled={adding}>
+        <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
+          Portfolio Manager
+          <PageTourButton onClick={startTour} />
+        </h1>
+        <Button data-tour="portfolio-add" onClick={() => setAdding(true)} disabled={adding}>
           <Plus className="h-4 w-4 mr-1" strokeWidth={ICON_STROKE} /> Add Asset
         </Button>
       </div>

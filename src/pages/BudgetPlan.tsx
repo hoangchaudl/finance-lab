@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 import HintBanner from "@/components/HintBanner";
+import PageTourButton from "@/components/PageTourButton";
+import { usePageTour } from "@/hooks/use-page-tour";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +43,7 @@ export default function BudgetPlan() {
     getTotalExpenses,
   } = useApp();
   const { toast } = useToast();
+  const { startTour } = usePageTour("budget");
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
 
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -174,7 +177,10 @@ export default function BudgetPlan() {
       />
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Budget Plan</h1>
+        <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
+          Budget Plan
+          <PageTourButton onClick={startTour} />
+        </h1>
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
           <SelectTrigger className="w-48">
             <SelectValue />
@@ -541,7 +547,7 @@ export default function BudgetPlan() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table data-tour="budget-table">
             <TableHeader>
               <TableRow>
                 <TableHead>Category</TableHead>

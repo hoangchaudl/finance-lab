@@ -220,7 +220,7 @@ export function useAppData() {
         realized_gain: inserted.realized_gain
           ? Number(inserted.realized_gain)
           : undefined,
-        quality: (inserted.quality as Transaction["quality"]) || undefined,
+        quality: ((inserted as any).quality as Transaction["quality"]) || undefined,
       };
 
       // Handle sell: validate quantity and reduce portfolio

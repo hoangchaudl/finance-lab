@@ -15,6 +15,7 @@ export const initialData: AppData = {
       name: "Tiền mặt",
       type: "Savings",
       account: "Bank",
+      tier: "Defensive",
       quantity: 100000000,
       purchasePrice: 1,
       currentPrice: 1,
@@ -26,6 +27,7 @@ export const initialData: AppData = {
       name: "ETF (VN30)",
       type: "ETF",
       account: "TCInvest",
+      tier: "Growth",
       quantity: 1000,
       purchasePrice: 12000, // 12M Cost
       currentPrice: 41698, // 41.6M Value
@@ -37,6 +39,7 @@ export const initialData: AppData = {
       name: "Bitcoin/ETH",
       type: "Crypto",
       account: "Binance",
+      tier: "Risk",
       quantity: 0.5,
       purchasePrice: 80000000, // 40M Cost (Estimate)
       currentPrice: 81000000, // 40.5M Value
@@ -47,6 +50,7 @@ export const initialData: AppData = {
       name: "Cổ phiếu lẻ",
       type: "Stocks",
       account: "TCInvest",
+      tier: "Growth",
       quantity: 1000,
       purchasePrice: 35000,
       currentPrice: 38989, // ~38.9M Value
@@ -57,6 +61,7 @@ export const initialData: AppData = {
       name: "Vàng nhẫn",
       type: "Gold",
       account: "Home Safe",
+      tier: "Safe",
       quantity: 3,
       purchasePrice: 7000000, // 21M Cost (Estimate)
       currentPrice: 9780000, // 29.34M Value

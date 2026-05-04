@@ -54,9 +54,13 @@ import {
   TrendingUp,
   TrendingDown,
   Download,
+  Briefcase,
+  Layers,
+  Leaf,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
+import HintBanner from "@/components/HintBanner";
 
 type TxType = "income" | "expense" | "investing" | "saving" | "sell" | "dividend";
 
@@ -416,11 +420,23 @@ export default function Transactions() {
   const getQualityBadge = (quality?: string) => {
     switch (quality) {
       case "active":
-        return <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">🔴 Active</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-700 border-red-200 text-xs inline-flex items-center gap-1">
+            <Briefcase className="h-3 w-3" strokeWidth={1.5} /> Active
+          </Badge>
+        );
       case "scalable":
-        return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">🟡 Scalable</Badge>;
+        return (
+          <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs inline-flex items-center gap-1">
+            <Layers className="h-3 w-3" strokeWidth={1.5} /> Scalable
+          </Badge>
+        );
       case "passive":
-        return <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">🟢 Passive</Badge>;
+        return (
+          <Badge className="bg-green-100 text-green-700 border-green-200 text-xs inline-flex items-center gap-1">
+            <Leaf className="h-3 w-3" strokeWidth={1.5} /> Passive
+          </Badge>
+        );
       default:
         return null;
     }
@@ -479,6 +495,11 @@ export default function Transactions() {
 
   return (
     <div className="space-y-6">
+      <HintBanner
+        pageKey="transactions"
+        message="💡 Log every income, expense, investment, and dividend here. Use Categories to organize your spending. The more you log, the better your reports become."
+      />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Transactions</h1>
         <div className="flex items-center gap-2">
@@ -555,9 +576,24 @@ export default function Transactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">🔴 Active (salary, freelance)</SelectItem>
-                    <SelectItem value="scalable">🟡 Scalable (courses, SaaS)</SelectItem>
-                    <SelectItem value="passive">🟢 Passive (dividends, interest)</SelectItem>
+                    <SelectItem value="active">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5 text-red-500" strokeWidth={1.5} />
+                        Active (salary, freelance)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="scalable">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-yellow-500" strokeWidth={1.5} />
+                        Scalable (courses, SaaS)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="passive">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Leaf className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} />
+                        Passive (dividends, interest)
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -879,9 +915,24 @@ export default function Transactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">🔴 Active (salary, freelance)</SelectItem>
-                    <SelectItem value="scalable">🟡 Scalable (courses, SaaS)</SelectItem>
-                    <SelectItem value="passive">🟢 Passive (dividends, interest)</SelectItem>
+                    <SelectItem value="active">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5 text-red-500" strokeWidth={1.5} />
+                        Active (salary, freelance)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="scalable">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-yellow-500" strokeWidth={1.5} />
+                        Scalable (courses, SaaS)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="passive">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Leaf className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} />
+                        Passive (dividends, interest)
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

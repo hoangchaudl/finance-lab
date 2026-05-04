@@ -1,5 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
+import HintBanner from "@/components/HintBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -36,6 +37,11 @@ export default function FireGoals() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">F.I.R.E Roadmap</h1>
+
+      <HintBanner
+        pageKey="fire"
+        message="🎯 Your FI Number is 25× your annual expenses — the amount you need invested to retire. Track your net worth growth toward this target."
+      />
 
       {/* Top Level Stats */}
       <div className="grid gap-4 md:grid-cols-3">

@@ -80,7 +80,7 @@ export function useAppData() {
           id: p.id,
           name: p.name,
           type: p.type,
-          tier: p.tier || "Tăng Trưởng",
+          tier: p.tier || "Growth",
           account: p.account,
           quantity: Number(p.quantity),
           purchasePrice: Number(p.purchase_price),

@@ -23,6 +23,7 @@ import { TrendingUp, Target, Check, Pencil, X, TrendingDown, Landmark, BarChart3
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import OnboardingModal from "@/components/OnboardingModal";
+import HintBanner from "@/components/HintBanner";
 
 const ALLOC_COLORS = [
 "hsl(160, 84%, 39%)",
@@ -217,6 +218,11 @@ export default function Dashboard() {
           Overview — {getMonthLabel(monthKey)}
         </h1>
       </div>
+
+      <HintBanner
+        pageKey="dashboard"
+        message="👋 Welcome to your Dashboard. The Crossover Point shows when your passive income will cover your expenses — your true financial freedom date. Log dividend transactions to start tracking it."
+      />
 
       {/* Hero Balance Card */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-3xl p-8 text-white shadow-lg">

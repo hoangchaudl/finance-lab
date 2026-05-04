@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
+import HintBanner from "@/components/HintBanner";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -167,6 +168,11 @@ export default function BudgetPlan() {
 
   return (
     <div className="space-y-6">
+      <HintBanner
+        pageKey="budget"
+        message="📋 Set monthly spending targets per category. At the end of each month, compare planned vs actual to see where you overspent."
+      />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Budget Plan</h1>
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>

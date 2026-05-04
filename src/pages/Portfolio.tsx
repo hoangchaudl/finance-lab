@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import HintBanner from "@/components/HintBanner";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,11 @@ import {
   ChevronDown,
   ChevronRight,
   PieChart as PieIcon,
+  Shield,
+  Landmark,
+  CircleDollarSign,
+  TrendingUp,
+  Flame,
 } from "lucide-react";
 import {
   PieChart,
@@ -45,14 +51,28 @@ import {
 const ICON_STROKE = 1.5;
 
 const TIER_OPTIONS = [
-  { value: "Defensive", emoji: "🛡️" },
-  { value: "Safe", emoji: "🏦" },
-  { value: "Income", emoji: "💰" },
-  { value: "Growth", emoji: "📈" },
-  { value: "Risk", emoji: "🔥" },
+  { value: "Defensive" },
+  { value: "Safe" },
+  { value: "Income" },
+  { value: "Growth" },
+  { value: "Risk" },
 ];
 
 const TOWER_TIERS = TIER_OPTIONS;
+
+const getTierIcon = (tierName: string, size = "h-4 w-4") => {
+  const map: Record<string, { Icon: typeof Shield; cls: string }> = {
+    Defensive: { Icon: Shield, cls: "text-blue-500" },
+    Safe: { Icon: Landmark, cls: "text-green-500" },
+    Income: { Icon: CircleDollarSign, cls: "text-yellow-500" },
+    Growth: { Icon: TrendingUp, cls: "text-purple-500" },
+    Risk: { Icon: Flame, cls: "text-red-500" },
+  };
+  const entry = map[tierName];
+  if (!entry) return null;
+  const { Icon, cls } = entry;
+  return <Icon className={`${size} ${cls} shrink-0`} strokeWidth={1.5} />;
+};
 
 const getTierBadge = (name: string, value: number, pct: number, isPortfolioEmpty: boolean) => {
   const ok = <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">✅ OK</Badge>;
@@ -303,12 +323,12 @@ export default function Portfolio() {
 
   // Tower calculations
   const towerTotal = calculatedEntries.reduce((s, e) => s + e.currentValue, 0);
-  const towerData = TOWER_TIERS.map(({ value: tierName, emoji }) => {
+  const towerData = TOWER_TIERS.map(({ value: tierName }) => {
     const val = calculatedEntries
       .filter((e) => e.tier === tierName)
       .reduce((s, e) => s + e.currentValue, 0);
     const pct = towerTotal > 0 ? (val / towerTotal) * 100 : 0;
-    return { name: tierName, emoji, value: val, pct };
+    return { name: tierName, value: val, pct };
   });
 
   // Live Calc for Add Form
@@ -318,6 +338,11 @@ export default function Portfolio() {
 
   return (
     <div className="space-y-6">
+      <HintBanner
+        pageKey="portfolio"
+        message="🏗️ Add your investments here and assign each one to a tier: Defensive (emergency fund), Safe (bonds/gold), Income (dividend stocks/ETFs), Growth (stocks), or Risk (crypto). The Asset Tower shows your allocation health."
+      />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Portfolio Manager</h1>
         <Button onClick={() => setAdding(true)} disabled={adding}>
@@ -452,10 +477,13 @@ export default function Portfolio() {
         <CardContent className="space-y-4">
           {(() => {
             const isPortfolioEmpty = towerTotal === 0;
-            return towerData.map(({ name, emoji, value, pct }) => (
+            return towerData.map(({ name, value, pct }) => (
             <div key={name} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">{emoji} {name}</span>
+                <span className="font-medium flex items-center gap-1.5">
+                  {getTierIcon(name)}
+                  {name}
+                </span>
                 <div className="flex items-center gap-3">
                   <span className="text-muted-foreground">{formatVND(Math.round(value))}</span>
                   <span className="font-semibold w-14 text-right">{pct.toFixed(1)}%</span>
@@ -547,7 +575,10 @@ export default function Portfolio() {
                       <SelectContent>
                         {TIER_OPTIONS.map((t) => (
                           <SelectItem key={t.value} value={t.value}>
-                            {t.emoji} {t.value}
+                            <span className="flex items-center gap-1.5">
+                              {getTierIcon(t.value, "h-3.5 w-3.5")}
+                              {t.value}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -868,8 +899,8 @@ export default function Portfolio() {
                             </TableCell>
                             <TableCell></TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="text-xs">
-                                {TIER_OPTIONS.find((t) => t.value === child.tier)?.emoji}{" "}
+                              <Badge variant="outline" className="text-xs inline-flex items-center gap-1">
+                                {getTierIcon(child.tier, "h-3 w-3")}
                                 {child.tier}
                               </Badge>
                             </TableCell>

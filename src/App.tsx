@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import Report from "@/pages/Report";
 import Auth from "@/pages/Auth";
 import ResetPassword from "@/pages/ResetPassword";
+import Landing from "@/pages/Landing";
 
 const queryClient = new QueryClient();
 
@@ -58,7 +59,6 @@ function ProtectedRoutes() {
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/report" element={<Report />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>
@@ -76,6 +76,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/*" element={<ProtectedRoutes />} />

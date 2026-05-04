@@ -61,6 +61,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
 import HintBanner from "@/components/HintBanner";
+import PageTourButton from "@/components/PageTourButton";
+import { usePageTour } from "@/hooks/use-page-tour";
 
 type TxType = "income" | "expense" | "investing" | "saving" | "sell" | "dividend";
 
@@ -75,6 +77,7 @@ export default function Transactions() {
     getTotalIncome,
   } = useApp();
   const { toast } = useToast();
+  const { startTour } = usePageTour("transactions");
 
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
   const [formType, setFormType] = useState<TxType>("expense");
@@ -501,8 +504,11 @@ export default function Transactions() {
       />
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Transactions</h1>
-        <div className="flex items-center gap-2">
+        <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
+          Transactions
+          <PageTourButton onClick={startTour} />
+        </h1>
+        <div data-tour="tx-month" className="flex items-center gap-2">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-48">
               <SelectValue />
@@ -532,7 +538,7 @@ export default function Transactions() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="tx-form">
         <CardHeader>
           <CardTitle className="text-lg">Add Transaction</CardTitle>
         </CardHeader>

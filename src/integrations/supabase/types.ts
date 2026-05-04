@@ -273,6 +273,7 @@ export type Database = {
           id: string
           note: string | null
           portfolio_entry_id: string | null
+          quality: string | null
           quantity: number | null
           realized_gain: number | null
           type: string
@@ -286,6 +287,7 @@ export type Database = {
           id?: string
           note?: string | null
           portfolio_entry_id?: string | null
+          quality?: string | null
           quantity?: number | null
           realized_gain?: number | null
           type: string
@@ -299,6 +301,7 @@ export type Database = {
           id?: string
           note?: string | null
           portfolio_entry_id?: string | null
+          quality?: string | null
           quantity?: number | null
           realized_gain?: number | null
           type?: string

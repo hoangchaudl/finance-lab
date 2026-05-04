@@ -65,6 +65,7 @@ const currentMonthKey = (() => {
 
 export default function Report() {
   const { data } = useApp();
+  const { startTour } = usePageTour("report");
   const { transactions } = data;
 
   // Cash Flow tab state
@@ -241,7 +242,10 @@ export default function Report() {
   // ── RENDER ────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Financial Report</h1>
+      <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
+        Financial Report
+        <PageTourButton onClick={startTour} />
+      </h1>
 
       <HintBanner
         pageKey="reports"

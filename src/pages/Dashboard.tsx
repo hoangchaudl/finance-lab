@@ -65,6 +65,7 @@ export default function Dashboard() {
   } = useApp();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { startTour } = usePageTour("dashboard");
   // Remove editing state for age; age is now always read-only and auto-calculated
 
   const isFirstVisit =
@@ -197,8 +198,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
-        <h1 className="text-2xl font-bold">
+        <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
           Overview — {getMonthLabel(monthKey)}
+          <PageTourButton onClick={startTour} />
         </h1>
       </div>
 
@@ -208,13 +210,13 @@ export default function Dashboard() {
       />
 
       {/* Hero Balance Card */}
-      <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-3xl p-8 text-white shadow-lg">
+      <div data-tour="net-worth" className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-3xl p-8 text-white shadow-lg">
         <p className="text-sm text-blue-100 mb-2">Total Net Worth</p>
         <h2 className="font-bold text-3xl">{formatVND(netWorth)}</h2>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div data-tour="monthly-summary" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground">

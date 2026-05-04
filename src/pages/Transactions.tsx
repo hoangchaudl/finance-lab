@@ -744,7 +744,7 @@ export default function Transactions() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="tx-list">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

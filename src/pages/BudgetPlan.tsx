@@ -551,7 +551,7 @@ export default function BudgetPlan() {
             <TableHeader>
               <TableRow>
                 <TableHead>Category</TableHead>
-                <TableHead className="text-right">Planned</TableHead>
+                <TableHead data-tour="budget-planned-col" className="text-right">Planned</TableHead>
                 <TableHead className="text-right">%</TableHead>
                 <TableHead className="text-right">Actual</TableHead>
                 <TableHead className="text-right">+/-</TableHead>

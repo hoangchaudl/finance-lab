@@ -133,7 +133,7 @@ function CategoriesTab() {
 
       <Card>
         <CardContent className="pt-6">
-          <Table>
+          <Table data-tour="cat-row">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12"></TableHead>

@@ -115,3 +115,129 @@
 .driver-popover.fl-tour .driver-popover-arrow {
   border-color: white !important;
 }
+
+/* Inherit the app's font in tour popovers (driver.js ships its own stack). */
+.driver-popover.fl-tour,
+.driver-popover.fl-tour * {
+  font-family: inherit;
+  font-feature-settings: inherit;
+  letter-spacing: inherit;
+}
+
+/* ------------------------------------------------------------------ */
+/* Animated mini-demos embedded inside tour tooltips (see tour-demos)  */
+/* ------------------------------------------------------------------ */
+.fl-demo {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border));
+  font-size: 12px;
+}
+.fl-demo-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fl-demo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fl-demo-input {
+  flex: 1;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+  background: white;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  position: relative;
+  overflow: hidden;
+}
+.fl-demo-input::after {
+  content: "";
+  display: inline-block;
+}
+.fl-demo-typing::after {
+  animation: fl-type-amount 4s steps(1, end) infinite;
+}
+@keyframes fl-type-amount {
+  0%, 5%   { content: ""; }
+  15%      { content: "1"; }
+  30%      { content: "10"; }
+  45%      { content: "100"; }
+  60%      { content: "1.000"; }
+  78%, 100% { content: "10.000"; }
+}
+.fl-demo-typing-name::after {
+  animation: fl-type-name 4s steps(1, end) infinite;
+}
+@keyframes fl-type-name {
+  0%, 10%  { content: ""; }
+  25%      { content: "F"; }
+  40%      { content: "Fo"; }
+  55%      { content: "Foo"; }
+  70%, 100%{ content: "Food"; }
+}
+.fl-demo-enter {
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  animation: fl-enter-pulse 4s ease-in-out infinite;
+}
+@keyframes fl-enter-pulse {
+  0%, 70%  { opacity: 0.4; transform: scale(0.95); }
+  80%      { opacity: 1;   transform: scale(1.08); }
+  100%     { opacity: 0.4; transform: scale(0.95); }
+}
+.fl-demo-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+}
+.fl-demo-row-cat .fl-demo-emoji {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.fl-demo-pill {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+  white-space: nowrap;
+}
+.fl-demo-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: hsl(var(--primary));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  animation: fl-enter-pulse 4s ease-in-out infinite;
+}
+

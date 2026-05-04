@@ -1,4 +1,6 @@
 import { useState } from "react";
+import PageTourButton from "@/components/PageTourButton";
+import { usePageTour } from "@/hooks/use-page-tour";
 import { useApp } from "@/contexts/AppContext";
 import { Category, Subscription } from "@/lib/types";
 import { formatVND } from "@/lib/format";
@@ -59,9 +61,13 @@ interface EditingSub {
 }
 
 export default function CategoriesManager() {
+  const { startTour } = usePageTour("categories");
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Data Management</h1>
+      <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
+        Data Management
+        <PageTourButton onClick={startTour} />
+      </h1>
 
       <Tabs defaultValue="categories" className="w-full">
         <TabsList>

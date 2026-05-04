@@ -23,6 +23,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  // DOB logic
+  const [dobInput, setDobInput] = useState<string>("");
+  const dob = (user?.user_metadata as any)?.date_of_birth as string | undefined;
 
   // Change password
   const [showChangePw, setShowChangePw] = useState(false);
@@ -43,6 +46,7 @@ export default function Profile() {
       setFullName(metadata.full_name || "");
       setPhone(metadata.phone || "");
       setAvatarUrl(metadata.avatar_url || "");
+      setDobInput((metadata as any).date_of_birth || "");
     }
   }, [user]);
 
@@ -68,11 +72,19 @@ export default function Profile() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Error", description: "File size must be less than 5MB", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "File size must be less than 5MB",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -88,7 +100,9 @@ export default function Profile() {
 
       if (uploadError) {
         if (uploadError.message.includes("Bucket not found")) {
-          throw new Error("Storage bucket 'avatars' not found. Please create it in your Supabase project first.");
+          throw new Error(
+            "Storage bucket 'avatars' not found. Please create it in your Supabase project first.",
+          );
         }
         throw uploadError;
       }
@@ -102,11 +116,17 @@ export default function Profile() {
       if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
-      toast({ title: "Success", description: "Profile picture updated successfully" });
+      toast({
+        title: "Success",
+        description: "Profile picture updated successfully",
+      });
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload profile picture",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to upload profile picture",
         variant: "destructive",
       });
     } finally {
@@ -119,17 +139,29 @@ export default function Profile() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { full_name: fullName, phone, avatar_url: avatarUrl },
-      });
+      const updateData: Record<string, string> = {
+        full_name: fullName,
+        phone,
+        avatar_url: avatarUrl,
+      };
+      if (dobInput) updateData.date_of_birth = dobInput;
+
+      const { error } = await supabase.auth.updateUser({ data: updateData });
       if (error) throw error;
+
+      if (dobInput) {
+        const birthYear = new Date(dobInput).getFullYear();
+        await updateFireSettings({ ...data.fireSettings, birthYear });
+      }
+
       toast({ title: "Success", description: "Profile updated successfully" });
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update profile",
+        description:
+          error instanceof Error ? error.message : "Failed to update profile",
         variant: "destructive",
       });
     } finally {
@@ -140,24 +172,38 @@ export default function Profile() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPw !== confirmPw) {
-      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
       return;
     }
     if (newPw.length < 6) {
-      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
       return;
     }
     setChangePwLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPw });
       if (error) throw error;
-      toast({ title: "Success", description: "Password updated successfully!" });
+      toast({
+        title: "Success",
+        description: "Password updated successfully!",
+      });
       setShowChangePw(false);
-      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+      setCurrentPw("");
+      setNewPw("");
+      setConfirmPw("");
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update password",
+        description:
+          error instanceof Error ? error.message : "Failed to update password",
         variant: "destructive",
       });
     } finally {
@@ -180,11 +226,14 @@ export default function Profile() {
         monthlyExpenses: expenses,
         returnRate: rate,
         currentAge: age,
-        birthYear: new Date().getFullYear() - age,
       });
       toast({ title: "Success", description: "Financial settings saved!" });
     } catch {
-      toast({ title: "Error", description: "Failed to save settings", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
     } finally {
       setFireLoading(false);
     }
@@ -194,7 +243,9 @@ export default function Profile() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">My Profile</h1>
-        <p className="text-muted-foreground mt-2">Manage your account settings</p>
+        <p className="text-muted-foreground mt-2">
+          Manage your account settings
+        </p>
       </div>
 
       {/* Profile Picture */}
@@ -233,7 +284,9 @@ export default function Profile() {
             </div>
             <div>
               <p className="text-sm font-medium">Profile Picture</p>
-              <p className="text-xs text-muted-foreground">JPG, PNG or GIF (Max 5MB)</p>
+              <p className="text-xs text-muted-foreground">
+                JPG, PNG or GIF (Max 5MB)
+              </p>
               <Button
                 type="button"
                 variant="outline"
@@ -258,18 +311,64 @@ export default function Profile() {
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" value={user?.email || ""} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+              <Input
+                id="email"
+                type="email"
+                value={user?.email || ""}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your full name"
-              />
+              <form
+                className="flex items-center gap-2"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!fullName) return;
+                  setLoading(true);
+                  try {
+                    const { error } = await supabase.auth.updateUser({
+                      data: { full_name: fullName },
+                    });
+                    if (error) throw error;
+                    toast({
+                      title: "Success",
+                      description: "Full name updated!",
+                    });
+                    setIsSaved(true);
+                    setTimeout(() => setIsSaved(false), 3000);
+                  } catch (err) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to update full name",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                <Input
+                  id="fullName"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-64"
+                />
+                <Button type="submit" size="sm" disabled={loading}>
+                  {loading ? "Saving..." : "Save"}
+                </Button>
+                {isSaved && (
+                  <span className="text-xs text-green-600 font-medium ml-2">
+                    ✓
+                  </span>
+                )}
+              </form>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
@@ -281,36 +380,47 @@ export default function Profile() {
                 placeholder="Enter your phone number"
               />
             </div>
-            {(() => {
-              const dob = (user?.user_metadata as any)?.date_of_birth as string | undefined;
-              const formatted = dob
-                ? new Date(dob).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-                : null;
-              const age = dob
-                ? Math.floor((Date.now() - new Date(dob).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
-                : null;
-              return (
-                <div className="space-y-2">
-                  <Label>Date of Birth</Label>
-                  <div className="flex items-center gap-3 px-3 py-2 rounded-md border bg-muted text-sm">
-                    {formatted ? (
-                      <>
-                        <span>{formatted}</span>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="text-muted-foreground">Age: {age}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">Not provided</span>
+            {/* Date of Birth */}
+            <div className="space-y-2">
+              <Label htmlFor="dob">Date of Birth</Label>
+              {dob ? (
+                <div className="flex items-center gap-3 px-3 py-2 rounded-md border bg-muted text-sm">
+                  <span>
+                    {new Date(dob).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    Age:{" "}
+                    {Math.floor(
+                      (Date.now() - new Date(dob).getTime()) /
+                        (1000 * 60 * 60 * 24 * 365.25),
                     )}
-                  </div>
+                  </span>
                 </div>
-              );
-            })()}
+              ) : (
+                <Input
+                  id="dob"
+                  type="date"
+                  value={dobInput}
+                  onChange={(e) => setDobInput(e.target.value)}
+                  className="w-44"
+                  placeholder="Add your date of birth"
+                />
+              )}
+            </div>
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={loading}>
                 {loading ? "Saving..." : "Save Changes"}
               </Button>
-              {isSaved && <span className="text-sm text-green-600 font-medium">✓ Saved</span>}
+              {isSaved && (
+                <span className="text-sm text-green-600 font-medium">
+                  ✓ Saved
+                </span>
+              )}
             </div>
           </form>
         </CardContent>
@@ -327,7 +437,10 @@ export default function Profile() {
               Change Password
             </Button>
           ) : (
-            <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
+            <form
+              onSubmit={handleChangePassword}
+              className="space-y-4 max-w-sm"
+            >
               <div className="space-y-2">
                 <Label htmlFor="currentPw">Current Password</Label>
                 <Input
@@ -362,7 +475,9 @@ export default function Profile() {
                   minLength={6}
                 />
                 {confirmPw && newPw !== confirmPw && (
-                  <p className="text-xs text-destructive">Passwords do not match</p>
+                  <p className="text-xs text-destructive">
+                    Passwords do not match
+                  </p>
                 )}
               </div>
               <div className="flex gap-2">
@@ -374,7 +489,9 @@ export default function Profile() {
                   variant="outline"
                   onClick={() => {
                     setShowChangePw(false);
-                    setCurrentPw(""); setNewPw(""); setConfirmPw("");
+                    setCurrentPw("");
+                    setNewPw("");
+                    setConfirmPw("");
                   }}
                 >
                   Cancel
@@ -398,7 +515,9 @@ export default function Profile() {
                 id="fireExpenses"
                 type="text"
                 value={displayAmount(fireExpenses)}
-                onChange={(e) => setFireExpenses(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) =>
+                  setFireExpenses(e.target.value.replace(/\D/g, ""))
+                }
                 placeholder="14.000.000"
               />
             </div>

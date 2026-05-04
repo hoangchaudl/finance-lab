@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import HintBanner from "@/components/HintBanner";
 import { useApp } from "@/contexts/AppContext";
@@ -33,11 +33,12 @@ import {
   ChevronDown,
   ChevronRight,
   PieChart as PieIcon,
+  Layers,
   Shield,
-  Landmark,
-  CircleDollarSign,
+  Banknote,
+  Coins,
   TrendingUp,
-  Flame,
+  Zap,
 } from "lucide-react";
 import {
   PieChart,
@@ -60,13 +61,21 @@ const TIER_OPTIONS = [
 
 const TOWER_TIERS = TIER_OPTIONS;
 
+const TIER_STYLES: Record<string, { border: string; bar: string }> = {
+  Defensive: { border: "border-l-4 border-blue-400", bar: "bg-blue-400" },
+  Safe: { border: "border-l-4 border-green-400", bar: "bg-green-400" },
+  Income: { border: "border-l-4 border-yellow-400", bar: "bg-yellow-400" },
+  Growth: { border: "border-l-4 border-purple-400", bar: "bg-purple-400" },
+  Risk: { border: "border-l-4 border-red-400", bar: "bg-red-400" },
+};
+
 const getTierIcon = (tierName: string, size = "h-4 w-4") => {
   const map: Record<string, { Icon: typeof Shield; cls: string }> = {
     Defensive: { Icon: Shield, cls: "text-blue-500" },
-    Safe: { Icon: Landmark, cls: "text-green-500" },
-    Income: { Icon: CircleDollarSign, cls: "text-yellow-500" },
+    Safe: { Icon: Banknote, cls: "text-green-500" },
+    Income: { Icon: Coins, cls: "text-yellow-500" },
     Growth: { Icon: TrendingUp, cls: "text-purple-500" },
-    Risk: { Icon: Flame, cls: "text-red-500" },
+    Risk: { Icon: Zap, cls: "text-red-500" },
   };
   const entry = map[tierName];
   if (!entry) return null;
@@ -470,15 +479,18 @@ export default function Portfolio() {
       </div>
 
       {/* Asset Tower */}
-      <Card>
+      <Card className="bg-gradient-to-br from-slate-50 to-white">
         <CardHeader>
-          <CardTitle>🏛️ Asset Tower</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Layers size={20} className="text-slate-600" />
+            Asset Tower
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {(() => {
             const isPortfolioEmpty = towerTotal === 0;
             return towerData.map(({ name, value, pct }) => (
-            <div key={name} className="space-y-1">
+            <div key={name} className={`space-y-1 pl-3 ${TIER_STYLES[name]?.border ?? ""}`}>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium flex items-center gap-1.5">
                   {getTierIcon(name)}
@@ -490,7 +502,12 @@ export default function Portfolio() {
                   {getTierBadge(name, value, pct, isPortfolioEmpty)}
                 </div>
               </div>
-              <Progress value={Math.min(100, pct)} className="h-1.5" />
+              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${TIER_STYLES[name]?.bar ?? "bg-slate-400"}`}
+                  style={{ width: `${Math.min(100, pct)}%` }}
+                />
+              </div>
             </div>
           ));
           })()}
@@ -498,24 +515,24 @@ export default function Portfolio() {
       </Card>
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
+        <CardContent className="p-0">
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[30px]"></TableHead>
-                <TableHead className="w-[180px]">Asset / Account</TableHead>
-                <TableHead className="w-[100px]">Type</TableHead>
-                <TableHead className="w-[120px]">Tier</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
-                <TableHead className="text-right">Avg / Buy Price</TableHead>
-                <TableHead className="text-right">Mkt Price</TableHead>
-                <TableHead className="text-right font-bold text-primary">
+                <TableHead className="w-6"></TableHead>
+                <TableHead className="w-[18%]">Asset</TableHead>
+                <TableHead className="w-[9%]">Type</TableHead>
+                <TableHead className="w-[9%]">Tier</TableHead>
+                <TableHead className="text-right w-[8%]">Qty</TableHead>
+                <TableHead className="text-right w-[11%]">Avg Price</TableHead>
+                <TableHead className="text-right w-[11%]">Mkt Price</TableHead>
+                <TableHead className="text-right font-bold text-primary w-[12%]">
                   Total Value
                 </TableHead>
-                <TableHead className="text-right">ROI %</TableHead>
-                <TableHead className="text-right">ROI ₫</TableHead>
-                <TableHead className="text-right">Last Edited</TableHead>
-                <TableHead className="text-right w-16"></TableHead>
+                <TableHead className="text-right w-[7%]">ROI %</TableHead>
+                <TableHead className="text-right w-[10%]">ROI ₫</TableHead>
+                <TableHead className="text-right w-[7%]">Updated</TableHead>
+                <TableHead className="w-14"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -529,7 +546,7 @@ export default function Portfolio() {
                         setForm({ ...form, name: e.target.value })
                       }
                       placeholder="Asset Name"
-                      className="h-8 mb-1"
+                      className="h-7 text-sm mb-1"
                       autoFocus
                     />
                     <Input
@@ -538,7 +555,7 @@ export default function Portfolio() {
                         setForm({ ...form, account: e.target.value })
                       }
                       placeholder="Account"
-                      className="h-7 text-xs"
+                      className="h-6 text-xs"
                       list="acct-list"
                     />
                     <datalist id="acct-list">
@@ -552,7 +569,7 @@ export default function Portfolio() {
                       value={form.type}
                       onValueChange={(v) => setForm({ ...form, type: v })}
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-7 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -569,7 +586,7 @@ export default function Portfolio() {
                       value={form.tier}
                       onValueChange={(v) => setForm({ ...form, tier: v })}
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-7 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -593,11 +610,10 @@ export default function Portfolio() {
                         setForm({ ...form, quantity: e.target.value })
                       }
                       placeholder="Qty"
-                      className="h-8 text-right"
+                      className="h-7 text-sm text-right"
                     />
                   </TableCell>
-                  {/* --- UPDATED: FORMATTED PRICE INPUTS --- */}
-                  <TableCell className="min-w-[140px]">
+                  <TableCell>
                     <Input
                       value={form.purchasePrice}
                       onChange={(e) =>
@@ -607,10 +623,10 @@ export default function Portfolio() {
                         })
                       }
                       placeholder="Buy"
-                      className="h-8 text-right w-full"
+                      className="h-7 text-sm text-right w-full"
                     />
                   </TableCell>
-                  <TableCell className="min-w-[140px]">
+                  <TableCell>
                     <Input
                       value={form.currentPrice}
                       onChange={(e) =>
@@ -620,10 +636,9 @@ export default function Portfolio() {
                         })
                       }
                       placeholder="Now"
-                      className="h-8 text-right w-full"
+                      className="h-7 text-sm text-right w-full"
                     />
                   </TableCell>
-                  {/* --------------------------------------- */}
                   <TableCell
                     colSpan={4}
                     className="text-center text-xs font-bold text-primary"
@@ -680,7 +695,7 @@ export default function Portfolio() {
                     : null;
 
                 return (
-                  <>
+                  <React.Fragment key={group.name}>
                     <TableRow
                       key={group.name}
                       className="bg-muted/10 hover:bg-muted/20 cursor-pointer"
@@ -761,7 +776,7 @@ export default function Portfolio() {
                                       name: e.target.value,
                                     })
                                   }
-                                  className="h-8 mb-1"
+                                  className="h-7 text-sm mb-1"
                                 />
                                 <Input
                                   value={editing.account}
@@ -771,7 +786,7 @@ export default function Portfolio() {
                                       account: e.target.value,
                                     })
                                   }
-                                  className="h-7 text-xs"
+                                  className="h-6 text-xs"
                                   list="acct-list"
                                 />
                               </TableCell>
@@ -782,7 +797,7 @@ export default function Portfolio() {
                                     setEditing({ ...editing, type: v })
                                   }
                                 >
-                                  <SelectTrigger className="h-8">
+                                  <SelectTrigger className="h-7 text-sm">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -801,13 +816,16 @@ export default function Portfolio() {
                                     setEditing({ ...editing, tier: v })
                                   }
                                 >
-                                  <SelectTrigger className="h-8">
+                                  <SelectTrigger className="h-7 text-sm">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {TIER_OPTIONS.map((t) => (
                                       <SelectItem key={t.value} value={t.value}>
-                                        {t.emoji} {t.value}
+                                        <span className="flex items-center gap-1.5">
+                                          {getTierIcon(t.value, "h-3.5 w-3.5")}
+                                          {t.value}
+                                        </span>
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -824,11 +842,10 @@ export default function Portfolio() {
                                       quantity: parseFloat(e.target.value) || 0,
                                     })
                                   }
-                                  className="h-8 text-right"
+                                  className="h-7 text-sm text-right"
                                 />
                               </TableCell>
-                              {/* --- UPDATED: FORMATTED PRICE INPUTS (EDIT) --- */}
-                              <TableCell className="min-w-[140px]">
+                              <TableCell>
                                 <Input
                                   value={editing.purchasePrice}
                                   onChange={(e) =>
@@ -839,10 +856,10 @@ export default function Portfolio() {
                                       ),
                                     })
                                   }
-                                  className="h-8 text-right w-full"
+                                  className="h-7 text-sm text-right w-full"
                                 />
                               </TableCell>
-                              <TableCell className="min-w-[140px]">
+                              <TableCell>
                                 <Input
                                   value={editing.currentPrice}
                                   onChange={(e) =>
@@ -853,10 +870,9 @@ export default function Portfolio() {
                                       ),
                                     })
                                   }
-                                  className="h-8 text-right w-full"
+                                  className="h-7 text-sm text-right w-full"
                                 />
                               </TableCell>
-                              {/* ------------------------------------------- */}
                               <TableCell colSpan={4}></TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
@@ -899,10 +915,10 @@ export default function Portfolio() {
                             </TableCell>
                             <TableCell></TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="text-xs inline-flex items-center gap-1">
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                 {getTierIcon(child.tier, "h-3 w-3")}
                                 {child.tier}
-                              </Badge>
+                              </span>
                             </TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">
                               {child.quantity.toLocaleString("de-DE")}
@@ -985,7 +1001,7 @@ export default function Portfolio() {
                           </TableRow>
                         );
                       })}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </TableBody>

@@ -1,79 +1,82 @@
-## Guided Spotlight Tours — Plan
+## Tour Improvements — Categories, Budget, Font & Demo Animations
 
-Add an interactive, spotlight-style guided tour to every main page of Finance Lab. Each tour highlights key UI elements one at a time with a tooltip explaining what to do. Users can close the tour anytime, and re-open it from a small Help button in the page header.
+Four focused changes to the existing `driver.js` guided tours.
 
-### Library
+---
 
-Use **`driver.js`** (lightweight, ~5KB, framework-agnostic, MIT). It handles the spotlight overlay, focus trap, tooltips, keyboard navigation, and progress dots out of the box — much less custom code than building from scratch, and more polished than Intro.js.
+### 1. Categories page — spotlight the "Add Category" button
 
-### UX Behavior
+**File:** `src/pages/CategoriesManager.tsx`
+- Add `data-tour="cat-add"` to the `<Button>` "Add Category" (line 129).
+- Add `data-tour="cat-row"` to the first row of the table (or the table itself) so a follow-up step can show the edit/delete actions.
 
-- Tour auto-starts on the **first visit** to each page (tracked per-page in `localStorage`).
-- After dismissal it does **not** auto-start again, but a **"?" Help button** appears next to each page title to re-launch it on demand.
-- Tour steps highlight elements via `data-tour` attributes (no brittle CSS selectors).
-- Smooth fade + scale animation on the spotlight (driver.js built-in).
-- Esc / overlay click / "Done" all close the tour cleanly.
+**File:** `src/lib/tours.ts` — replace the `categories` tour with:
+1. Page title — what this page is for.
+2. `[data-tour="cat-add"]` — "Click here to create a new category. Give it a name, an emoji, and pick a type (Income, Essential, Savings, etc)." + embedded mini-demo (see §4).
+3. `[data-tour="cat-row"]` — "Each row is one category. Use the pencil to rename or the trash icon to remove it."
 
-### Architecture
+---
 
-```text
-src/
-├── lib/
-│   └── tours.ts                     # Tour step definitions per page
-├── hooks/
-│   └── use-page-tour.ts             # Hook: auto-start + expose start()
-└── components/
-    └── PageTourButton.tsx           # "?" button shown beside page titles
-```
+### 2. Budget Plan — spotlight the "Planned" column
 
-**`tours.ts`** — central registry mapping page key → driver.js step array:
+**File:** `src/pages/BudgetPlan.tsx`
+- Add `data-tour="budget-planned-col"` to the `<TableHead>` for "Planned" (line 554) **and** to the first `PlannedInput` cell so the spotlight covers a real input the user can see.
 
-```ts
-export const TOURS = {
-  dashboard: [
-    { element: '[data-tour="net-worth"]', popover: { title: 'Your Net Worth', description: '…' }},
-    { element: '[data-tour="quick-stats"]', popover: { title: 'Monthly Summary', description: '…' }},
-    …
-  ],
-  transactions: [ … ],
-  budget: [ … ],
-  categories: [ … ],
-  portfolio: [ … ],
-  fire: [ … ],
-  report: [ … ],
+**File:** `src/lib/tours.ts` — extend the `budget` tour:
+1. Page title (existing).
+2. `[data-tour="budget-table"]` — overall table intro.
+3. `[data-tour="budget-planned-col"]` — "Type your monthly budget for each category here. Numbers auto-format with thousand separators. Press **Enter** to save." + embedded mini-demo (see §4).
+
+---
+
+### 3. Match the app's font in tour popovers
+
+Driver.js ships with its own font stack. Override it in `src/index.css` under `.driver-popover.fl-tour` so titles, body text and buttons inherit the app's font:
+
+```css
+.driver-popover.fl-tour,
+.driver-popover.fl-tour * {
+  font-family: inherit;
+  font-feature-settings: inherit;
+  letter-spacing: inherit;
 }
 ```
 
-**`use-page-tour.ts`** — on mount, if `localStorage.tour_seen_<key>` is unset, start the tour and mark seen on completion/close. Returns `{ startTour }` so the Help button can re-trigger.
+The app uses Tailwind's default sans stack on `body`, so popovers will visually match the rest of the UI automatically.
 
-**`PageTourButton.tsx`** — small ghost icon button (`HelpCircle` from lucide-react) that calls `startTour()`.
+---
 
-### Pages & Tour Highlights
+### 4. Embedded "sample animation" demos inside tooltips
 
-| Page         | Steps highlighted                                                                 |
-|--------------|------------------------------------------------------------------------------------|
-| Dashboard    | Net worth card, monthly summary, recent activity, navigation sidebar              |
-| Transactions | Add Transaction button, filters, transaction list row, edit/delete actions       |
-| Budget Plan  | Add category row, Planned Amount input (Enter to save), progress bars            |
-| Categories   | Create category, tier selector, edit/delete                                       |
-| Portfolio    | Add entry, tier breakdown chart, total value                                      |
-| FIRE         | FI target card, progress bar, required monthly savings                            |
-| Reports      | Date range picker, charts, export                                                 |
+Driver.js accepts **HTML** in `popover.description`. Create a new helper file `src/lib/tour-demos.ts` exporting small self-contained HTML snippets that demonstrate the action being taught. Each snippet is a tiny styled mock-input plus a CSS `@keyframes` animation that loops typing the value or selecting an option.
 
-### Implementation Steps
+Three reusable demos:
 
-1. **Install** `driver.js` via `bun add driver.js`.
-2. **Create** `src/lib/tours.ts` with step definitions for all 7 pages.
-3. **Create** `src/hooks/use-page-tour.ts` (auto-start + localStorage gating + `startTour` return).
-4. **Create** `src/components/PageTourButton.tsx` (HelpCircle icon button).
-5. **Add `data-tour="…"`** attributes to the relevant elements on each page (Dashboard, Transactions, BudgetPlan, CategoriesManager, Portfolio, FireGoals, Report).
-6. **Wire each page**: call `usePageTour('<key>')`, render `<PageTourButton onClick={startTour} />` next to its `<h1>`.
-7. **Theme the driver.js popover** to match the app (rounded-2xl, primary blue accents, shadow) via a small CSS override in `src/index.css`.
-8. **Reset helper** (optional): add a "Replay all tours" link in the Profile page that clears all `tour_seen_*` keys.
+| Demo key       | Shows                                                                  | Used in step                       |
+|----------------|------------------------------------------------------------------------|------------------------------------|
+| `typeNumber`   | A faux input where digits `1 → 10 → 100 → 1.000 → 10.000` appear, then an "Enter ↵" pill flashes and the value gets a green check. | Budget Plan "Planned" step         |
+| `addCategory`  | A faux row: emoji `🍔` types in, name `Food` types in, a Type dropdown highlights "Essential", then a check-mark confirms. | Categories "Add Category" step     |
+| `clickButton`  | A pulsing `+ Add` button being clicked (cursor svg glides + click ripple). | Generic "click this button" hints  |
 
-### Notes / Edge Cases
+**Implementation:**
+- Each demo is a plain HTML string (≈80×40 mock UI in a rounded card) that uses **scoped class names** like `.fl-demo-input`, `.fl-demo-cursor`.
+- Add the keyframes + class styles to `src/index.css` once (next to the existing `.fl-tour` block), e.g. `@keyframes fl-type-1000 { 0% {content: ""} 25% {content: "1"} 50% {content: "10"} 75% {content: "100"} 100% {content: "1.000"} }` and a 3 s infinite loop on `.fl-demo-input::after`.
+- In `tours.ts`, build descriptions like:
+  ```ts
+  description: `Type your monthly budget here. Numbers auto-format and Enter saves.<div class="fl-demo">${TOUR_DEMOS.typeNumber}</div>`
+  ```
+- Driver.js sanitizes nothing by default but renders our trusted strings — no XSS surface (no user data interpolated).
 
-- Tours only run inside `ProtectedRoutes`, so unauthenticated users never see them.
-- If a target element isn't in the DOM (e.g., empty state), driver.js skips that step gracefully — we'll set `allowClose: true` and `showProgress: true`.
-- Tooltips use English copy only (per project rules).
-- No backend / DB changes required.
+Result: every "how do I do this?" step now contains a small live preview of the interaction, no GIF assets or extra dependencies needed.
+
+---
+
+### Files touched
+
+- `src/lib/tours.ts` — expand categories + budget tours, inject demo HTML.
+- `src/lib/tour-demos.ts` — **new**, exports `TOUR_DEMOS = { typeNumber, addCategory, clickButton }`.
+- `src/index.css` — add `font-family: inherit` override + `.fl-demo*` styles & keyframes.
+- `src/pages/CategoriesManager.tsx` — add `data-tour` attrs on Add button + first row.
+- `src/pages/BudgetPlan.tsx` — add `data-tour` attr on Planned column header / first PlannedInput cell.
+
+No backend, no new dependencies.

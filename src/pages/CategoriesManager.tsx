@@ -126,14 +126,14 @@ function CategoriesTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button onClick={() => setAdding(true)} disabled={adding} size="sm">
+        <Button data-tour="cat-add" onClick={() => setAdding(true)} disabled={adding} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Add Category
         </Button>
       </div>
 
       <Card>
         <CardContent className="pt-6">
-          <Table>
+          <Table data-tour="cat-row">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12"></TableHead>

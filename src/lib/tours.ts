@@ -1,4 +1,5 @@
 import type { DriveStep } from "driver.js";
+import { TOUR_DEMOS } from "./tour-demos";
 
 export type TourKey =
   | "dashboard"
@@ -91,7 +92,14 @@ export const TOURS: Record<TourKey, DriveStep[]> = {
       popover: {
         title: "Plan by Category",
         description:
-          "Click any Planned Amount to edit. Type a number — it'll format with thousand separators — then press Enter to save.",
+          "Each row is a category. Set a target on the left, watch your actual spending build up on the right.",
+      },
+    },
+    {
+      element: '[data-tour="budget-planned-col"]',
+      popover: {
+        title: "The Planned column — start here",
+        description: `Click any cell in this column and type your monthly budget for that category. Numbers auto-format with dots, and pressing <b>Enter</b> saves instantly.${TOUR_DEMOS.typeNumber}`,
       },
     },
   ],
@@ -102,6 +110,21 @@ export const TOURS: Record<TourKey, DriveStep[]> = {
         title: "Categories",
         description:
           "Manage the categories used across transactions and budgets. Keep them tidy for cleaner reports.",
+      },
+    },
+    {
+      element: '[data-tour="cat-add"]',
+      popover: {
+        title: "Add a new category",
+        description: `Click <b>+ Add Category</b>, then fill in an emoji, a name, and pick a type (Income, Essential, Savings, Investment…). Hit the check to save.${TOUR_DEMOS.addCategory}`,
+      },
+    },
+    {
+      element: '[data-tour="cat-row"]',
+      popover: {
+        title: "Edit or remove",
+        description:
+          "Each row is one category. Use the pencil to rename or change its type, and the trash icon to remove it.",
       },
     },
   ],

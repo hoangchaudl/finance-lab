@@ -155,7 +155,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 h-full overflow-y-auto p-4 md:p-8 bg-slate-50">
-        <div className="max-w-6xl mx-auto">{children}</div>
+        <div className="w-full">{children}</div>
       </main>
 
       {/* Mobile Overlay */}

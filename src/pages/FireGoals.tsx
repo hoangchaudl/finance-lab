@@ -1,12 +1,15 @@
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
 import HintBanner from "@/components/HintBanner";
+import PageTourButton from "@/components/PageTourButton";
+import { usePageTour } from "@/hooks/use-page-tour";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TrendingUp, Target, CalendarClock } from "lucide-react";
 
 export default function FireGoals() {
+  const { startTour } = usePageTour("fire");
   const { data, getNetWorth } = useApp();
   const { monthlyExpenses, returnRate, currentAge } = data.fireSettings;
 

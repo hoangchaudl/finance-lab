@@ -1,10 +1,13 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import HintBanner from "@/components/HintBanner";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -30,6 +33,12 @@ import {
   ChevronDown,
   ChevronRight,
   PieChart as PieIcon,
+  Layers,
+  Shield,
+  Banknote,
+  Coins,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 import {
   PieChart,
@@ -41,6 +50,84 @@ import {
 } from "recharts";
 
 const ICON_STROKE = 1.5;
+
+const TIER_OPTIONS = [
+  { value: "Defensive" },
+  { value: "Safe" },
+  { value: "Income" },
+  { value: "Growth" },
+  { value: "Risk" },
+];
+
+const TOWER_TIERS = TIER_OPTIONS;
+
+const TIER_STYLES: Record<string, { border: string; bar: string }> = {
+  Defensive: { border: "border-l-4 border-blue-400", bar: "bg-blue-400" },
+  Safe: { border: "border-l-4 border-green-400", bar: "bg-green-400" },
+  Income: { border: "border-l-4 border-yellow-400", bar: "bg-yellow-400" },
+  Growth: { border: "border-l-4 border-purple-400", bar: "bg-purple-400" },
+  Risk: { border: "border-l-4 border-red-400", bar: "bg-red-400" },
+};
+
+const getTierIcon = (tierName: string, size = "h-4 w-4") => {
+  const map: Record<string, { Icon: typeof Shield; cls: string }> = {
+    Defensive: { Icon: Shield, cls: "text-blue-500" },
+    Safe: { Icon: Banknote, cls: "text-green-500" },
+    Income: { Icon: Coins, cls: "text-yellow-500" },
+    Growth: { Icon: TrendingUp, cls: "text-purple-500" },
+    Risk: { Icon: Zap, cls: "text-red-500" },
+  };
+  const entry = map[tierName];
+  if (!entry) return null;
+  const { Icon, cls } = entry;
+  return <Icon className={`${size} ${cls} shrink-0`} strokeWidth={1.5} />;
+};
+
+const getTierBadge = (
+  name: string,
+  value: number,
+  pct: number,
+  isPortfolioEmpty: boolean,
+) => {
+  const ok = (
+    <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
+      ✅ OK
+    </Badge>
+  );
+  const warn = (msg: string) => (
+    <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
+      ⚠️ {msg}
+    </Badge>
+  );
+  const danger = (msg: string) => (
+    <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
+      🔴 {msg}
+    </Badge>
+  );
+
+  // When entire portfolio is empty, Risk target is 0% so it's OK; all others are empty
+  if (isPortfolioEmpty) return name === "Risk" ? ok : warn("Empty");
+
+  if (name === "Defensive") return value > 0 ? ok : warn("Empty");
+  if (name === "Safe") {
+    if (pct === 0) return warn("Empty");
+    return pct >= 20 && pct <= 30 ? ok : warn("Out of range");
+  }
+  if (name === "Income") {
+    if (pct === 0) return warn("Empty");
+    if (pct >= 30 && pct <= 40) return ok;
+    return pct < 30 ? warn("Below target") : warn("Out of range");
+  }
+  if (name === "Growth") {
+    if (pct === 0) return warn("Empty");
+    return pct >= 15 && pct <= 25 ? ok : warn("Out of range");
+  }
+  if (name === "Risk") {
+    if (pct === 0) return warn("Empty");
+    return pct <= 10 ? ok : danger("Exceeded limit");
+  }
+  return null;
+};
 
 const TYPE_OPTIONS = [
   "Savings",
@@ -82,6 +169,7 @@ interface EditState {
   id: string;
   name: string;
   type: string;
+  tier: string;
   account: string;
   quantity: number;
   // Store these as strings in Edit state to support formatting while typing
@@ -97,6 +185,7 @@ export default function Portfolio() {
     updatePortfolioEntry,
     deletePortfolioEntry,
   } = useApp();
+  const { toast } = useToast();
   const entries = data.portfolio ?? [];
 
   // --- 1. CALCULATIONS & GROUPING ---
@@ -211,6 +300,7 @@ export default function Portfolio() {
   const [form, setForm] = useState({
     name: "",
     type: "Stocks",
+    tier: "Growth",
     account: "",
     quantity: "",
     purchasePrice: "",
@@ -221,42 +311,77 @@ export default function Portfolio() {
     new Set(entries.map((e) => e.account).filter(Boolean)),
   );
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name.trim() || !form.currentPrice) return;
-    addPortfolioEntry({
-      name: form.name.trim(),
-      type: form.type,
-      account: form.account.trim() || "General",
-      quantity: parseFormattedNumber(form.quantity),
-      purchasePrice: parseFormattedNumber(form.purchasePrice),
-      currentPrice: parseFormattedNumber(form.currentPrice),
-      notes: form.notes || undefined,
-    });
-    setForm({
-      name: "",
-      type: "Stocks",
-      account: "",
-      quantity: "",
-      purchasePrice: "",
-      currentPrice: "",
-      notes: "",
-    });
-    setAdding(false);
+    try {
+      await addPortfolioEntry({
+        name: form.name.trim(),
+        type: form.type,
+        tier: form.tier,
+        account: form.account.trim() || "General",
+        quantity: parseFormattedNumber(form.quantity),
+        purchasePrice: parseFormattedNumber(form.purchasePrice),
+        currentPrice: parseFormattedNumber(form.currentPrice),
+        notes: form.notes || undefined,
+      });
+      setForm({
+        name: "",
+        type: "Stocks",
+        tier: "Growth",
+        account: "",
+        quantity: "",
+        purchasePrice: "",
+        currentPrice: "",
+        notes: "",
+      });
+      setAdding(false);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editing || !editing.name.trim()) return;
-    updatePortfolioEntry(editing.id, {
-      name: editing.name,
-      type: editing.type,
-      account: editing.account,
-      quantity: editing.quantity,
-      purchasePrice: parseFormattedNumber(editing.purchasePrice),
-      currentPrice: parseFormattedNumber(editing.currentPrice),
-      notes: editing.notes || undefined,
-    });
-    setEditing(null);
+    try {
+      await updatePortfolioEntry(editing.id, {
+        name: editing.name,
+        type: editing.type,
+        tier: editing.tier,
+        account: editing.account,
+        quantity: editing.quantity,
+        purchasePrice: parseFormattedNumber(editing.purchasePrice),
+        currentPrice: parseFormattedNumber(editing.currentPrice),
+        notes: editing.notes || undefined,
+      });
+      setEditing(null);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+
+  // Tower calculations
+  const towerTotal = calculatedEntries.reduce((s, e) => s + e.currentValue, 0);
+  const towerData = TOWER_TIERS.map(({ value: tierName }) => {
+    const val = calculatedEntries
+      .filter((e) => e.tier === tierName)
+      .reduce((s, e) => s + e.currentValue, 0);
+    const pct = towerTotal > 0 ? (val / towerTotal) * 100 : 0;
+    return { name: tierName, value: val, pct };
+  });
 
   // Live Calc for Add Form
   const addFormValue =
@@ -265,6 +390,11 @@ export default function Portfolio() {
 
   return (
     <div className="space-y-6">
+      <HintBanner
+        pageKey="portfolio"
+        message="🏗️ Add your investments here and assign each one to a tier: Defensive (emergency fund), Safe (bonds/gold), Income (dividend stocks/ETFs), Growth (stocks), or Risk (crypto). The Asset Tower shows your allocation health."
+      />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Portfolio Manager</h1>
         <Button onClick={() => setAdding(true)} disabled={adding}>
@@ -391,24 +521,68 @@ export default function Portfolio() {
         </Card>
       </div>
 
+      {/* Asset Tower */}
+      <Card className="bg-gradient-to-br from-slate-50 to-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Layers size={20} className="text-slate-600" />
+            Asset Tower
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(() => {
+            const isPortfolioEmpty = towerTotal === 0;
+            return towerData.map(({ name, value, pct }) => (
+              <div
+                key={name}
+                className={`space-y-1 pl-3 ${TIER_STYLES[name]?.border ?? ""}`}
+              >
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium flex items-center gap-1.5">
+                    {getTierIcon(name)}
+                    {name}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-muted-foreground">
+                      {formatVND(Math.round(value))}
+                    </span>
+                    <span className="font-semibold w-14 text-right">
+                      {pct.toFixed(1)}%
+                    </span>
+                    {getTierBadge(name, value, pct, isPortfolioEmpty)}
+                  </div>
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${TIER_STYLES[name]?.bar ?? "bg-slate-400"}`}
+                    style={{ width: `${Math.min(100, pct)}%` }}
+                  />
+                </div>
+              </div>
+            ));
+          })()}
+        </CardContent>
+      </Card>
+
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
+        <CardContent className="p-0">
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[30px]"></TableHead>
-                <TableHead className="w-[180px]">Asset / Account</TableHead>
-                <TableHead className="w-[100px]">Type</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
-                <TableHead className="text-right">Avg / Buy Price</TableHead>
-                <TableHead className="text-right">Mkt Price</TableHead>
-                <TableHead className="text-right font-bold text-primary">
+                <TableHead className="w-6"></TableHead>
+                <TableHead className="w-[18%]">Asset</TableHead>
+                <TableHead className="w-[9%]">Type</TableHead>
+                <TableHead className="w-[9%]">Tier</TableHead>
+                <TableHead className="text-right w-[8%]">Qty</TableHead>
+                <TableHead className="text-right w-[11%]">Avg Price</TableHead>
+                <TableHead className="text-right w-[11%]">Mkt Price</TableHead>
+                <TableHead className="text-right font-bold text-primary w-[12%]">
                   Total Value
                 </TableHead>
-                <TableHead className="text-right">ROI %</TableHead>
-                <TableHead className="text-right">ROI ₫</TableHead>
-                <TableHead className="text-right">Last Edited</TableHead>
-                <TableHead className="text-right w-16"></TableHead>
+                <TableHead className="text-right w-[7%]">ROI %</TableHead>
+                <TableHead className="text-right w-[10%]">ROI ₫</TableHead>
+                <TableHead className="text-right w-[7%]">Updated</TableHead>
+                <TableHead className="w-14"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -422,7 +596,7 @@ export default function Portfolio() {
                         setForm({ ...form, name: e.target.value })
                       }
                       placeholder="Asset Name"
-                      className="h-8 mb-1"
+                      className="h-7 text-sm mb-1"
                       autoFocus
                     />
                     <Input
@@ -431,7 +605,7 @@ export default function Portfolio() {
                         setForm({ ...form, account: e.target.value })
                       }
                       placeholder="Account"
-                      className="h-7 text-xs"
+                      className="h-6 text-xs"
                       list="acct-list"
                     />
                     <datalist id="acct-list">
@@ -445,13 +619,33 @@ export default function Portfolio() {
                       value={form.type}
                       onValueChange={(v) => setForm({ ...form, type: v })}
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-7 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {TYPE_OPTIONS.map((t) => (
                           <SelectItem key={t} value={t}>
                             {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={form.tier}
+                      onValueChange={(v) => setForm({ ...form, tier: v })}
+                    >
+                      <SelectTrigger className="h-7 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIER_OPTIONS.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            <span className="flex items-center gap-1.5">
+                              {getTierIcon(t.value, "h-3.5 w-3.5")}
+                              {t.value}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -466,11 +660,10 @@ export default function Portfolio() {
                         setForm({ ...form, quantity: e.target.value })
                       }
                       placeholder="Qty"
-                      className="h-8 text-right"
+                      className="h-7 text-sm text-right"
                     />
                   </TableCell>
-                  {/* --- UPDATED: FORMATTED PRICE INPUTS --- */}
-                  <TableCell className="min-w-[140px]">
+                  <TableCell>
                     <Input
                       value={form.purchasePrice}
                       onChange={(e) =>
@@ -480,10 +673,10 @@ export default function Portfolio() {
                         })
                       }
                       placeholder="Buy"
-                      className="h-8 text-right w-full"
+                      className="h-7 text-sm text-right w-full"
                     />
                   </TableCell>
-                  <TableCell className="min-w-[140px]">
+                  <TableCell>
                     <Input
                       value={form.currentPrice}
                       onChange={(e) =>
@@ -493,10 +686,9 @@ export default function Portfolio() {
                         })
                       }
                       placeholder="Now"
-                      className="h-8 text-right w-full"
+                      className="h-7 text-sm text-right w-full"
                     />
                   </TableCell>
-                  {/* --------------------------------------- */}
                   <TableCell
                     colSpan={4}
                     className="text-center text-xs font-bold text-primary"
@@ -545,15 +737,15 @@ export default function Portfolio() {
                   lastEditedTimestamp > 0
                     ? (() => {
                         const d = new Date(lastEditedTimestamp);
-                        const dd = String(d.getDate()).padStart(2, '0');
-                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
                         const yyyy = d.getFullYear();
                         return `${dd}/${mm}/${yyyy}`;
                       })()
                     : null;
 
                 return (
-                  <>
+                  <React.Fragment key={group.name}>
                     <TableRow
                       key={group.name}
                       className="bg-muted/10 hover:bg-muted/20 cursor-pointer"
@@ -582,6 +774,7 @@ export default function Portfolio() {
                       <TableCell>
                         <Badge variant="outline">{group.type}</Badge>
                       </TableCell>
+                      <TableCell></TableCell>
                       <TableCell className="text-right font-medium">
                         {group.totalQty.toLocaleString("de-DE")}
                       </TableCell>
@@ -633,7 +826,7 @@ export default function Portfolio() {
                                       name: e.target.value,
                                     })
                                   }
-                                  className="h-8 mb-1"
+                                  className="h-7 text-sm mb-1"
                                 />
                                 <Input
                                   value={editing.account}
@@ -643,7 +836,7 @@ export default function Portfolio() {
                                       account: e.target.value,
                                     })
                                   }
-                                  className="h-7 text-xs"
+                                  className="h-6 text-xs"
                                   list="acct-list"
                                 />
                               </TableCell>
@@ -654,13 +847,35 @@ export default function Portfolio() {
                                     setEditing({ ...editing, type: v })
                                   }
                                 >
-                                  <SelectTrigger className="h-8">
+                                  <SelectTrigger className="h-7 text-sm">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {TYPE_OPTIONS.map((t) => (
                                       <SelectItem key={t} value={t}>
                                         {t}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={editing.tier}
+                                  onValueChange={(v) =>
+                                    setEditing({ ...editing, tier: v })
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {TIER_OPTIONS.map((t) => (
+                                      <SelectItem key={t.value} value={t.value}>
+                                        <span className="flex items-center gap-1.5">
+                                          {getTierIcon(t.value, "h-3.5 w-3.5")}
+                                          {t.value}
+                                        </span>
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -677,11 +892,10 @@ export default function Portfolio() {
                                       quantity: parseFloat(e.target.value) || 0,
                                     })
                                   }
-                                  className="h-8 text-right"
+                                  className="h-7 text-sm text-right"
                                 />
                               </TableCell>
-                              {/* --- UPDATED: FORMATTED PRICE INPUTS (EDIT) --- */}
-                              <TableCell className="min-w-[140px]">
+                              <TableCell>
                                 <Input
                                   value={editing.purchasePrice}
                                   onChange={(e) =>
@@ -692,10 +906,10 @@ export default function Portfolio() {
                                       ),
                                     })
                                   }
-                                  className="h-8 text-right w-full"
+                                  className="h-7 text-sm text-right w-full"
                                 />
                               </TableCell>
-                              <TableCell className="min-w-[140px]">
+                              <TableCell>
                                 <Input
                                   value={editing.currentPrice}
                                   onChange={(e) =>
@@ -706,10 +920,9 @@ export default function Portfolio() {
                                       ),
                                     })
                                   }
-                                  className="h-8 text-right w-full"
+                                  className="h-7 text-sm text-right w-full"
                                 />
                               </TableCell>
-                              {/* ------------------------------------------- */}
                               <TableCell colSpan={4}></TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
@@ -751,6 +964,12 @@ export default function Portfolio() {
                               {child.account}
                             </TableCell>
                             <TableCell></TableCell>
+                            <TableCell>
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                {getTierIcon(child.tier, "h-3 w-3")}
+                                {child.tier}
+                              </span>
+                            </TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">
                               {child.quantity.toLocaleString("de-DE")}
                             </TableCell>
@@ -777,8 +996,13 @@ export default function Portfolio() {
                               {child.updatedAt
                                 ? (() => {
                                     const d = new Date(child.updatedAt);
-                                    const dd = String(d.getDate()).padStart(2, '0');
-                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                    const dd = String(d.getDate()).padStart(
+                                      2,
+                                      "0",
+                                    );
+                                    const mm = String(
+                                      d.getMonth() + 1,
+                                    ).padStart(2, "0");
                                     const yyyy = d.getFullYear();
                                     return `${dd}/${mm}/${yyyy}`;
                                   })()
@@ -796,10 +1020,14 @@ export default function Portfolio() {
                                     setEditing({
                                       ...child,
                                       purchasePrice: formatInputWithDots(
-                                        Math.ceil(child.purchasePrice).toString(),
+                                        Math.ceil(
+                                          child.purchasePrice,
+                                        ).toString(),
                                       ),
                                       currentPrice: formatInputWithDots(
-                                        Math.ceil(child.currentPrice).toString(),
+                                        Math.ceil(
+                                          child.currentPrice,
+                                        ).toString(),
                                       ),
                                     });
                                   }}
@@ -813,9 +1041,20 @@ export default function Portfolio() {
                                   size="icon"
                                   variant="ghost"
                                   className="h-7 w-7"
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
-                                    deletePortfolioEntry(child.id);
+                                    try {
+                                      await deletePortfolioEntry(child.id);
+                                    } catch (err) {
+                                      toast({
+                                        title: "Error",
+                                        description:
+                                          err instanceof Error
+                                            ? err.message
+                                            : "Something went wrong. Please try again.",
+                                        variant: "destructive",
+                                      });
+                                    }
                                   }}
                                 >
                                   <Trash2
@@ -828,7 +1067,7 @@ export default function Portfolio() {
                           </TableRow>
                         );
                       })}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </TableBody>

@@ -1,4 +1,5 @@
 import { useApp } from "@/contexts/AppContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -17,17 +18,28 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend } from
-"recharts";
-import { TrendingUp, Target, Check, Pencil, X, TrendingDown, Landmark, BarChart3 } from "lucide-react";
+  Legend,
+} from "recharts";
+import {
+  TrendingUp,
+  Target,
+  Check,
+  Pencil,
+  X,
+  TrendingDown,
+  Landmark,
+  BarChart3,
+} from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import OnboardingModal from "@/components/OnboardingModal";
+import HintBanner from "@/components/HintBanner";
 
 const ALLOC_COLORS = [
-"hsl(160, 84%, 39%)",
-"hsl(38, 92%, 50%)",
-"hsl(217, 91%, 60%)"];
-
+  "hsl(160, 84%, 39%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(217, 91%, 60%)",
+];
 
 const PORTFOLIO_COLORS: Record<string, string> = {
   Savings: "#22c55e",
@@ -35,7 +47,7 @@ const PORTFOLIO_COLORS: Record<string, string> = {
   Crypto: "#a855f7",
   Gold: "#eab308",
   ETF: "#14b8a6",
-  Other: "#64748b"
+  Other: "#64748b",
 };
 
 export default function Dashboard() {
@@ -47,41 +59,47 @@ export default function Dashboard() {
     getTotalSavings,
     getTotalInvestments,
     getTotalInvestmentCost,
-    updateFireSettings
+    updateFireSettings,
   } = useApp();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [editingAge, setEditingAge] = useState(false);
-  const [ageInput, setAgeInput] = useState<number | null>(null);
-  const [savingAge, setSavingAge] = useState(false);
+  // Remove editing state for age; age is now always read-only and auto-calculated
+
+  const isFirstVisit =
+    !localStorage.getItem("onboarding_complete") &&
+    data.transactions.length === 0 &&
+    (data.portfolio?.length ?? 0) === 0 &&
+    data.categories.length === 0;
+  const [showOnboarding, setShowOnboarding] = useState(isFirstVisit);
 
   const monthKey = getMonthKey();
   const income = getTotalIncome(monthKey);
   const expenses = getTotalExpenses(monthKey);
   const savings = income - expenses;
-  const ratio = income > 0 ? (expenses / income * 100).toFixed(1) : "0";
+  const ratio = income > 0 ? ((expenses / income) * 100).toFixed(1) : "0";
   const netWorth = getNetWorth();
   const totalSavings = getTotalSavings();
   const totalInvestments = getTotalInvestments();
 
   const allocData = [
-  { name: "Essentials", value: data.incomeAllocations.essentials_pct },
-  { name: "Lifestyle", value: data.incomeAllocations.lifestyle_pct },
-  { name: "Savings", value: data.incomeAllocations.savings_pct }];
-
+    { name: "Essentials", value: data.incomeAllocations.essentials_pct },
+    { name: "Lifestyle", value: data.incomeAllocations.lifestyle_pct },
+    { name: "Savings", value: data.incomeAllocations.savings_pct },
+  ];
 
   // FIRE Goals Calculation
-  const {
-    monthlyExpenses,
-    returnRate,
-    currentAge: fireCurrentAge,
-    birthYear
-  } = data.fireSettings;
-  const currentAge =
-  fireCurrentAge || (birthYear ? new Date().getFullYear() - birthYear : 0);
+  const { monthlyExpenses, returnRate, birthYear } = data.fireSettings;
+  const dob = (user?.user_metadata as any)?.date_of_birth as string | undefined;
+  const currentYear = new Date().getFullYear();
+  const currentAge = dob
+    ? Math.floor((Date.now() - new Date(dob).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+    : birthYear
+      ? currentYear - birthYear
+      : 0;
   const annualExpenses = monthlyExpenses * 12;
   const fiNumber = annualExpenses * 25;
   const currentNetWorth = getNetWorth();
-  const fireProgress = Math.min(100, currentNetWorth / fiNumber * 100);
+  const fireProgress = Math.min(100, (currentNetWorth / fiNumber) * 100);
 
   const yearsToGrow = 14;
   const months = yearsToGrow * 12;
@@ -89,9 +107,9 @@ export default function Dashboard() {
   const fvPrincipal = currentNetWorth * Math.pow(1 + r, months);
   const remainingTarget = fiNumber - fvPrincipal;
   const requiredMonthlySavings =
-  remainingTarget > 0 ?
-  remainingTarget * r / (Math.pow(1 + r, months) - 1) :
-  0;
+    remainingTarget > 0
+      ? (remainingTarget * r) / (Math.pow(1 + r, months) - 1)
+      : 0;
 
   // Stock/Bond allocation based on "110 minus age" rule
   const targetStockAllocation = 110 - currentAge;
@@ -111,65 +129,68 @@ export default function Dashboard() {
       return { stocks: 0, bonds: 0, other: 0, total: 0 };
     }
 
-    const stocks = data.portfolio.
-    filter(
-      (p) =>
-      p.type.toLowerCase().includes("stock") ||
-      p.type.toLowerCase().includes("equity")
-    ).
-    reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
+    const stocks = data.portfolio
+      .filter(
+        (p) =>
+          p.type.toLowerCase().includes("stock") ||
+          p.type.toLowerCase().includes("equity"),
+      )
+      .reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
 
-    const bonds = data.portfolio.
-    filter(
-      (p) =>
-      p.type.toLowerCase().includes("bond") ||
-      p.type.toLowerCase().includes("fixed")
-    ).
-    reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
+    const bonds = data.portfolio
+      .filter(
+        (p) =>
+          p.type.toLowerCase().includes("bond") ||
+          p.type.toLowerCase().includes("fixed"),
+      )
+      .reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
 
     const other = portfolioValue - stocks - bonds;
 
     return {
-      stocks: stocks / portfolioValue * 100,
-      bonds: bonds / portfolioValue * 100,
-      other: other / portfolioValue * 100,
-      total: portfolioValue
+      stocks: (stocks / portfolioValue) * 100,
+      bonds: (bonds / portfolioValue) * 100,
+      other: (other / portfolioValue) * 100,
+      total: portfolioValue,
     };
   };
 
   const portfolioAllocation = calculatePortfolioAllocation();
 
-  const handleSaveAge = async () => {
-    if (ageInput === null || ageInput < 0 || ageInput > 150) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid age (0-150)",
-        variant: "destructive"
-      });
-      return;
-    }
+  // Crossover Point Calculation
+  const dividendByMonth: Record<string, number> = {};
+  data.transactions
+    .filter((t) => t.type === "dividend")
+    .forEach((t) => {
+      const month = t.date.slice(0, 7);
+      dividendByMonth[month] = (dividendByMonth[month] || 0) + t.amount;
+    });
+  const recentDividendMonths = Object.keys(dividendByMonth)
+    .sort()
+    .slice(-3)
+    .map((k) => dividendByMonth[k]);
+  const passiveIncomePerMonth =
+    recentDividendMonths.length > 0
+      ? recentDividendMonths.reduce((s, v) => s + v, 0) /
+        recentDividendMonths.length
+      : 0;
+  const coveragePct =
+    monthlyExpenses > 0 ? (passiveIncomePerMonth / monthlyExpenses) * 100 : 0;
+  const crossoverYears =
+    passiveIncomePerMonth > 0
+      ? Math.log(monthlyExpenses / passiveIncomePerMonth) /
+        Math.log(1 + returnRate / 100)
+      : null;
+  const insightText =
+    coveragePct < 10
+      ? "Start logging dividend income to track your passive income growth."
+      : coveragePct < 50
+        ? "Good start. Keep building your income-generating assets."
+        : coveragePct < 100
+          ? "Almost there — passive income is nearly covering your expenses!"
+          : "You've reached the crossover point!";
 
-    setSavingAge(true);
-    try {
-      await updateFireSettings({
-        ...data.fireSettings,
-        currentAge: ageInput
-      });
-      toast({
-        title: "Success",
-        description: "Age saved successfully"
-      });
-      setEditingAge(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save age",
-        variant: "destructive"
-      });
-    } finally {
-      setSavingAge(false);
-    }
-  };
+  // Age is now always read-only and auto-calculated from birthYear
 
   return (
     <div className="space-y-6">
@@ -178,6 +199,11 @@ export default function Dashboard() {
           Overview — {getMonthLabel(monthKey)}
         </h1>
       </div>
+
+      <HintBanner
+        pageKey="dashboard"
+        message="👋 Welcome to your Dashboard. The Crossover Point shows when your passive income will cover your expenses — your true financial freedom date. Log dividend transactions to start tracking it."
+      />
 
       {/* Hero Balance Card */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-3xl p-8 text-white shadow-lg">
@@ -219,8 +245,8 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p
-              className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}>
-
+              className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}
+            >
               {formatVND(savings)}
             </p>
           </CardContent>
@@ -260,18 +286,18 @@ export default function Dashboard() {
             {(() => {
               const cost = getTotalInvestmentCost();
               const roi =
-              cost > 0 ? (totalInvestments - cost) / cost * 100 : 0;
+                cost > 0 ? ((totalInvestments - cost) / cost) * 100 : 0;
               const profit = totalInvestments - cost;
               const isPositive = profit >= 0;
               return (
                 <p
-                  className={`text-sm mt-1 ${isPositive ? "text-primary" : "text-destructive"}`}>
-
+                  className={`text-sm mt-1 ${isPositive ? "text-primary" : "text-destructive"}`}
+                >
                   {isPositive ? "+" : ""}
                   {roi.toFixed(2)}% ({isPositive ? "+" : ""}
                   {formatVND(Math.round(profit))})
-                </p>);
-
+                </p>
+              );
             })()}
           </CardContent>
         </Card>
@@ -294,28 +320,29 @@ export default function Dashboard() {
                     innerRadius={30}
                     outerRadius={55}
                     dataKey="value"
-                    stroke="none">
-
-                    {allocData.map((_, i) =>
-                    <Cell key={i} fill={ALLOC_COLORS[i]} />
-                    )}
+                    stroke="none"
+                  >
+                    {allocData.map((_, i) => (
+                      <Cell key={i} fill={ALLOC_COLORS[i]} />
+                    ))}
                   </Pie>
                   <Tooltip formatter={(v: number) => `${v}%`} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <div className="space-y-2 text-sm">
-              {allocData.map((d, i) =>
-              <div key={d.name} className="flex items-center gap-2">
+              {allocData.map((d, i) => (
+                <div key={d.name} className="flex items-center gap-2">
                   <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: ALLOC_COLORS[i] }} />
+                    className="w-3 h-3 rounded-full"
+                    style={{ background: ALLOC_COLORS[i] }}
+                  />
 
                   <span>
                     {d.name}: {d.value}%
                   </span>
                 </div>
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -328,7 +355,9 @@ export default function Dashboard() {
           <CardContent className="flex items-center gap-6">
             {(() => {
               const portfolio = data.portfolio ?? [];
-              const investmentEntries = portfolio.filter((e) => e.type !== "Other");
+              const investmentEntries = portfolio.filter(
+                (e) => e.type !== "Other",
+              );
               const chartData = Object.entries(
                 investmentEntries.reduce(
                   (acc, e) => {
@@ -336,19 +365,19 @@ export default function Dashboard() {
                     acc[e.type] = (acc[e.type] || 0) + val;
                     return acc;
                   },
-                  {} as Record<string, number>
-                )
-              ).
-              map(([name, value]) => ({ name, value: Math.ceil(value) })).
-              filter((d) => d.value > 0);
+                  {} as Record<string, number>,
+                ),
+              )
+                .map(([name, value]) => ({ name, value: Math.ceil(value) }))
+                .filter((d) => d.value > 0);
               const total = chartData.reduce((s, d) => s + d.value, 0);
 
               if (chartData.length === 0) {
                 return (
                   <p className="text-sm text-muted-foreground">
                     No portfolio data yet.
-                  </p>);
-
+                  </p>
+                );
               }
 
               return (
@@ -363,43 +392,200 @@ export default function Dashboard() {
                           innerRadius={30}
                           outerRadius={55}
                           dataKey="value"
-                          paddingAngle={2}>
-
-                          {chartData.map((entry, index) =>
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={PORTFOLIO_COLORS[entry.name] || "#8884d8"} />
-
-                          )}
+                          paddingAngle={2}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={PORTFOLIO_COLORS[entry.name] || "#8884d8"}
+                            />
+                          ))}
                         </Pie>
-                        <Tooltip
-                          formatter={(val: number) => formatVND(val)} />
-
+                        <Tooltip formatter={(val: number) => formatVND(val)} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="space-y-2 text-sm">
-                    {chartData.map((d) =>
-                    <div key={d.name} className="flex items-center gap-2">
+                    {chartData.map((d) => (
+                      <div key={d.name} className="flex items-center gap-2">
                         <div
-                        className="w-3 h-3 rounded-full"
-                        style={{
-                          background:
-                          PORTFOLIO_COLORS[d.name] || "#8884d8"
-                        }} />
+                          className="w-3 h-3 rounded-full"
+                          style={{
+                            background: PORTFOLIO_COLORS[d.name] || "#8884d8",
+                          }}
+                        />
 
                         <span>
-                          {d.name}: {total > 0 ? (d.value / total * 100).toFixed(1) : 0}%
+                          {d.name}:{" "}
+                          {total > 0 ? ((d.value / total) * 100).toFixed(1) : 0}
+                          %
                         </span>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </>);
-
+                </>
+              );
             })()}
           </CardContent>
         </Card>
       </div>
+
+      {/* Crossover Point */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp
+              className="h-5 w-5 text-emerald-500"
+              strokeWidth={1.5}
+            />
+            Passive Income &amp; Crossover Point
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Avg Monthly Dividend
+              </p>
+              <p className="text-2xl font-bold text-emerald-600">
+                {formatVND(Math.round(passiveIncomePerMonth))}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Expense Coverage</p>
+              <p className="text-2xl font-bold">{coveragePct.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">
+                Covers {coveragePct.toFixed(1)}% of your monthly expenses
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Years to Crossover
+              </p>
+              <p className="text-2xl font-bold text-blue-600">
+                {crossoverYears === null
+                  ? "—"
+                  : crossoverYears <= 0
+                    ? "Now!"
+                    : crossoverYears.toFixed(1)}
+              </p>
+            </div>
+          </div>
+          <Progress value={Math.min(100, coveragePct)} className="h-2" />
+          <p className="text-sm text-muted-foreground">{insightText}</p>
+        </CardContent>
+      </Card>
+
+      {/* Income Quality */}
+      {(() => {
+        const monthIncomeTransactions = data.transactions.filter(
+          (t) => t.date.startsWith(monthKey) && t.type === "income",
+        );
+        const totalIncomeAmt = monthIncomeTransactions.reduce(
+          (s, t) => s + t.amount,
+          0,
+        );
+        const activeAmt = monthIncomeTransactions
+          .filter((t) => !t.quality || t.quality === "active")
+          .reduce((s, t) => s + t.amount, 0);
+        const scalableAmt = monthIncomeTransactions
+          .filter((t) => t.quality === "scalable")
+          .reduce((s, t) => s + t.amount, 0);
+        const passiveAmt = monthIncomeTransactions
+          .filter((t) => t.quality === "passive")
+          .reduce((s, t) => s + t.amount, 0);
+        const activePct =
+          totalIncomeAmt > 0 ? (activeAmt / totalIncomeAmt) * 100 : 0;
+        const scalablePct =
+          totalIncomeAmt > 0 ? (scalableAmt / totalIncomeAmt) * 100 : 0;
+        const passivePct =
+          totalIncomeAmt > 0 ? (passiveAmt / totalIncomeAmt) * 100 : 0;
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3
+                  className="h-5 w-5 text-blue-500"
+                  strokeWidth={1.5}
+                />
+                Income Quality
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {totalIncomeAmt === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No income transactions this month.
+                </p>
+              ) : (
+                <>
+                  <div className="flex rounded-full overflow-hidden h-4">
+                    {activePct > 0 && (
+                      <div
+                        style={{ width: `${activePct}%` }}
+                        className="bg-red-400 transition-all"
+                        title={`Active: ${activePct.toFixed(1)}%`}
+                      />
+                    )}
+                    {scalablePct > 0 && (
+                      <div
+                        style={{ width: `${scalablePct}%` }}
+                        className="bg-yellow-400 transition-all"
+                        title={`Scalable: ${scalablePct.toFixed(1)}%`}
+                      />
+                    )}
+                    {passivePct > 0 && (
+                      <div
+                        style={{ width: `${passivePct}%` }}
+                        className="bg-green-400 transition-all"
+                        title={`Passive: ${passivePct.toFixed(1)}%`}
+                      />
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                        Active
+                      </div>
+                      <p className="font-semibold">{activePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatVND(Math.round(activeAmt))}
+                      </p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                        Scalable
+                      </div>
+                      <p className="font-semibold">{scalablePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatVND(Math.round(scalableAmt))}
+                      </p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                        Passive
+                      </div>
+                      <p className="font-semibold">{passivePct.toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatVND(Math.round(passiveAmt))}
+                      </p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-xs ${passivePct >= 30 ? "text-green-600" : "text-muted-foreground"}`}
+                  >
+                    Target: &gt;30% Passive — currently {passivePct.toFixed(1)}%
+                    {passivePct >= 30 ? " ✓" : ""}
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* FIRE Goals Section */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -459,57 +645,22 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Age Input */}
+          {/* Age Display (read-only) */}
           <div className="space-y-3">
             <Label>Your Current Age</Label>
             <div className="flex items-center gap-3">
-              {editingAge ?
-              <>
-                  <Input
-                  type="number"
-                  min="0"
-                  max="150"
-                  value={ageInput ?? currentAge}
-                  onChange={(e) => setAgeInput(parseInt(e.target.value) || 0)}
-                  className="w-32" />
-
-                  <Button
-                  size="sm"
-                  onClick={handleSaveAge}
-                  disabled={savingAge}>
-
-                    <Check className="h-4 w-4 mr-2" strokeWidth={1.5} />
-                    {savingAge ? "Saving..." : "Save"}
-                  </Button>
-                  <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingAge(false);
-                    setAgeInput(null);
-                  }}>
-
-                    Cancel
-                  </Button>
-                </> :
-
-              <>
-                  <div className="text-2xl font-bold text-primary">
-                    {currentAge}
-                  </div>
-                  <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingAge(true);
-                    setAgeInput(currentAge);
-                  }}>
-
-                    <Pencil className="h-4 w-4 mr-1" strokeWidth={1.5} />
-                    Edit
-                  </Button>
-                </>
-              }
+              <div className="text-2xl font-bold text-primary">
+                {currentAge}{" "}
+                {dob ? (
+                  <span className="text-xs text-muted-foreground">
+                    (born {new Date(dob).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })})
+                  </span>
+                ) : birthYear ? (
+                  <span className="text-xs text-muted-foreground">
+                    (born {birthYear})
+                  </span>
+                ) : null}
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">
               Formula: Target Stocks = 110 - Age | Target Bonds = 100 - Stocks
@@ -524,12 +675,24 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-sm">Target Allocation</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-blue-500" strokeWidth={1.5} /> Stocks/Equity</span>
+                    <span className="text-sm flex items-center gap-1.5">
+                      <TrendingUp
+                        className="h-4 w-4 text-blue-500"
+                        strokeWidth={1.5}
+                      />{" "}
+                      Stocks/Equity
+                    </span>
                     <span className="font-bold">{targetStockAllocation}%</span>
                   </div>
                   <Progress value={targetStockAllocation} className="h-2" />
                   <div className="flex justify-between items-center">
-                    <span className="text-sm flex items-center gap-1.5"><Landmark className="h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Bonds/Safe</span>
+                    <span className="text-sm flex items-center gap-1.5">
+                      <Landmark
+                        className="h-4 w-4 text-emerald-500"
+                        strokeWidth={1.5}
+                      />{" "}
+                      Bonds/Safe
+                    </span>
                     <span className="font-bold">{targetBondAllocation}%</span>
                   </div>
                   <Progress value={targetBondAllocation} className="h-2" />
@@ -541,24 +704,37 @@ export default function Dashboard() {
                 <h3 className="font-semibold text-sm">Actual Allocation</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-blue-500" strokeWidth={1.5} /> Stocks/Equity</span>
+                    <span className="text-sm flex items-center gap-1.5">
+                      <TrendingUp
+                        className="h-4 w-4 text-blue-500"
+                        strokeWidth={1.5}
+                      />{" "}
+                      Stocks/Equity
+                    </span>
                     <span className="font-bold">
                       {portfolioAllocation.stocks.toFixed(1)}%
                     </span>
                   </div>
                   <Progress
                     value={portfolioAllocation.stocks}
-                    className="h-2" />
+                    className="h-2"
+                  />
 
                   <div className="flex justify-between items-center">
-                    <span className="text-sm flex items-center gap-1.5"><Landmark className="h-4 w-4 text-emerald-500" strokeWidth={1.5} /> Bonds/Safe</span>
+                    <span className="text-sm flex items-center gap-1.5">
+                      <Landmark
+                        className="h-4 w-4 text-emerald-500"
+                        strokeWidth={1.5}
+                      />{" "}
+                      Bonds/Safe
+                    </span>
                     <span className="font-bold">
                       {portfolioAllocation.bonds.toFixed(1)}%
                     </span>
                   </div>
                   <Progress value={portfolioAllocation.bonds} className="h-2" />
-                  {portfolioAllocation.other > 0 &&
-                  <>
+                  {portfolioAllocation.other > 0 && (
+                    <>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Other</span>
                         <span className="font-bold">
@@ -566,36 +742,41 @@ export default function Dashboard() {
                         </span>
                       </div>
                       <Progress
-                      value={portfolioAllocation.other}
-                      className="h-2" />
-
+                        value={portfolioAllocation.other}
+                        className="h-2"
+                      />
                     </>
-                  }
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Allocation Summary */}
-            {portfolioAllocation.total > 0 &&
-            <div className="bg-muted p-4 rounded-lg text-sm">
+            {portfolioAllocation.total > 0 && (
+              <div className="bg-muted p-4 rounded-lg text-sm">
                 <p className="font-semibold mb-2">
                   Portfolio Value: {formatVND(portfolioAllocation.total)}
                 </p>
                 <p className="text-muted-foreground">
                   Your portfolio is currently{" "}
                   {Math.abs(
-                  portfolioAllocation.stocks - targetStockAllocation
-                ).toFixed(1)}
+                    portfolioAllocation.stocks - targetStockAllocation,
+                  ).toFixed(1)}
                   % off target for stocks.
-                  {portfolioAllocation.stocks > targetStockAllocation ?
-                " Consider rebalancing towards bonds." :
-                " Consider rebalancing towards stocks."}
+                  {portfolioAllocation.stocks > targetStockAllocation
+                    ? " Consider rebalancing towards bonds."
+                    : " Consider rebalancing towards stocks."}
                 </p>
               </div>
-            }
+            )}
           </div>
         </CardContent>
       </Card>
-    </div>);
 
+      <OnboardingModal
+        open={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+      />
+    </div>
+  );
 }

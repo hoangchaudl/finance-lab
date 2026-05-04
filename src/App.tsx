@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { AppProvider } from "@/contexts/AppContext";
+import { AppProvider, useApp } from "@/contexts/AppContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import DBErrorBanner from "@/components/DBErrorBanner";
 import AppLayout from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Transactions from "@/pages/Transactions";
@@ -16,8 +18,20 @@ import Profile from "@/pages/Profile";
 import NotFound from "./pages/NotFound";
 import Report from "@/pages/Report";
 import Auth from "@/pages/Auth";
+import ResetPassword from "@/pages/ResetPassword";
+import Landing from "@/pages/Landing";
 
 const queryClient = new QueryClient();
+
+function AppWithErrorBanner({ children }: { children: React.ReactNode }) {
+  const { dbError, resetError, loadFromDB } = useApp();
+  return (
+    <>
+      <DBErrorBanner dbError={dbError} resetError={resetError} loadFromDB={loadFromDB} />
+      {children}
+    </>
+  );
+}
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
@@ -34,6 +48,7 @@ function ProtectedRoutes() {
 
   return (
     <AppProvider>
+      <AppWithErrorBanner>
       <AppLayout>
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -44,15 +59,16 @@ function ProtectedRoutes() {
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/report" element={<Report />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>
+      </AppWithErrorBanner>
     </AppProvider>
   );
 }
 
 const App = () => (
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -60,13 +76,16 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

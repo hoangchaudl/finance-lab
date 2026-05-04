@@ -14,6 +14,7 @@ export function useAppData() {
   const { user } = useAuth();
   const [data, setData] = useState<AppData>(initialData);
   const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   // Load all data from Supabase
   const loadFromDB = useCallback(async () => {
@@ -70,6 +71,7 @@ export function useAppData() {
           note: t.note || undefined,
           portfolio_entry_id: t.portfolio_entry_id || undefined,
           realized_gain: t.realized_gain ? Number(t.realized_gain) : undefined,
+          quality: (t.quality as Transaction["quality"]) || undefined,
         }),
       );
 
@@ -78,6 +80,7 @@ export function useAppData() {
           id: p.id,
           name: p.name,
           type: p.type,
+          tier: p.tier || "Growth",
           account: p.account,
           quantity: Number(p.quantity),
           purchasePrice: Number(p.purchase_price),
@@ -125,6 +128,7 @@ export function useAppData() {
         categoryAllocations[a.category_id] = Number(a.percentage);
       });
 
+      setDbError(null);
       setData({
         fireSettings: {
           monthlyExpenses: Number(
@@ -166,6 +170,7 @@ export function useAppData() {
       });
     } catch (e) {
       console.error("Failed to load data from database:", e);
+      setDbError("Failed to load your data. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -192,6 +197,7 @@ export function useAppData() {
           note: t.note ?? null,
           portfolio_entry_id: t.portfolio_entry_id ?? null,
           realized_gain: t.realized_gain ?? null,
+          quality: t.quality ?? null,
         })
         .select()
         .single();
@@ -211,7 +217,10 @@ export function useAppData() {
         category_id: inserted.category_id ?? "",
         note: inserted.note || undefined,
         portfolio_entry_id: inserted.portfolio_entry_id || undefined,
-        realized_gain: inserted.realized_gain ? Number(inserted.realized_gain) : undefined,
+        realized_gain: inserted.realized_gain
+          ? Number(inserted.realized_gain)
+          : undefined,
+        quality: (inserted.quality as Transaction["quality"]) || undefined,
       };
 
       // Handle sell: validate quantity and reduce portfolio
@@ -253,7 +262,11 @@ export function useAppData() {
 
           await supabase
             .from("portfolio_entries")
-            .update({ quantity: newQty, purchase_price: newAvgPrice, updated_at: new Date().toISOString() })
+            .update({
+              quantity: newQty,
+              purchase_price: newAvgPrice,
+              updated_at: new Date().toISOString(),
+            })
             .eq("id", t.portfolio_entry_id);
         }
       }
@@ -285,16 +298,20 @@ export function useAppData() {
       if (updates.note !== undefined) dbUpdate.note = updates.note ?? null;
       if (updates.portfolio_entry_id !== undefined)
         dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
+      if (updates.quality !== undefined) dbUpdate.quality = updates.quality ?? null;
 
       dbUpdate.updated_at = new Date().toISOString();
-      const { error } = await supabase.from("transactions").update(dbUpdate).eq("id", id);
+      const { error } = await supabase
+        .from("transactions")
+        .update(dbUpdate)
+        .eq("id", id);
       if (error) throw new Error(error.message);
-      
+
       // Optimistic update
       setData((prev) => ({
         ...prev,
         transactions: prev.transactions.map((t) =>
-          t.id === id ? { ...t, ...updates } : t
+          t.id === id ? { ...t, ...updates } : t,
         ),
       }));
     },
@@ -344,14 +361,21 @@ export function useAppData() {
 
           await supabase
             .from("portfolio_entries")
-            .update({ quantity: newQty, purchase_price: newAvgPrice, updated_at: new Date().toISOString() })
+            .update({
+              quantity: newQty,
+              purchase_price: newAvgPrice,
+              updated_at: new Date().toISOString(),
+            })
             .eq("id", tx.portfolio_entry_id);
         }
       }
 
-      const { error } = await supabase.from("transactions").delete().eq("id", id);
+      const { error } = await supabase
+        .from("transactions")
+        .delete()
+        .eq("id", id);
       if (error) throw new Error(error.message);
-      
+
       // Reload if portfolio affected, otherwise optimistic
       if (tx?.portfolio_entry_id) {
         await loadFromDB();
@@ -520,16 +544,32 @@ export function useAppData() {
   const addPortfolioEntry = useCallback(
     async (e: Omit<PortfolioEntry, "id">) => {
       if (!user) return;
-      await supabase.from("portfolio_entries").insert({
+      const { data: inserted, error } = await supabase
+        .from("portfolio_entries")
+        .insert({
+          user_id: user.id,
+          name: e.name,
+          type: e.type,
+          tier: e.tier,
+          account: e.account,
+          quantity: e.quantity,
+          purchase_price: e.purchasePrice,
+          current_price: e.currentPrice,
+          notes: e.notes ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      await supabase.from("transactions").insert({
         user_id: user.id,
-        name: e.name,
-        type: e.type,
-        account: e.account,
+        date: new Date().toISOString().split("T")[0],
+        amount: e.quantity * e.purchasePrice,
+        type: "investing",
+        portfolio_entry_id: inserted.id,
+        note: "Initial position — " + e.name,
         quantity: e.quantity,
-        purchase_price: e.purchasePrice,
-        current_price: e.currentPrice,
-        notes: e.notes ?? null,
-        updated_at: new Date().toISOString(),
+        category_id: null,
       });
       await loadFromDB();
     },
@@ -541,6 +581,7 @@ export function useAppData() {
       const dbUpdate: any = {};
       if (u.name !== undefined) dbUpdate.name = u.name;
       if (u.type !== undefined) dbUpdate.type = u.type;
+      if (u.tier !== undefined) dbUpdate.tier = u.tier;
       if (u.account !== undefined) dbUpdate.account = u.account;
       if (u.quantity !== undefined) dbUpdate.quantity = u.quantity;
       if (u.purchasePrice !== undefined)
@@ -639,10 +680,14 @@ export function useAppData() {
   );
 
   const resetData = useCallback(() => setData(initialData), []);
+  const resetError = useCallback(() => setDbError(null), []);
 
   return {
     data,
     loading,
+    dbError,
+    resetError,
+    loadFromDB,
     addTransaction,
     updateTransaction,
     deleteTransaction,

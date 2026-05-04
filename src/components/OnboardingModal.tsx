@@ -214,7 +214,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
           </div>
 
           {/* Step content */}
-          <div className="px-6 pb-6 pt-2">
+          <div className="px-8 pb-8 pt-2">
             {step === 1 && (
               <>
                 <DialogHeader className="mb-4">
@@ -367,32 +367,18 @@ export default function OnboardingModal({ open, onClose }: Props) {
                     Here's what you can do next:
                   </p>
                   <ul className="space-y-2.5 text-sm">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5 shrink-0">•</span>
-                      Go to <strong>Categories</strong> to set up your income,
-                      expense, and investment categories — do this first before
-                      logging transactions
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5 shrink-0">•</span>
-                      Go to <strong>Transactions</strong> to log your daily
-                      income and expenses
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5 shrink-0">•</span>
-                      Go to <strong>Portfolio</strong> to track your investment
-                      portfolio
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5 shrink-0">•</span>
-                      Visit <strong>Dashboard</strong> to track your Crossover
-                      Point
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5 shrink-0">•</span>
-                      Go to <strong>Reports</strong> to view your financial
-                      reports
-                    </li>
+                    {[
+                      { label: "Categories", desc: "Set up your income, expense, and investment categories — do this first" },
+                      { label: "Transactions", desc: "Log your daily income and expenses" },
+                      { label: "Portfolio", desc: "Track your investment portfolio" },
+                      { label: "Dashboard", desc: "Track your Crossover Point" },
+                      { label: "Reports", desc: "View your financial reports" },
+                    ].map(({ label, desc }) => (
+                      <li key={label} className="grid grid-cols-[auto_1fr] gap-x-3 items-start">
+                        <strong className="text-foreground whitespace-nowrap">{label}</strong>
+                        <span className="text-muted-foreground">{desc}</span>
+                      </li>
+                    ))}
                   </ul>
                   <Button className="w-full" onClick={onClose}>
                     Get Started →

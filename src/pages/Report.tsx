@@ -317,7 +317,7 @@ export default function Report() {
                 <BarChart data={reportData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="period" />
-                  <YAxis tickFormatter={(v) => `${v / 1_000_000}M`} />
+                  <YAxis tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(v: number, n: string) => [formatVND(v), n]} />
                   <Legend />
                   <Bar dataKey="income" name="Income" stackId="income" fill="#16a34a" />

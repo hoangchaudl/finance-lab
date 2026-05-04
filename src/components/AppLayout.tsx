@@ -46,6 +46,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const avatarUrl = (user?.user_metadata as any)?.avatar_url;
+  const dob = (user?.user_metadata as any)?.date_of_birth as string | undefined;
+  const formattedDob = dob
+    ? new Date(dob).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
 
   const filteredNavItems = NAV_ITEMS.filter((item) =>
     item.label.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -148,6 +156,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {(user?.user_metadata?.full_name as string) || user?.email}
               </p>
               <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              {formattedDob && (
+                <p className="text-xs text-slate-400 truncate">{formattedDob}</p>
+              )}
             </div>
           </button>
         </div>

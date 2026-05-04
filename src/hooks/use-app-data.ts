@@ -590,7 +590,8 @@ export function useAppData() {
       if (u.notes !== undefined) dbUpdate.notes = u.notes;
 
       dbUpdate.updated_at = new Date().toISOString();
-      await supabase.from("portfolio_entries").update(dbUpdate).eq("id", id);
+      const { error } = await supabase.from("portfolio_entries").update(dbUpdate).eq("id", id);
+      if (error) throw new Error(error.message);
       await loadFromDB();
     },
     [loadFromDB],

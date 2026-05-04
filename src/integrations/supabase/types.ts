@@ -166,6 +166,7 @@ export type Database = {
           notes: string | null
           purchase_price: number
           quantity: number
+          tier: string | null
           type: string
           updated_at: string
           user_id: string
@@ -179,6 +180,7 @@ export type Database = {
           notes?: string | null
           purchase_price?: number
           quantity?: number
+          tier?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -192,6 +194,7 @@ export type Database = {
           notes?: string | null
           purchase_price?: number
           quantity?: number
+          tier?: string | null
           type?: string
           updated_at?: string
           user_id?: string

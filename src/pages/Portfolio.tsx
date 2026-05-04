@@ -83,10 +83,27 @@ const getTierIcon = (tierName: string, size = "h-4 w-4") => {
   return <Icon className={`${size} ${cls} shrink-0`} strokeWidth={1.5} />;
 };
 
-const getTierBadge = (name: string, value: number, pct: number, isPortfolioEmpty: boolean) => {
-  const ok = <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">✅ OK</Badge>;
-  const warn = (msg: string) => <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">⚠️ {msg}</Badge>;
-  const danger = (msg: string) => <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">🔴 {msg}</Badge>;
+const getTierBadge = (
+  name: string,
+  value: number,
+  pct: number,
+  isPortfolioEmpty: boolean,
+) => {
+  const ok = (
+    <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
+      ✅ OK
+    </Badge>
+  );
+  const warn = (msg: string) => (
+    <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
+      ⚠️ {msg}
+    </Badge>
+  );
+  const danger = (msg: string) => (
+    <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
+      🔴 {msg}
+    </Badge>
+  );
 
   // When entire portfolio is empty, Risk target is 0% so it's OK; all others are empty
   if (isPortfolioEmpty) return name === "Risk" ? ok : warn("Empty");
@@ -105,7 +122,10 @@ const getTierBadge = (name: string, value: number, pct: number, isPortfolioEmpty
     if (pct === 0) return warn("Empty");
     return pct >= 15 && pct <= 25 ? ok : warn("Out of range");
   }
-  if (name === "Risk") return pct <= 10 ? ok : danger("Exceeded limit");
+  if (name === "Risk") {
+    if (pct === 0) return warn("Empty");
+    return pct <= 10 ? ok : danger("Exceeded limit");
+  }
   return null;
 };
 
@@ -304,10 +324,26 @@ export default function Portfolio() {
         currentPrice: parseFormattedNumber(form.currentPrice),
         notes: form.notes || undefined,
       });
-      setForm({ name: "", type: "Stocks", tier: "Growth", account: "", quantity: "", purchasePrice: "", currentPrice: "", notes: "" });
+      setForm({
+        name: "",
+        type: "Stocks",
+        tier: "Growth",
+        account: "",
+        quantity: "",
+        purchasePrice: "",
+        currentPrice: "",
+        notes: "",
+      });
       setAdding(false);
     } catch (err) {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Something went wrong. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -326,7 +362,14 @@ export default function Portfolio() {
       });
       setEditing(null);
     } catch (err) {
-      toast({ title: "Error", description: err instanceof Error ? err.message : "Something went wrong. Please try again.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -490,26 +533,33 @@ export default function Portfolio() {
           {(() => {
             const isPortfolioEmpty = towerTotal === 0;
             return towerData.map(({ name, value, pct }) => (
-            <div key={name} className={`space-y-1 pl-3 ${TIER_STYLES[name]?.border ?? ""}`}>
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium flex items-center gap-1.5">
-                  {getTierIcon(name)}
-                  {name}
-                </span>
-                <div className="flex items-center gap-3">
-                  <span className="text-muted-foreground">{formatVND(Math.round(value))}</span>
-                  <span className="font-semibold w-14 text-right">{pct.toFixed(1)}%</span>
-                  {getTierBadge(name, value, pct, isPortfolioEmpty)}
+              <div
+                key={name}
+                className={`space-y-1 pl-3 ${TIER_STYLES[name]?.border ?? ""}`}
+              >
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium flex items-center gap-1.5">
+                    {getTierIcon(name)}
+                    {name}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-muted-foreground">
+                      {formatVND(Math.round(value))}
+                    </span>
+                    <span className="font-semibold w-14 text-right">
+                      {pct.toFixed(1)}%
+                    </span>
+                    {getTierBadge(name, value, pct, isPortfolioEmpty)}
+                  </div>
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${TIER_STYLES[name]?.bar ?? "bg-slate-400"}`}
+                    style={{ width: `${Math.min(100, pct)}%` }}
+                  />
                 </div>
               </div>
-              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${TIER_STYLES[name]?.bar ?? "bg-slate-400"}`}
-                  style={{ width: `${Math.min(100, pct)}%` }}
-                />
-              </div>
-            </div>
-          ));
+            ));
           })()}
         </CardContent>
       </Card>
@@ -687,8 +737,8 @@ export default function Portfolio() {
                   lastEditedTimestamp > 0
                     ? (() => {
                         const d = new Date(lastEditedTimestamp);
-                        const dd = String(d.getDate()).padStart(2, '0');
-                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
                         const yyyy = d.getFullYear();
                         return `${dd}/${mm}/${yyyy}`;
                       })()
@@ -946,8 +996,13 @@ export default function Portfolio() {
                               {child.updatedAt
                                 ? (() => {
                                     const d = new Date(child.updatedAt);
-                                    const dd = String(d.getDate()).padStart(2, '0');
-                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                    const dd = String(d.getDate()).padStart(
+                                      2,
+                                      "0",
+                                    );
+                                    const mm = String(
+                                      d.getMonth() + 1,
+                                    ).padStart(2, "0");
                                     const yyyy = d.getFullYear();
                                     return `${dd}/${mm}/${yyyy}`;
                                   })()
@@ -965,10 +1020,14 @@ export default function Portfolio() {
                                     setEditing({
                                       ...child,
                                       purchasePrice: formatInputWithDots(
-                                        Math.ceil(child.purchasePrice).toString(),
+                                        Math.ceil(
+                                          child.purchasePrice,
+                                        ).toString(),
                                       ),
                                       currentPrice: formatInputWithDots(
-                                        Math.ceil(child.currentPrice).toString(),
+                                        Math.ceil(
+                                          child.currentPrice,
+                                        ).toString(),
                                       ),
                                     });
                                   }}
@@ -987,7 +1046,14 @@ export default function Portfolio() {
                                     try {
                                       await deletePortfolioEntry(child.id);
                                     } catch (err) {
-                                      toast({ title: "Error", description: err instanceof Error ? err.message : "Something went wrong. Please try again.", variant: "destructive" });
+                                      toast({
+                                        title: "Error",
+                                        description:
+                                          err instanceof Error
+                                            ? err.message
+                                            : "Something went wrong. Please try again.",
+                                        variant: "destructive",
+                                      });
                                     }
                                   }}
                                 >

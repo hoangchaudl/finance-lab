@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import HintBanner from "@/components/HintBanner";
 import { useApp } from "@/contexts/AppContext";
@@ -695,7 +695,7 @@ export default function Portfolio() {
                     : null;
 
                 return (
-                  <>
+                  <React.Fragment key={group.name}>
                     <TableRow
                       key={group.name}
                       className="bg-muted/10 hover:bg-muted/20 cursor-pointer"
@@ -1001,7 +1001,7 @@ export default function Portfolio() {
                           </TableRow>
                         );
                       })}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </TableBody>

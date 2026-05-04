@@ -53,9 +53,14 @@ import {
   X,
   TrendingUp,
   TrendingDown,
+  Download,
+  Briefcase,
+  Layers,
+  Leaf,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
+import HintBanner from "@/components/HintBanner";
 
 type TxType = "income" | "expense" | "investing" | "saving" | "sell" | "dividend";
 
@@ -415,11 +420,23 @@ export default function Transactions() {
   const getQualityBadge = (quality?: string) => {
     switch (quality) {
       case "active":
-        return <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">🔴 Active</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-700 border-red-200 text-xs inline-flex items-center gap-1">
+            <Briefcase className="h-3 w-3" strokeWidth={1.5} /> Active
+          </Badge>
+        );
       case "scalable":
-        return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">🟡 Scalable</Badge>;
+        return (
+          <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs inline-flex items-center gap-1">
+            <Layers className="h-3 w-3" strokeWidth={1.5} /> Scalable
+          </Badge>
+        );
       case "passive":
-        return <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">🟢 Passive</Badge>;
+        return (
+          <Badge className="bg-green-100 text-green-700 border-green-200 text-xs inline-flex items-center gap-1">
+            <Leaf className="h-3 w-3" strokeWidth={1.5} /> Passive
+          </Badge>
+        );
       default:
         return null;
     }
@@ -441,22 +458,67 @@ export default function Transactions() {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
+  const handleExportCSV = () => {
+    const headers = ["Date", "Type", "Category", "Amount", "Quality", "Note", "Portfolio Asset"];
+    const rows = transactions.map((t) => {
+      const cat = getCategoryById(t.category_id);
+      const category = cat ? `${cat.emoji} ${cat.name}` : "";
+      const portfolioAsset = getPortfolioName(t.portfolio_entry_id) ?? "";
+      return [
+        t.date,
+        t.type,
+        category,
+        t.amount,
+        t.quality ?? "",
+        t.note ?? "",
+        portfolioAsset,
+      ];
+    });
+
+    const escape = (v: string | number) => {
+      const s = String(v);
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+
+    const csv = [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().slice(0, 10);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `finance-lab-transactions-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
+      <HintBanner
+        pageKey="transactions"
+        message="💡 Log every income, expense, investment, and dividend here. Use Categories to organize your spending. The more you log, the better your reports become."
+      />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Transactions</h1>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((m) => (
-              <SelectItem key={m} value={m}>
-                {getMonthLabel(m)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {getMonthLabel(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={transactions.length === 0}>
+            <Download className="h-4 w-4 mr-1" strokeWidth={1.5} /> Export CSV
+          </Button>
+        </div>
       </div>
 
       <Card className="border-primary/20 bg-primary/5">
@@ -514,9 +576,24 @@ export default function Transactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">🔴 Active (salary, freelance)</SelectItem>
-                    <SelectItem value="scalable">🟡 Scalable (courses, SaaS)</SelectItem>
-                    <SelectItem value="passive">🟢 Passive (dividends, interest)</SelectItem>
+                    <SelectItem value="active">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5 text-red-500" strokeWidth={1.5} />
+                        Active (salary, freelance)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="scalable">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-yellow-500" strokeWidth={1.5} />
+                        Scalable (courses, SaaS)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="passive">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Leaf className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} />
+                        Passive (dividends, interest)
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -838,9 +915,24 @@ export default function Transactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">🔴 Active (salary, freelance)</SelectItem>
-                    <SelectItem value="scalable">🟡 Scalable (courses, SaaS)</SelectItem>
-                    <SelectItem value="passive">🟢 Passive (dividends, interest)</SelectItem>
+                    <SelectItem value="active">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5 text-red-500" strokeWidth={1.5} />
+                        Active (salary, freelance)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="scalable">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-yellow-500" strokeWidth={1.5} />
+                        Scalable (courses, SaaS)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="passive">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Leaf className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} />
+                        Passive (dividends, interest)
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

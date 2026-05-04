@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import HintBanner from "@/components/HintBanner";
 import {
   BarChart,
   Bar,
@@ -239,6 +240,11 @@ export default function Report() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Financial Report</h1>
+
+      <HintBanner
+        pageKey="reports"
+        message="📊 Your financial reports update automatically as you log transactions. Add at least 2 months of data for trend charts to appear."
+      />
 
       <Tabs defaultValue="cashflow">
         <TabsList className="flex-wrap h-auto">

@@ -10,6 +10,7 @@ import {
   X,
   LogOut,
   Search,
+  Keyboard,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -17,6 +18,7 @@ import { Input } from "./ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Landmark } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import ShortcutsDialog, { useGlobalShortcutsDialog } from "./ShortcutsDialog";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },

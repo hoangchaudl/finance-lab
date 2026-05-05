@@ -42,7 +42,9 @@ import {
   Coins,
   TrendingUp,
   Zap,
+  PieChart as PieChartIcon,
 } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
 import {
   PieChart,
   Pie,

@@ -35,6 +35,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { signOut, user } = useAuth();
+  const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useGlobalShortcutsDialog();
 
   const getInitials = () => {
     const metadata = user?.user_metadata || {};
@@ -128,7 +129,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Footer Section */}
-        <div className="border-t border-slate-200 p-3 space-y-2">
+        <div className="border-t border-slate-200 p-3 space-y-1">
+          <button
+            onClick={() => setShortcutsOpen(true)}
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+          >
+            <Keyboard className="h-4 w-4" strokeWidth={1.5} />
+            <span className="flex-1 text-left">Shortcuts</span>
+            <kbd className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[10px] text-slate-500">?</kbd>
+          </button>
           <button
             onClick={signOut}
             className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
@@ -178,6 +187,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
+
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 }

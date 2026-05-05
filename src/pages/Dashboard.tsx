@@ -1,12 +1,13 @@
 import { useApp } from "@/contexts/AppContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
+import { formatVND, formatVNDCompact, getMonthKey, getMonthLabel } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   PieChart,
   Pie,
@@ -22,13 +23,12 @@ import {
 } from "recharts";
 import {
   TrendingUp,
-  Target,
-  Check,
-  Pencil,
-  X,
   TrendingDown,
   Landmark,
   BarChart3,
+  AlertTriangle,
+  Bell,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +37,18 @@ import OnboardingChecklist from "@/components/OnboardingChecklist";
 import HintBanner from "@/components/HintBanner";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
+
+function DeltaChip({ current, previous }: { current: number; previous: number }) {
+  if (previous === 0) return null;
+  const pct = ((current - previous) / Math.abs(previous)) * 100;
+  const isUp = pct >= 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-emerald-600" : "text-red-500"}`}>
+      {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {Math.abs(pct).toFixed(1)}%
+    </span>
+  );
+}
 
 const ALLOC_COLORS = [
   "hsl(160, 84%, 39%)",
@@ -62,7 +74,6 @@ export default function Dashboard() {
     getTotalSavings,
     getTotalInvestments,
     getTotalInvestmentCost,
-    updateFireSettings,
   } = useApp();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -75,8 +86,21 @@ export default function Dashboard() {
     (data.portfolio?.length ?? 0) === 0 &&
     data.categories.length === 0;
   const [showOnboarding, setShowOnboarding] = useState(isFirstVisit);
+  const [compact, setCompact] = useState(() => localStorage.getItem("dashboard_compact") === "1");
+
+  const fmt = compact ? formatVNDCompact : formatVND;
+  const toggleCompact = () => {
+    setCompact((v) => {
+      localStorage.setItem("dashboard_compact", v ? "0" : "1");
+      return !v;
+    });
+  };
 
   const monthKey = getMonthKey();
+  const prevDate = new Date();
+  prevDate.setMonth(prevDate.getMonth() - 1);
+  const prevMonthKey = getMonthKey(prevDate);
+
   const income = getTotalIncome(monthKey);
   const expenses = getTotalExpenses(monthKey);
   const savings = income - expenses;
@@ -84,6 +108,51 @@ export default function Dashboard() {
   const netWorth = getNetWorth();
   const totalSavings = getTotalSavings();
   const totalInvestments = getTotalInvestments();
+
+  const prevIncome = getTotalIncome(prevMonthKey);
+  const prevExpenses = getTotalExpenses(prevMonthKey);
+  const prevSavings = prevIncome - prevExpenses;
+
+  // Smart alerts
+  const today = new Date();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysLeft = daysInMonth - today.getDate();
+
+  const budgetAlerts: string[] = [];
+  const plan = data.monthlyPlans?.[monthKey] ?? {};
+  data.categories.forEach((cat) => {
+    const planned = plan[cat.id]?.planned ?? 0;
+    if (planned <= 0) return;
+    const actual = data.transactions
+      .filter((t) => t.date.startsWith(monthKey) && t.category_id === cat.id)
+      .reduce((s, t) => s + t.amount, 0);
+    const pct = (actual / planned) * 100;
+    if (pct >= 80 && actual < planned) {
+      budgetAlerts.push(`${cat.emoji} ${cat.name} is ${pct.toFixed(0)}% used with ${daysLeft} days left`);
+    } else if (actual >= planned) {
+      budgetAlerts.push(`${cat.emoji} ${cat.name} has exceeded budget (${formatVND(actual - planned)} over)`);
+    }
+  });
+
+  const portfolioAlerts: string[] = [];
+  (data.portfolio ?? []).forEach((p) => {
+    if (p.purchasePrice > 0 && p.currentPrice < p.purchasePrice) {
+      const drop = ((p.purchasePrice - p.currentPrice) / p.purchasePrice) * 100;
+      if (drop >= 5) {
+        portfolioAlerts.push(`${p.name} dropped ${drop.toFixed(1)}% below purchase price`);
+      }
+    }
+  });
+
+  const subscriptionAlerts: string[] = [];
+  (data.subscriptions ?? []).forEach((sub) => {
+    const dueThisMonth = sub.due_day - today.getDate();
+    if (dueThisMonth >= 0 && dueThisMonth <= 7) {
+      subscriptionAlerts.push(`${sub.name} renews in ${dueThisMonth === 0 ? "today" : `${dueThisMonth} day${dueThisMonth !== 1 ? "s" : ""}`} (${formatVND(sub.amount)})`);
+    }
+  });
+
+  const allAlerts = [...budgetAlerts, ...portfolioAlerts, ...subscriptionAlerts];
 
   const allocData = [
     { name: "Essentials", value: data.incomeAllocations.essentials_pct },
@@ -203,9 +272,40 @@ export default function Dashboard() {
           Overview — {getMonthLabel(monthKey)}
           <PageTourButton onClick={startTour} />
         </h1>
+        <button
+          onClick={toggleCompact}
+          className="text-xs text-muted-foreground border border-border rounded-md px-2 py-1 hover:bg-muted transition-colors"
+          title="Toggle compact numbers"
+        >
+          {compact ? "Full" : "Compact"}
+        </button>
       </div>
 
       <OnboardingChecklist />
+
+      {/* Smart Alerts */}
+      {allAlerts.length > 0 && (
+        <div className="space-y-2">
+          {budgetAlerts.map((msg, i) => (
+            <Alert key={`budget-${i}`} className="border-amber-200 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 text-sm">{msg}</AlertDescription>
+            </Alert>
+          ))}
+          {portfolioAlerts.map((msg, i) => (
+            <Alert key={`portfolio-${i}`} className="border-red-200 bg-red-50">
+              <TrendingDown className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800 text-sm">{msg}</AlertDescription>
+            </Alert>
+          ))}
+          {subscriptionAlerts.map((msg, i) => (
+            <Alert key={`sub-${i}`} className="border-blue-200 bg-blue-50">
+              <Bell className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800 text-sm">{msg}</AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
 
       <HintBanner
         pageKey="dashboard"
@@ -215,7 +315,7 @@ export default function Dashboard() {
       {/* Hero Balance Card */}
       <div data-tour="net-worth" className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-3xl p-8 text-white shadow-lg">
         <p className="text-sm text-blue-100 mb-2">Total Net Worth</p>
-        <h2 className="font-bold text-3xl">{formatVND(netWorth)}</h2>
+        <h2 className="font-bold text-3xl">{fmt(netWorth)}</h2>
       </div>
 
       {/* Summary cards */}
@@ -228,8 +328,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-primary">
-              {formatVND(income)}
+              {fmt(income)}
             </p>
+            <DeltaChip current={income} previous={prevIncome} />
           </CardContent>
         </Card>
         <Card>
@@ -240,8 +341,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-destructive">
-              {formatVND(expenses)}
+              {fmt(expenses)}
             </p>
+            <DeltaChip current={expenses} previous={prevExpenses} />
           </CardContent>
         </Card>
         <Card>
@@ -254,8 +356,9 @@ export default function Dashboard() {
             <p
               className={`text-2xl font-bold ${savings >= 0 ? "text-primary" : "text-destructive"}`}
             >
-              {formatVND(savings)}
+              {fmt(savings)}
             </p>
+            <DeltaChip current={savings} previous={prevSavings} />
           </CardContent>
         </Card>
         {/* <Card>
@@ -276,7 +379,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-primary">
-              {formatVND(totalSavings)}
+              {fmt(totalSavings)}
             </p>
           </CardContent>
         </Card>
@@ -288,7 +391,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-blue-600">
-              {formatVND(Math.round(totalInvestments))}
+              {fmt(Math.round(totalInvestments))}
             </p>
             {(() => {
               const cost = getTotalInvestmentCost();

@@ -5,6 +5,7 @@ import HintBanner from "@/components/HintBanner";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
 import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
+import MonthPicker from "@/components/MonthPicker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -186,18 +187,7 @@ export default function BudgetPlan() {
           Budget Plan
           <PageTourButton onClick={startTour} />
         </h1>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((m) => (
-              <SelectItem key={m} value={m}>
-                {getMonthLabel(m)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
 
       {data.categories.length === 0 && (

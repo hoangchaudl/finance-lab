@@ -310,8 +310,8 @@ export default function Report() {
 
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
             {[
-              { label: "Total Income", value: formatVND(totalIncome), cls: "text-green-600" },
-              { label: "Capital Gains", value: `${totalCapitalGains > 0 ? "+" : ""}${formatVND(totalCapitalGains)}`, cls: totalCapitalGains >= 0 ? "text-emerald-500" : "text-red-600" },
+              { label: "Total Income", value: formatVND(totalIncome), cls: "text-success" },
+              { label: "Capital Gains", value: `${totalCapitalGains > 0 ? "+" : ""}${formatVND(totalCapitalGains)}`, cls: totalCapitalGains >= 0 ? "text-success" : "text-red-600" },
               { label: "Total Expenses", value: formatVND(totalExpenses), cls: "text-red-600" },
               { label: "Saved & Invested", value: formatVND(totalSavedInvested), cls: "text-blue-600" },
               { label: "Net Cash Flow", value: `${netChange > 0 ? "+" : ""}${formatVND(netChange)}`, cls: netChange >= 0 ? "text-primary" : "text-destructive" },
@@ -349,8 +349,8 @@ export default function Report() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Period</TableHead>
-                    <TableHead className="text-right text-green-600">Income</TableHead>
-                    <TableHead className="text-right text-emerald-500">Capital Gains</TableHead>
+                    <TableHead className="text-right text-success">Income</TableHead>
+                    <TableHead className="text-right text-success">Capital Gains</TableHead>
                     <TableHead className="text-right text-red-600">Expenses</TableHead>
                     <TableHead className="text-right text-purple-600">Savings</TableHead>
                     <TableHead className="text-right text-blue-600">Investment</TableHead>
@@ -368,7 +368,7 @@ export default function Report() {
                     <TableRow key={row.period}>
                       <TableCell className="font-medium">{row.period}</TableCell>
                       <TableCell className="text-right">{formatVND(row.income)}</TableCell>
-                      <TableCell className={`text-right ${row.capitalGains >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                      <TableCell className={`text-right ${row.capitalGains >= 0 ? "text-success" : "text-red-500"}`}>
                         {row.capitalGains > 0 ? "+" : ""}{formatVND(row.capitalGains)}
                       </TableCell>
                       <TableCell className="text-right">{formatVND(row.expense)}</TableCell>
@@ -431,7 +431,7 @@ export default function Report() {
               {currentMonthRate !== null && (
                 <div className="mb-4">
                   <p className="text-sm text-muted-foreground">This month</p>
-                  <p className={`text-3xl font-bold ${currentMonthRate >= 50 ? "text-green-600" : currentMonthRate < 30 ? "text-destructive" : "text-amber-500"}`}>
+                  <p className={`text-3xl font-bold ${currentMonthRate >= 50 ? "text-success" : currentMonthRate < 30 ? "text-destructive" : "text-amber-500"}`}>
                     {currentMonthRate.toFixed(1)}%
                   </p>
                 </div>
@@ -596,7 +596,7 @@ export default function Report() {
                 <Card>
                   <CardContent className="py-4">
                     <p className="text-xs text-muted-foreground">Unrealized P&L</p>
-                    <p className={`text-lg font-bold ${totalUnrealized >= 0 ? "text-green-600" : "text-destructive"}`}>
+                    <p className={`text-lg font-bold ${totalUnrealized >= 0 ? "text-success" : "text-destructive"}`}>
                       {totalUnrealized >= 0 ? "+" : ""}{formatVND(Math.round(totalUnrealized))}
                     </p>
                   </CardContent>
@@ -604,7 +604,7 @@ export default function Report() {
                 <Card>
                   <CardContent className="py-4">
                     <p className="text-xs text-muted-foreground">Realized Gain</p>
-                    <p className={`text-lg font-bold ${totalRealized >= 0 ? "text-green-600" : "text-destructive"}`}>
+                    <p className={`text-lg font-bold ${totalRealized >= 0 ? "text-success" : "text-destructive"}`}>
                       {totalRealized >= 0 ? "+" : ""}{formatVND(Math.round(totalRealized))}
                     </p>
                   </CardContent>
@@ -614,7 +614,7 @@ export default function Report() {
                     <CardContent className="py-4">
                       <p className="text-xs text-muted-foreground">Best Performer</p>
                       <p className="text-sm font-bold truncate">{bestPerformer.name}</p>
-                      <p className="text-sm text-green-600 font-medium">
+                      <p className="text-sm text-success font-medium">
                         +{bestPerformer.totalReturnPct.toFixed(1)}%
                       </p>
                     </CardContent>
@@ -625,7 +625,7 @@ export default function Report() {
                     <CardContent className="py-4">
                       <p className="text-xs text-muted-foreground">Worst Performer</p>
                       <p className="text-sm font-bold truncate">{worstPerformer.name}</p>
-                      <p className={`text-sm font-medium ${worstPerformer.totalReturnPct >= 0 ? "text-green-600" : "text-destructive"}`}>
+                      <p className={`text-sm font-medium ${worstPerformer.totalReturnPct >= 0 ? "text-success" : "text-destructive"}`}>
                         {worstPerformer.totalReturnPct >= 0 ? "+" : ""}{worstPerformer.totalReturnPct.toFixed(1)}%
                       </p>
                     </CardContent>
@@ -663,17 +663,17 @@ export default function Report() {
                           <TableCell className="text-right text-sm font-medium">
                             {formatVND(Math.round(e.currentValue))}
                           </TableCell>
-                          <TableCell className={`text-right text-sm font-medium ${e.unrealizedGain >= 0 ? "text-green-600" : "text-destructive"}`}>
+                          <TableCell className={`text-right text-sm font-medium ${e.unrealizedGain >= 0 ? "text-success" : "text-destructive"}`}>
                             {e.unrealizedGain >= 0 ? "+" : ""}{formatVND(Math.round(e.unrealizedGain))}
                           </TableCell>
-                          <TableCell className={`text-right text-sm ${e.unrealizedGainPct >= 0 ? "text-green-600" : "text-destructive"}`}>
+                          <TableCell className={`text-right text-sm ${e.unrealizedGainPct >= 0 ? "text-success" : "text-destructive"}`}>
                             {e.unrealizedGainPct >= 0 ? "+" : ""}{e.unrealizedGainPct.toFixed(1)}%
                           </TableCell>
-                          <TableCell className={`text-right text-sm ${e.realizedGain >= 0 ? "text-green-600" : "text-destructive"}`}>
+                          <TableCell className={`text-right text-sm ${e.realizedGain >= 0 ? "text-success" : "text-destructive"}`}>
                             {e.realizedGain !== 0 ? `${e.realizedGain >= 0 ? "+" : ""}${formatVND(Math.round(e.realizedGain))}` : "—"}
                           </TableCell>
                           <TableCell className="text-right">
-                            <span className={`text-sm font-bold ${e.totalReturnPct >= 0 ? "text-green-600" : "text-destructive"}`}>
+                            <span className={`text-sm font-bold ${e.totalReturnPct >= 0 ? "text-success" : "text-destructive"}`}>
                               {e.totalReturnPct >= 0 ? "▲" : "▼"} {Math.abs(e.totalReturnPct).toFixed(1)}%
                             </span>
                           </TableCell>

@@ -65,6 +65,14 @@ const TIER_OPTIONS = [
 const TOWER_TIERS = TIER_OPTIONS;
 const TIER_ORDER = ["Defensive", "Safe", "Income", "Growth", "Risk"];
 
+const TIER_TARGETS: Record<string, { label: string; min?: number; max?: number }> = {
+  Defensive: { label: "Keep > 0%" },
+  Safe:      { label: "Target 20–30%", min: 20, max: 30 },
+  Income:    { label: "Target 30–40%", min: 30, max: 40 },
+  Growth:    { label: "Target 15–25%", min: 15, max: 25 },
+  Risk:      { label: "Cap ≤ 10%",              max: 10 },
+};
+
 const TIER_STYLES: Record<string, { border: string; bar: string }> = {
   Defensive: { border: "border-l-4 border-blue-400", bar: "bg-blue-400" },
   Safe: { border: "border-l-4 border-green-400", bar: "bg-green-400" },
@@ -599,6 +607,9 @@ export default function Portfolio() {
                   <span className="font-medium flex items-center gap-1.5">
                     {getTierIcon(name)}
                     {name}
+                    <span className="text-xs text-muted-foreground font-normal">
+                      {TIER_TARGETS[name]?.label}
+                    </span>
                   </span>
                   <div className="flex items-center gap-3">
                     <span className="text-muted-foreground">
@@ -610,9 +621,27 @@ export default function Portfolio() {
                     {getTierBadge(name, value, pct, isPortfolioEmpty)}
                   </div>
                 </div>
-                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-2 rounded-full bg-slate-100 overflow-hidden relative">
+                  {/* Target zone overlay */}
+                  {TIER_TARGETS[name]?.min !== undefined && TIER_TARGETS[name]?.max !== undefined && (
+                    <div
+                      className="absolute top-0 h-full bg-slate-300/50 rounded-full"
+                      style={{
+                        left: `${TIER_TARGETS[name].min}%`,
+                        width: `${TIER_TARGETS[name].max! - TIER_TARGETS[name].min!}%`,
+                      }}
+                    />
+                  )}
+                  {/* Cap marker for Risk */}
+                  {TIER_TARGETS[name]?.min === undefined && TIER_TARGETS[name]?.max !== undefined && (
+                    <div
+                      className="absolute top-0 h-full bg-slate-300/50 rounded-full"
+                      style={{ left: 0, width: `${TIER_TARGETS[name].max}%` }}
+                    />
+                  )}
+                  {/* Actual value bar */}
                   <div
-                    className={`h-full rounded-full ${TIER_STYLES[name]?.bar ?? "bg-slate-400"}`}
+                    className={`absolute top-0 h-full rounded-full ${TIER_STYLES[name]?.bar ?? "bg-slate-400"}`}
                     style={{ width: `${Math.min(100, pct)}%` }}
                   />
                 </div>
@@ -832,7 +861,12 @@ export default function Portfolio() {
                       <TableCell>
                         <Badge variant="outline">{group.type}</Badge>
                       </TableCell>
-                      <TableCell></TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          {getTierIcon(group.tier, "h-3 w-3")}
+                          {group.tier}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-right font-medium">
                         {group.totalQty.toLocaleString("de-DE")}
                       </TableCell>

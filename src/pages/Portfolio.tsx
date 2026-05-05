@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import HintBanner from "@/components/HintBanner";
@@ -313,6 +313,43 @@ export default function Portfolio() {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<EditState | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [focusedGroupIdx, setFocusedGroupIdx] = useState<number | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // N = add new asset; ↑↓ = navigate group rows; Enter = expand/collapse
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      const inInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target as HTMLElement).isContentEditable;
+      if (e.key === "n" || e.key === "N") {
+        if (inInput) return;
+        e.preventDefault();
+        setAdding(true);
+        setFocusedGroupIdx(null);
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (inInput) return;
+        e.preventDefault();
+        setFocusedGroupIdx((prev) => {
+          const len = groupedAssets.length;
+          if (len === 0) return null;
+          if (prev === null) return e.key === "ArrowDown" ? 0 : len - 1;
+          return e.key === "ArrowDown"
+            ? Math.min(prev + 1, len - 1)
+            : Math.max(prev - 1, 0);
+        });
+      }
+      if (e.key === "Enter" && !inInput) {
+        if (focusedGroupIdx !== null) {
+          const group = groupedAssets[focusedGroupIdx];
+          if (group) toggleExpand(group.name);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusedGroupIdx, groupedAssets]);
 
   const handleDelete = (child: (typeof calculatedEntries)[0]) => {
     setDeletingIds((prev) => new Set(prev).add(child.id));
@@ -810,7 +847,7 @@ export default function Portfolio() {
                 </TableRow>
               )}
 
-              {groupedAssets.map((group) => {
+              {groupedAssets.map((group, groupIdx) => {
                 const isExpanded = expandedGroups[group.name];
 
                 // Calculate Last Edited
@@ -835,8 +872,8 @@ export default function Portfolio() {
                   <React.Fragment key={group.name}>
                     <TableRow
                       key={group.name}
-                      className="bg-muted/10 hover:bg-muted/20 cursor-pointer"
-                      onClick={() => toggleExpand(group.name)}
+                      className={`bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors ${focusedGroupIdx === groupIdx ? "ring-2 ring-inset ring-primary/40 bg-primary/5" : ""}`}
+                      onClick={() => { toggleExpand(group.name); setFocusedGroupIdx(groupIdx); }}
                     >
                       <TableCell>
                         <div className="flex items-center">

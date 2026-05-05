@@ -910,10 +910,28 @@ function PlannedInput({
     setFocused(false);
   };
 
+  const focusNextPlannedInput = (reverse = false) => {
+    // When this input is focused, the parent div has data-planned-active
+    const all = Array.from(document.querySelectorAll<HTMLElement>("[data-planned-input]"));
+    const activeParent = inputRef.current?.closest("[data-planned-input]");
+    const idx = activeParent ? all.indexOf(activeParent as HTMLElement) : -1;
+    const next = all[reverse ? idx - 1 : idx + 1];
+    if (next) {
+      const btn = next.querySelector("button");
+      btn?.click();
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       submit();
+      focusNextPlannedInput();
+    }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      submit();
+      focusNextPlannedInput(e.shiftKey);
     }
     if (e.key === "Escape") {
       setFocused(false);
@@ -927,33 +945,37 @@ function PlannedInput({
 
   if (focused) {
     return (
-      <Input
-        ref={inputRef}
-        type="text"
-        inputMode="numeric"
-        value={temp}
-        onChange={handleChange}
-        onBlur={submit}
-        onKeyDown={handleKeyDown}
-        className="w-32 ml-auto text-right h-8"
-        autoFocus
-      />
+      <div data-planned-input>
+        <Input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          value={temp}
+          onChange={handleChange}
+          onBlur={submit}
+          onKeyDown={handleKeyDown}
+          className="w-32 ml-auto text-right h-8"
+          autoFocus
+        />
+      </div>
     );
   }
 
   return (
-    <button
-      onClick={() => {
-        setTemp(value ? formatWithDots(value) : "");
-        setFocused(true);
-      }}
-      className="text-sm hover:underline cursor-pointer"
-    >
-      {value > 0 ? (
-        formatVND(value)
-      ) : (
-        <span className="text-muted-foreground">0 ₫</span>
-      )}
-    </button>
+    <div data-planned-input>
+      <button
+        onClick={() => {
+          setTemp(value ? formatWithDots(value) : "");
+          setFocused(true);
+        }}
+        className="text-sm hover:underline cursor-pointer w-full text-right"
+      >
+        {value > 0 ? (
+          formatVND(value)
+        ) : (
+          <span className="text-muted-foreground">0 ₫</span>
+        )}
+      </button>
+    </div>
   );
 }

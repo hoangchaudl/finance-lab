@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
 import { useApp } from "@/contexts/AppContext";
@@ -90,6 +90,19 @@ export default function CategoriesManager() {
 function CategoriesTab() {
   const { data, addCategory, updateCategory, deleteCategory } = useApp();
   const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target as HTMLElement).isContentEditable) return;
+      if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        setAdding(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
   const [newName, setNewName] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
   const [newType, setNewType] = useState<Category["type"]>("essential");

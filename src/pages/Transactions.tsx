@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "@/contexts/AppContext";
 import {
   formatVND,
@@ -78,6 +78,23 @@ export default function Transactions() {
   } = useApp();
   const { toast } = useToast();
   const { startTour } = usePageTour("transactions");
+
+  const amountInputRef = useRef<HTMLInputElement>(null);
+
+  // N = focus amount field to add a new transaction
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target as HTMLElement).isContentEditable) return;
+      if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        amountInputRef.current?.focus();
+        amountInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
   const [formType, setFormType] = useState<TxType>("expense");
@@ -685,6 +702,7 @@ export default function Transactions() {
             <div className={isAssetLinkedType ? "" : "lg:col-span-1"}>
               <Label>{isSellType ? "Sale Amount" : isPortfolioType ? "Total Cost" : "Amount"}</Label>
               <Input
+                ref={amountInputRef}
                 type="text"
                 value={formatAmountDisplay(formAmount)}
                 onChange={(e) => handleAmountChange(e.target.value)}

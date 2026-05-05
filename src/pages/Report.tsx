@@ -68,6 +68,7 @@ const currentMonthKey = (() => {
 
 export default function Report() {
   const { data } = useApp();
+  const navigate = useNavigate();
   const { startTour } = usePageTour("report");
   const { transactions } = data;
 

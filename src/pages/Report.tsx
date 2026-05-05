@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import HintBanner from "@/components/HintBanner";
+import EmptyState from "@/components/EmptyState";
+import { BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart,
   Bar,
@@ -683,6 +686,7 @@ export default function Report() {
           )}
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

@@ -253,6 +253,7 @@ function CategoriesTab() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

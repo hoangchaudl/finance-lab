@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import HintBanner from "@/components/HintBanner";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
@@ -62,6 +63,7 @@ const TIER_OPTIONS = [
 ];
 
 const TOWER_TIERS = TIER_OPTIONS;
+const TIER_ORDER = ["Defensive", "Safe", "Income", "Growth", "Risk"];
 
 const TIER_STYLES: Record<string, { border: string; bar: string }> = {
   Defensive: { border: "border-l-4 border-blue-400", bar: "bg-blue-400" },
@@ -217,6 +219,7 @@ export default function Portfolio() {
   type Group = {
     name: string;
     type: string;
+    tier: string;
     totalQty: number;
     totalCost: number;
     totalValue: number;
@@ -231,6 +234,7 @@ export default function Portfolio() {
           acc[item.name] = {
             name: item.name,
             type: item.type,
+            tier: item.tier,
             totalQty: 0,
             totalCost: 0,
             totalValue: 0,
@@ -247,12 +251,17 @@ export default function Portfolio() {
       },
       {} as Record<string, Group>,
     ),
-  ).map((g) => ({
-    ...g,
-    avgPrice: g.totalQty > 0 ? Math.ceil(g.totalCost / g.totalQty) : 0,
-    roi:
-      g.totalCost > 0 ? ((g.totalValue - g.totalCost) / g.totalCost) * 100 : 0,
-  }));
+  )
+    .map((g) => ({
+      ...g,
+      avgPrice: g.totalQty > 0 ? Math.ceil(g.totalCost / g.totalQty) : 0,
+      roi:
+        g.totalCost > 0 ? ((g.totalValue - g.totalCost) / g.totalCost) * 100 : 0,
+    }))
+    .sort(
+      (a, b) =>
+        (TIER_ORDER.indexOf(a.tier) ?? 99) - (TIER_ORDER.indexOf(b.tier) ?? 99),
+    );
 
   const investmentEntries = calculatedEntries.filter((e) => e.type !== "Other");
 
@@ -295,6 +304,49 @@ export default function Portfolio() {
   );
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<EditState | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+
+  const handleDelete = (child: (typeof calculatedEntries)[0]) => {
+    setDeletingIds((prev) => new Set(prev).add(child.id));
+    const timeoutId = setTimeout(async () => {
+      try {
+        await deletePortfolioEntry(child.id);
+      } catch {
+        // If delete fails, restore the entry
+        setDeletingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(child.id);
+          return next;
+        });
+        toast({ title: "Error", description: "Failed to delete asset", variant: "destructive" });
+      }
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(child.id);
+        return next;
+      });
+    }, 5000);
+
+    toast({
+      title: `"${child.name}" deleted`,
+      description: "This will be removed in 5 seconds.",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            clearTimeout(timeoutId);
+            setDeletingIds((prev) => {
+              const next = new Set(prev);
+              next.delete(child.id);
+              return next;
+            });
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
 
   const toggleExpand = (name: string) => {
     setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -818,7 +870,7 @@ export default function Portfolio() {
                     </TableRow>
 
                     {isExpanded &&
-                      group.children.map((child) => {
+                      group.children.filter((c) => !deletingIds.has(c.id)).map((child) => {
                         if (editing?.id === child.id) {
                           return (
                             <TableRow key={child.id} className="bg-blue-50/50">
@@ -1016,7 +1068,7 @@ export default function Portfolio() {
                             </TableCell>
 
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
+                              <div className="flex justify-end items-center gap-1">
                                 <Button
                                   size="icon"
                                   variant="ghost"
@@ -1026,47 +1078,27 @@ export default function Portfolio() {
                                     setEditing({
                                       ...child,
                                       purchasePrice: formatInputWithDots(
-                                        Math.ceil(
-                                          child.purchasePrice,
-                                        ).toString(),
+                                        Math.ceil(child.purchasePrice).toString(),
                                       ),
                                       currentPrice: formatInputWithDots(
-                                        Math.ceil(
-                                          child.currentPrice,
-                                        ).toString(),
+                                        Math.ceil(child.currentPrice).toString(),
                                       ),
                                     });
                                   }}
                                 >
-                                  <Pencil
-                                    className="h-3 w-3"
-                                    strokeWidth={ICON_STROKE}
-                                  />
+                                  <Pencil className="h-3 w-3" strokeWidth={ICON_STROKE} />
                                 </Button>
+                                <div className="w-px h-4 bg-border mx-1" />
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-7 w-7"
-                                  onClick={async (e) => {
+                                  className="h-7 w-7 hover:bg-destructive/10"
+                                  onClick={(e) => {
                                     e.stopPropagation();
-                                    try {
-                                      await deletePortfolioEntry(child.id);
-                                    } catch (err) {
-                                      toast({
-                                        title: "Error",
-                                        description:
-                                          err instanceof Error
-                                            ? err.message
-                                            : "Something went wrong. Please try again.",
-                                        variant: "destructive",
-                                      });
-                                    }
+                                    handleDelete(child);
                                   }}
                                 >
-                                  <Trash2
-                                    className="h-3 w-3 text-destructive"
-                                    strokeWidth={ICON_STROKE}
-                                  />
+                                  <Trash2 className="h-3 w-3 text-destructive" strokeWidth={ICON_STROKE} />
                                 </Button>
                               </div>
                             </TableCell>

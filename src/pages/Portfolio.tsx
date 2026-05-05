@@ -42,7 +42,6 @@ import {
   Coins,
   TrendingUp,
   Zap,
-  PieChart as PieChartIcon,
 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import {
@@ -506,6 +505,16 @@ export default function Portfolio() {
           <Plus className="h-4 w-4 mr-1" strokeWidth={ICON_STROKE} /> Add Asset
         </Button>
       </div>
+
+      {entries.length === 0 && !adding && (
+        <EmptyState
+          icon={PieIcon}
+          title="Track your first asset"
+          description="Add stocks, ETFs, savings, gold, or crypto to see your allocation, ROI, and progress toward financial independence."
+          actionLabel="Add asset"
+          onAction={() => setAdding(true)}
+        />
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-muted/30">

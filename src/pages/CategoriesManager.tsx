@@ -146,6 +146,21 @@ function CategoriesTab() {
         </Button>
       </div>
 
+      {data.categories.length === 0 && !adding ? (
+        <EmptyState
+          icon={FolderCog}
+          title="No categories yet"
+          description="Categories let you organize income and expenses (e.g. Salary, Rent, Food). Create your first one to start budgeting."
+          actionLabel="Add a category"
+          onAction={() => setAdding(true)}
+          secondaryLabel="Load default categories"
+          onSecondary={() => {
+            initialData.categories.forEach((c) =>
+              addCategory({ name: c.name, emoji: c.emoji, type: c.type }),
+            );
+          }}
+        />
+      ) : (
       <Card>
         <CardContent className="pt-6">
           <Table data-tour="cat-row">

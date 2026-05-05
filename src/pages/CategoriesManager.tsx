@@ -24,7 +24,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, FolderCog } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import { initialData } from "@/lib/initial-data";
 
 const TYPE_OPTIONS: { value: Category["type"]; label: string }[] = [
   { value: "income", label: "Income" },

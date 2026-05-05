@@ -33,7 +33,12 @@ const TYPE_LABELS: Record<string, string> = {
   investment: "Investments",
 };
 
+import { Wallet } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import EmptyState from "@/components/EmptyState";
+
 export default function BudgetPlan() {
+  const navigate = useNavigate();
   const {
     data,
     updatePlan,
@@ -194,6 +199,16 @@ export default function BudgetPlan() {
           </SelectContent>
         </Select>
       </div>
+
+      {data.categories.length === 0 && (
+        <EmptyState
+          icon={Wallet}
+          title="No budget set yet"
+          description="Add a few categories first, then come back here to assign a planned amount to each one for the month."
+          actionLabel="Go to Categories"
+          onAction={() => navigate("/categories")}
+        />
+      )}
 
       {/* --- Summary Cards --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

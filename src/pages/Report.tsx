@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import HintBanner from "@/components/HintBanner";
+import EmptyState from "@/components/EmptyState";
+import { BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart,
   Bar,
@@ -65,6 +68,7 @@ const currentMonthKey = (() => {
 
 export default function Report() {
   const { data } = useApp();
+  const navigate = useNavigate();
   const { startTour } = usePageTour("report");
   const { transactions } = data;
 
@@ -252,6 +256,15 @@ export default function Report() {
         message="📊 Your financial reports update automatically as you log transactions. Add at least 2 months of data for trend charts to appear."
       />
 
+      {transactions.length === 0 ? (
+        <EmptyState
+          icon={BarChart3}
+          title="No data to chart yet"
+          description="Add a few transactions on the Transactions page and your cash flow, savings rate, and spending charts will appear here."
+          actionLabel="Add a transaction"
+          onAction={() => navigate("/transactions")}
+        />
+      ) : (
       <Tabs defaultValue="cashflow">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
@@ -674,6 +687,7 @@ export default function Report() {
           )}
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

@@ -1,82 +1,61 @@
-## Tour Improvements — Categories, Budget, Font & Demo Animations
+## Plan: Empty States + Onboarding Checklist + Shortcuts Cheatsheet
 
-Four focused changes to the existing `driver.js` guided tours.
+### 1. Reusable EmptyState component
+Create `src/components/EmptyState.tsx`:
+- Props: `icon` (lucide), `title`, `description`, `actionLabel`, `onAction`, optional `secondaryLabel` + `onSecondary` (for "Load sample data").
+- Centered card-style block with icon circle, title, muted description, primary button, optional ghost secondary button.
 
----
+### 2. Wire empty states into pages
+Detect "no data" condition and render `<EmptyState>` in place of the empty table/grid:
 
-### 1. Categories page — spotlight the "Add Category" button
+- **Transactions** (`src/pages/Transactions.tsx`): when `data.transactions.length === 0` for the visible month → "No transactions yet" + CTA "Add your first transaction" (focuses Amount field, same as `N` shortcut) + secondary "Load sample data".
+- **Budget Plan** (`src/pages/BudgetPlan.tsx`): when no plans exist for the month → "No budget set for {month}" + CTA "Start planning" (focuses first Planned input).
+- **Categories** (`src/pages/CategoriesManager.tsx`): when `data.categories.length === 0` → "No categories yet" + CTA "Add a category" + secondary "Load defaults" (uses `initialData.categories`).
+- **Portfolio** (`src/pages/Portfolio.tsx`): when `data.portfolio?.length === 0` → "Track your first asset" + CTA "Add asset".
+- **FIRE Goals** (`src/pages/FireGoals.tsx`): when `goals.length === 0` → "Set your first goal" + CTA.
+- **Report** (`src/pages/Report.tsx`): when no transactions in range → "No data to chart yet — add transactions to see insights".
 
-**File:** `src/pages/CategoriesManager.tsx`
-- Add `data-tour="cat-add"` to the `<Button>` "Add Category" (line 129).
-- Add `data-tour="cat-row"` to the first row of the table (or the table itself) so a follow-up step can show the edit/delete actions.
+For "Load sample data" actions we'll add a helper `loadSampleData()` in `use-app-data.ts` that bulk-inserts a small sample (3 categories + 2 transactions, or default categories) via existing add functions.
 
-**File:** `src/lib/tours.ts` — replace the `categories` tour with:
-1. Page title — what this page is for.
-2. `[data-tour="cat-add"]` — "Click here to create a new category. Give it a name, an emoji, and pick a type (Income, Essential, Savings, etc)." + embedded mini-demo (see §4).
-3. `[data-tour="cat-row"]` — "Each row is one category. Use the pencil to rename or the trash icon to remove it."
+### 3. Onboarding checklist on Dashboard
+Create `src/components/OnboardingChecklist.tsx`:
+- Card pinned at top of Dashboard, above hero metrics.
+- Computes 4 items from app data:
+  1. **Set monthly income** — done if any `transaction.type === "income"` exists.
+  2. **Create your first 3 categories** — done if `data.categories.length >= 3`.
+  3. **Set budget for this month** — done if `data.monthlyPlans[currentMonthKey]` has any planned > 0.
+  4. **Add a portfolio asset** — done if `data.portfolio?.length > 0`.
+- Each row: checkbox (read-only check icon when done, hollow circle when not), label, right-aligned "Go →" link routing to the relevant page.
+- Top: progress bar `done/4` + "X of 4 complete" + small `X` to dismiss.
+- Dismissal persisted in `localStorage` (`onboarding_checklist_dismissed`). Auto-hides once all 4 are done (with a one-time success toast).
+- Replaces the existing first-visit `OnboardingModal` trigger; modal can stay accessible from a "Restart tour" affordance but won't auto-pop.
 
----
+### 4. Keyboard shortcuts cheatsheet
+Create `src/components/ShortcutsDialog.tsx`:
+- Dialog listing the shortcuts, grouped by page:
 
-### 2. Budget Plan — spotlight the "Planned" column
-
-**File:** `src/pages/BudgetPlan.tsx`
-- Add `data-tour="budget-planned-col"` to the `<TableHead>` for "Planned" (line 554) **and** to the first `PlannedInput` cell so the spotlight covers a real input the user can see.
-
-**File:** `src/lib/tours.ts` — extend the `budget` tour:
-1. Page title (existing).
-2. `[data-tour="budget-table"]` — overall table intro.
-3. `[data-tour="budget-planned-col"]` — "Type your monthly budget for each category here. Numbers auto-format with thousand separators. Press **Enter** to save." + embedded mini-demo (see §4).
-
----
-
-### 3. Match the app's font in tour popovers
-
-Driver.js ships with its own font stack. Override it in `src/index.css` under `.driver-popover.fl-tour` so titles, body text and buttons inherit the app's font:
-
-```css
-.driver-popover.fl-tour,
-.driver-popover.fl-tour * {
-  font-family: inherit;
-  font-feature-settings: inherit;
-  letter-spacing: inherit;
-}
+```text
+Budget
+  Enter        Save cell, jump to next planned cell
+  Shift+Enter  Save cell, jump to previous planned cell
+Transactions
+  N            Focus Amount field to start adding
+Categories
+  N            Open the add-category row
+Portfolio
+  N            Open the add-asset row
+  ↓ / ↑        Navigate between asset groups
+  Enter        Expand / collapse focused group
 ```
 
-The app uses Tailwind's default sans stack on `body`, so popovers will visually match the rest of the UI automatically.
+- Global trigger: press `?` (Shift+/) anywhere → opens dialog. Mount listener in `AppLayout.tsx` (skip when typing in input/textarea).
+- Add a small "⌨ Shortcuts" button in the sidebar footer (next to profile) that opens the same dialog.
+- First-time hint: small toast on first dashboard visit "Tip: press ? to see keyboard shortcuts" (localStorage flag).
 
----
-
-### 4. Embedded "sample animation" demos inside tooltips
-
-Driver.js accepts **HTML** in `popover.description`. Create a new helper file `src/lib/tour-demos.ts` exporting small self-contained HTML snippets that demonstrate the action being taught. Each snippet is a tiny styled mock-input plus a CSS `@keyframes` animation that loops typing the value or selecting an option.
-
-Three reusable demos:
-
-| Demo key       | Shows                                                                  | Used in step                       |
-|----------------|------------------------------------------------------------------------|------------------------------------|
-| `typeNumber`   | A faux input where digits `1 → 10 → 100 → 1.000 → 10.000` appear, then an "Enter ↵" pill flashes and the value gets a green check. | Budget Plan "Planned" step         |
-| `addCategory`  | A faux row: emoji `🍔` types in, name `Food` types in, a Type dropdown highlights "Essential", then a check-mark confirms. | Categories "Add Category" step     |
-| `clickButton`  | A pulsing `+ Add` button being clicked (cursor svg glides + click ripple). | Generic "click this button" hints  |
-
-**Implementation:**
-- Each demo is a plain HTML string (≈80×40 mock UI in a rounded card) that uses **scoped class names** like `.fl-demo-input`, `.fl-demo-cursor`.
-- Add the keyframes + class styles to `src/index.css` once (next to the existing `.fl-tour` block), e.g. `@keyframes fl-type-1000 { 0% {content: ""} 25% {content: "1"} 50% {content: "10"} 75% {content: "100"} 100% {content: "1.000"} }` and a 3 s infinite loop on `.fl-demo-input::after`.
-- In `tours.ts`, build descriptions like:
-  ```ts
-  description: `Type your monthly budget here. Numbers auto-format and Enter saves.<div class="fl-demo">${TOUR_DEMOS.typeNumber}</div>`
-  ```
-- Driver.js sanitizes nothing by default but renders our trusted strings — no XSS surface (no user data interpolated).
-
-Result: every "how do I do this?" step now contains a small live preview of the interaction, no GIF assets or extra dependencies needed.
-
----
+### 5. Memory updates
+Add a memory file `mem://features/onboarding` documenting: checklist items + completion logic, sample-data action, `?` shortcut convention. Update `mem://index.md` to reference it.
 
 ### Files touched
-
-- `src/lib/tours.ts` — expand categories + budget tours, inject demo HTML.
-- `src/lib/tour-demos.ts` — **new**, exports `TOUR_DEMOS = { typeNumber, addCategory, clickButton }`.
-- `src/index.css` — add `font-family: inherit` override + `.fl-demo*` styles & keyframes.
-- `src/pages/CategoriesManager.tsx` — add `data-tour` attrs on Add button + first row.
-- `src/pages/BudgetPlan.tsx` — add `data-tour` attr on Planned column header / first PlannedInput cell.
-
-No backend, no new dependencies.
+- New: `src/components/EmptyState.tsx`, `src/components/OnboardingChecklist.tsx`, `src/components/ShortcutsDialog.tsx`
+- Edited: `src/pages/{Dashboard,Transactions,BudgetPlan,CategoriesManager,Portfolio,FireGoals,Report}.tsx`, `src/components/AppLayout.tsx`, `src/hooks/use-app-data.ts`
+- Memory: `mem://features/onboarding`, `mem://index.md`

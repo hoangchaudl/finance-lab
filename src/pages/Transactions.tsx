@@ -57,7 +57,9 @@ import {
   Briefcase,
   Layers,
   Leaf,
+  ArrowRightLeft,
 } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
 import HintBanner from "@/components/HintBanner";
@@ -762,6 +764,18 @@ export default function Transactions() {
         </CardContent>
       </Card>
 
+      {data.transactions.length === 0 ? (
+        <EmptyState
+          icon={ArrowRightLeft}
+          title="No transactions yet"
+          description="Add your first income, expense, or investment to start tracking — your reports and dashboard will fill in automatically."
+          actionLabel="Add your first transaction"
+          onAction={() => {
+            amountInputRef.current?.focus();
+            amountInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }}
+        />
+      ) : (
       <Card data-tour="tx-list">
         <CardContent className="p-0">
           <Table>
@@ -857,6 +871,7 @@ export default function Transactions() {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       {/* Pagination Controls */}
       {transactions.length > 0 && (

@@ -24,7 +24,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, FolderCog } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import { initialData } from "@/lib/initial-data";
 
 const TYPE_OPTIONS: { value: Category["type"]; label: string }[] = [
   { value: "income", label: "Income" },
@@ -144,6 +146,21 @@ function CategoriesTab() {
         </Button>
       </div>
 
+      {data.categories.length === 0 && !adding ? (
+        <EmptyState
+          icon={FolderCog}
+          title="No categories yet"
+          description="Categories let you organize income and expenses (e.g. Salary, Rent, Food). Create your first one to start budgeting."
+          actionLabel="Add a category"
+          onAction={() => setAdding(true)}
+          secondaryLabel="Load default categories"
+          onSecondary={() => {
+            initialData.categories.forEach((c) =>
+              addCategory({ name: c.name, emoji: c.emoji, type: c.type }),
+            );
+          }}
+        />
+      ) : (
       <Card>
         <CardContent className="pt-6">
           <Table data-tour="cat-row">
@@ -236,6 +253,7 @@ function CategoriesTab() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

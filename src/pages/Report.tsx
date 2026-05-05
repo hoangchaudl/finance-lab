@@ -261,6 +261,7 @@ export default function Report() {
           onAction={() => navigate("/transactions")}
         />
       ) : (
+      <Tabs defaultValue="cashflow">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
           <TabsTrigger value="networth">Net Worth</TabsTrigger>

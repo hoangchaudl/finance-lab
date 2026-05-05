@@ -869,6 +869,7 @@ export default function Transactions() {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       {/* Pagination Controls */}
       {transactions.length > 0 && (

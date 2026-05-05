@@ -58,8 +58,11 @@ import {
   Layers,
   Leaf,
   ArrowRightLeft,
+  CheckSquare,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import EmptyState from "@/components/EmptyState";
+import MonthPicker from "@/components/MonthPicker";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
 import HintBanner from "@/components/HintBanner";
@@ -113,6 +116,18 @@ export default function Transactions() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   // Delete confirmation state
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -472,6 +487,28 @@ export default function Transactions() {
     startIndex + itemsPerPage,
   );
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedTransactions.map((t) => t.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => deleteTransaction(id)));
+      toast({ title: `Deleted ${selectedIds.size} transaction${selectedIds.size !== 1 ? "s" : ""}` });
+      setSelectedIds(new Set());
+    } catch {
+      toast({ title: "Error", description: "Some deletions failed", variant: "destructive" });
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const handlePrevPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
@@ -528,18 +565,7 @@ export default function Transactions() {
           <PageTourButton onClick={startTour} />
         </h1>
         <div data-tour="tx-month" className="flex items-center gap-2">
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {getMonthLabel(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={transactions.length === 0}>
             <Download className="h-4 w-4 mr-1" strokeWidth={1.5} /> Export CSV
           </Button>
@@ -777,10 +803,35 @@ export default function Transactions() {
         />
       ) : (
       <Card data-tour="tx-list">
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 border-b">
+            <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" strokeWidth={1.5} />
+              {bulkDeleting ? "Deleting..." : "Delete selected"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3.5 w-3.5 mr-1" strokeWidth={1.5} />
+              Clear
+            </Button>
+          </div>
+        )}
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={paginatedTransactions.length > 0 && selectedIds.size === paginatedTransactions.length}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Type</TableHead>
@@ -794,7 +845,7 @@ export default function Transactions() {
               {paginatedTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="text-center text-muted-foreground py-8"
                   >
                     {transactions.length === 0
@@ -804,7 +855,14 @@ export default function Transactions() {
                 </TableRow>
               ) : (
                 paginatedTransactions.map((t) => (
-                  <TableRow key={t.id}>
+                  <TableRow key={t.id} className={selectedIds.has(t.id) ? "bg-primary/5" : undefined}>
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={selectedIds.has(t.id)}
+                        onCheckedChange={() => toggleSelect(t.id)}
+                        aria-label="Select row"
+                      />
+                    </TableCell>
                     <TableCell className="text-sm">
                       {formatDate(t.date)}
                     </TableCell>
@@ -835,7 +893,7 @@ export default function Transactions() {
                       {t.type === "income" || t.type === "sell" || t.type === "dividend" ? "+" : "-"}
                       {formatVND(t.amount)}
                       {t.type === "sell" && t.realized_gain !== undefined && (
-                        <span className={`block text-[10px] ${t.realized_gain >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        <span className={`block text-[10px] ${t.realized_gain >= 0 ? "text-success" : "text-red-600"}`}>
                           {t.realized_gain >= 0 ? "+" : ""}{formatVND(t.realized_gain)} gain
                         </span>
                       )}

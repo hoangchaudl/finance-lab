@@ -540,13 +540,13 @@ export default function Portfolio() {
             <p className="text-sm text-muted-foreground">Overall ROI</p>
             <div className="flex items-end gap-2">
               <p
-                className={`text-2xl font-bold ${totalROI >= 0 ? "text-green-600" : "text-destructive"}`}
+                className={`text-2xl font-bold ${totalROI >= 0 ? "text-success" : "text-destructive"}`}
               >
                 {totalROI > 0 ? "+" : ""}
                 {totalROI.toFixed(2)}%
               </p>
               <p
-                className={`text-sm font-medium ${totalGain >= 0 ? "text-green-600" : "text-destructive"}`}
+                className={`text-sm font-medium ${totalGain >= 0 ? "text-success" : "text-destructive"}`}
               >
                 ({totalGain >= 0 ? "+" : ""}
                 {formatVND(Math.ceil(totalGain))})
@@ -841,7 +841,7 @@ export default function Portfolio() {
                         onClick={handleAdd}
                       >
                         <Check
-                          className="h-4 w-4 text-green-600"
+                          className="h-4 w-4 text-success"
                           strokeWidth={ICON_STROKE}
                         />
                       </Button>
@@ -930,13 +930,13 @@ export default function Portfolio() {
                         {formatVND(Math.ceil(group.totalValue))}
                       </TableCell>
                       <TableCell
-                        className={`text-right font-medium ${group.roi >= 0 ? "text-green-600" : "text-destructive"}`}
+                        className={`text-right font-medium ${group.roi >= 0 ? "text-success" : "text-destructive"}`}
                       >
                         {group.roi > 0 ? "+" : ""}
                         {group.roi.toFixed(1)}%
                       </TableCell>
                       <TableCell
-                        className={`text-right font-medium ${group.totalValue - group.totalCost >= 0 ? "text-green-600" : "text-destructive"}`}
+                        className={`text-right font-medium ${group.totalValue - group.totalCost >= 0 ? "text-success" : "text-destructive"}`}
                       >
                         {group.totalValue - group.totalCost >= 0 ? "+" : ""}
                         {formatVND(
@@ -1073,7 +1073,7 @@ export default function Portfolio() {
                                     onClick={handleSaveEdit}
                                   >
                                     <Check
-                                      className="h-4 w-4 text-green-600"
+                                      className="h-4 w-4 text-success"
                                       strokeWidth={ICON_STROKE}
                                     />
                                   </Button>
@@ -1126,7 +1126,7 @@ export default function Portfolio() {
                               {child.roi.toFixed(1)}%
                             </TableCell>
                             <TableCell
-                              className={`text-right text-sm ${child.gain >= 0 ? "text-green-600" : "text-destructive"}`}
+                              className={`text-right text-sm ${child.gain >= 0 ? "text-success" : "text-destructive"}`}
                             >
                               {child.gain >= 0 ? "+" : ""}
                               {formatVND(Math.ceil(child.gain))}

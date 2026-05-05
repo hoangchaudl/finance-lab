@@ -2,6 +2,15 @@ export function formatVND(amount: number): string {
   return amount.toLocaleString("de-DE") + " ₫";
 }
 
+export function formatVNDCompact(amount: number): string {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? "-" : "";
+  if (abs >= 1_000_000_000) return `${sign}${(abs / 1_000_000_000).toFixed(1)}B ₫`;
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M ₫`;
+  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(0)}K ₫`;
+  return formatVND(amount);
+}
+
 export function getMonthKey(date: Date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }

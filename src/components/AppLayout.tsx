@@ -12,13 +12,15 @@ import {
   Search,
   Keyboard,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Landmark } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import ShortcutsDialog, { useGlobalShortcutsDialog } from "./ShortcutsDialog";
+import CommandPalette from "./CommandPalette";
+import QuickAddTransaction, { QuickAddHandle } from "./QuickAddTransaction";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -36,6 +38,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("");
   const { signOut, user } = useAuth();
   const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useGlobalShortcutsDialog();
+  const quickAddRef = useRef<QuickAddHandle>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // '/' focuses the sidebar search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target as HTMLElement).isContentEditable) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const getInitials = () => {
     const metadata = user?.user_metadata || {};
@@ -95,8 +113,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               strokeWidth={1.5}
             />
             <Input
+              ref={searchInputRef}
               type="text"
-              placeholder="Search..."
+              placeholder="Search… ( / )"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm"
@@ -136,7 +155,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           >
             <Keyboard className="h-4 w-4" strokeWidth={1.5} />
             <span className="flex-1 text-left">Shortcuts</span>
-            <kbd className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[10px] text-slate-500">?</kbd>
+            <div className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[10px] text-slate-500">⌘K</kbd>
+              <kbd className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[10px] text-slate-500">?</kbd>
+            </div>
           </button>
           <button
             onClick={signOut}
@@ -189,6 +211,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <CommandPalette onAddTransaction={() => quickAddRef.current?.open()} />
+      <QuickAddTransaction ref={quickAddRef} />
     </div>
   );
 }

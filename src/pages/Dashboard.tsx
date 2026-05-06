@@ -202,20 +202,13 @@ export default function Dashboard() {
       return { stocks: 0, bonds: 0, other: 0, total: 0 };
     }
 
+    // Tier-based allocation: Growth+Risk = equity, Defensive+Safe = bonds/safe, rest = other
     const stocks = data.portfolio
-      .filter(
-        (p) =>
-          p.type.toLowerCase().includes("stock") ||
-          p.type.toLowerCase().includes("equity"),
-      )
+      .filter((p) => p.tier === "Growth" || p.tier === "Risk")
       .reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
 
     const bonds = data.portfolio
-      .filter(
-        (p) =>
-          p.type.toLowerCase().includes("bond") ||
-          p.type.toLowerCase().includes("fixed"),
-      )
+      .filter((p) => p.tier === "Safe" || p.tier === "Defensive")
       .reduce((sum, p) => sum + p.quantity * p.currentPrice, 0);
 
     const other = portfolioValue - stocks - bonds;
@@ -846,7 +839,7 @@ export default function Dashboard() {
                   {portfolioAllocation.other > 0 && (
                     <>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm">Other</span>
+                        <span className="text-sm">Income / Other</span>
                         <span className="font-bold">
                           {portfolioAllocation.other.toFixed(1)}%
                         </span>

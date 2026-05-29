@@ -122,6 +122,11 @@ export default function Transactions() {
   // Category search filter
   const [categorySearch, setCategorySearch] = useState("");
 
+  // Reset to page 1 when category filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categorySearch]);
+
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);

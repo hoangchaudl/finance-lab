@@ -148,12 +148,23 @@ export default function Transactions() {
   const [editPortfolioId, setEditPortfolioId] = useState<string>("none");
   const [editQuality, setEditQuality] = useState<"active" | "scalable" | "passive">("active");
 
-  const transactions = getMonthTransactions(selectedMonth).sort((a, b) => {
+  const allTransactions = getMonthTransactions(selectedMonth).sort((a, b) => {
     const dateComparison =
       new Date(b.date).getTime() - new Date(a.date).getTime();
     if (dateComparison !== 0) return dateComparison;
     return b.id.localeCompare(a.id);
   });
+
+  const transactions = useMemo(() => {
+    if (!categorySearch.trim()) return allTransactions;
+    const query = categorySearch.toLowerCase().trim();
+    return allTransactions.filter((t) => {
+      const cat = getCategoryById(t.category_id);
+      const catName = cat?.name?.toLowerCase() ?? "";
+      const catEmoji = cat?.emoji?.toLowerCase() ?? "";
+      return catName.includes(query) || catEmoji.includes(query);
+    });
+  }, [allTransactions, categorySearch]);
 
   const formatAmountDisplay = (value: string): string => {
     if (!value) return "";

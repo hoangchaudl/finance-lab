@@ -878,9 +878,11 @@ export default function Transactions() {
                     colSpan={8}
                     className="text-center text-muted-foreground py-8"
                   >
-                    {transactions.length === 0
+                    {data.transactions.length === 0
                       ? "No transactions yet"
-                      : "No transactions on this page"}
+                      : categorySearch.trim()
+                        ? "No matching categories found"
+                        : "No transactions on this page"}
                   </TableCell>
                 </TableRow>
               ) : (

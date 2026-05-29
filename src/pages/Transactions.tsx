@@ -586,6 +586,15 @@ export default function Transactions() {
           <PageTourButton onClick={startTour} />
         </h1>
         <div data-tour="tx-month" className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <Input
+              placeholder="Search category..."
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              className="pl-9 w-44"
+            />
+          </div>
           <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={transactions.length === 0}>
             <Download className="h-4 w-4 mr-1" strokeWidth={1.5} /> Export CSV

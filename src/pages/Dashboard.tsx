@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import OnboardingModal from "@/components/OnboardingModal";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import HintBanner from "@/components/HintBanner";
+import CollapsibleAlerts from "@/components/CollapsibleAlerts";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
 

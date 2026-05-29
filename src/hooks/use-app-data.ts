@@ -300,7 +300,6 @@ export function useAppData() {
         dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
       if (updates.quality !== undefined) dbUpdate.quality = updates.quality ?? null;
 
-      dbUpdate.updated_at = new Date().toISOString();
       const { error } = await supabase
         .from("transactions")
         .update(dbUpdate)

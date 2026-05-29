@@ -102,6 +102,11 @@ export default function Transactions() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // Reset to page 1 when category filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categorySearch]);
+
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
   const [formType, setFormType] = useState<TxType>("expense");
   const [formCategory, setFormCategory] = useState("");

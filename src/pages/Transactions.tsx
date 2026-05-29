@@ -118,6 +118,9 @@ export default function Transactions() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Category search filter
+  const [categorySearch, setCategorySearch] = useState("");
+
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);

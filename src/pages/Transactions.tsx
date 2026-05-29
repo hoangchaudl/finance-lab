@@ -59,6 +59,7 @@ import {
   Leaf,
   ArrowRightLeft,
   CheckSquare,
+  Search,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmptyState from "@/components/EmptyState";
@@ -101,6 +102,7 @@ export default function Transactions() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+
   const [selectedMonth, setSelectedMonth] = useState(getMonthKey());
   const [formType, setFormType] = useState<TxType>("expense");
   const [formCategory, setFormCategory] = useState("");
@@ -116,6 +118,14 @@ export default function Transactions() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Category search filter
+  const [categorySearch, setCategorySearch] = useState("");
+
+  // Reset to page 1 when category filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categorySearch]);
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -144,12 +154,23 @@ export default function Transactions() {
   const [editPortfolioId, setEditPortfolioId] = useState<string>("none");
   const [editQuality, setEditQuality] = useState<"active" | "scalable" | "passive">("active");
 
-  const transactions = getMonthTransactions(selectedMonth).sort((a, b) => {
+  const allTransactions = getMonthTransactions(selectedMonth).sort((a, b) => {
     const dateComparison =
       new Date(b.date).getTime() - new Date(a.date).getTime();
     if (dateComparison !== 0) return dateComparison;
     return b.id.localeCompare(a.id);
   });
+
+  const transactions = useMemo(() => {
+    if (!categorySearch.trim()) return allTransactions;
+    const query = categorySearch.toLowerCase().trim();
+    return allTransactions.filter((t) => {
+      const cat = getCategoryById(t.category_id);
+      const catName = cat?.name?.toLowerCase() ?? "";
+      const catEmoji = cat?.emoji?.toLowerCase() ?? "";
+      return catName.includes(query) || catEmoji.includes(query);
+    });
+  }, [allTransactions, categorySearch]);
 
   const formatAmountDisplay = (value: string): string => {
     if (!value) return "";
@@ -565,6 +586,15 @@ export default function Transactions() {
           <PageTourButton onClick={startTour} />
         </h1>
         <div data-tour="tx-month" className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <Input
+              placeholder="Search category..."
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              className="pl-9 w-44"
+            />
+          </div>
           <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={transactions.length === 0}>
             <Download className="h-4 w-4 mr-1" strokeWidth={1.5} /> Export CSV
@@ -848,9 +878,11 @@ export default function Transactions() {
                     colSpan={8}
                     className="text-center text-muted-foreground py-8"
                   >
-                    {transactions.length === 0
+                    {data.transactions.length === 0
                       ? "No transactions yet"
-                      : "No transactions on this page"}
+                      : categorySearch.trim()
+                        ? "No matching categories found"
+                        : "No transactions on this page"}
                   </TableCell>
                 </TableRow>
               ) : (

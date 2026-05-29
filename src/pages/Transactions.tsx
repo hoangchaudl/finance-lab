@@ -59,6 +59,7 @@ import {
   Leaf,
   ArrowRightLeft,
   CheckSquare,
+  Search,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmptyState from "@/components/EmptyState";

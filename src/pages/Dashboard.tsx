@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import OnboardingModal from "@/components/OnboardingModal";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import HintBanner from "@/components/HintBanner";
+import CollapsibleAlerts from "@/components/CollapsibleAlerts";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
 
@@ -277,28 +278,7 @@ export default function Dashboard() {
       <OnboardingChecklist />
 
       {/* Smart Alerts */}
-      {allAlerts.length > 0 && (
-        <div className="space-y-2">
-          {budgetAlerts.map((msg, i) => (
-            <Alert key={`budget-${i}`} className="border-amber-200 bg-amber-50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800 text-sm">{msg}</AlertDescription>
-            </Alert>
-          ))}
-          {portfolioAlerts.map((msg, i) => (
-            <Alert key={`portfolio-${i}`} className="border-red-200 bg-red-50">
-              <TrendingDown className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800 text-sm">{msg}</AlertDescription>
-            </Alert>
-          ))}
-          {subscriptionAlerts.map((msg, i) => (
-            <Alert key={`sub-${i}`} className="border-blue-200 bg-blue-50">
-              <Bell className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800 text-sm">{msg}</AlertDescription>
-            </Alert>
-          ))}
-        </div>
-      )}
+      {allAlerts.length > 0 && <CollapsibleAlerts budgetAlerts={budgetAlerts} portfolioAlerts={portfolioAlerts} subscriptionAlerts={subscriptionAlerts} />}
 
       <HintBanner
         pageKey="dashboard"

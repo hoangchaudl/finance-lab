@@ -1,61 +1,74 @@
-## Plan: Empty States + Onboarding Checklist + Shortcuts Cheatsheet
+# Plan: Backend Structure Documentation
 
-### 1. Reusable EmptyState component
-Create `src/components/EmptyState.tsx`:
-- Props: `icon` (lucide), `title`, `description`, `actionLabel`, `onAction`, optional `secondaryLabel` + `onSecondary` (for "Load sample data").
-- Centered card-style block with icon circle, title, muted description, primary button, optional ghost secondary button.
+Create a single file **`docs/BACKEND.md`** that documents the Lovable Cloud (Supabase) backend powering Finance Lab. Structured so the top reads as a quick overview and the lower sections serve as a detailed reference.
 
-### 2. Wire empty states into pages
-Detect "no data" condition and render `<EmptyState>` in place of the empty table/grid:
+## Document outline
 
-- **Transactions** (`src/pages/Transactions.tsx`): when `data.transactions.length === 0` for the visible month → "No transactions yet" + CTA "Add your first transaction" (focuses Amount field, same as `N` shortcut) + secondary "Load sample data".
-- **Budget Plan** (`src/pages/BudgetPlan.tsx`): when no plans exist for the month → "No budget set for {month}" + CTA "Start planning" (focuses first Planned input).
-- **Categories** (`src/pages/CategoriesManager.tsx`): when `data.categories.length === 0` → "No categories yet" + CTA "Add a category" + secondary "Load defaults" (uses `initialData.categories`).
-- **Portfolio** (`src/pages/Portfolio.tsx`): when `data.portfolio?.length === 0` → "Track your first asset" + CTA "Add asset".
-- **FIRE Goals** (`src/pages/FireGoals.tsx`): when `goals.length === 0` → "Set your first goal" + CTA.
-- **Report** (`src/pages/Report.tsx`): when no transactions in range → "No data to chart yet — add transactions to see insights".
+### 1. High-Level Overview (1–2 pages)
+- **Stack summary** — Lovable Cloud (Postgres + Auth + Storage + Edge Functions), accessed from the React app via `src/integrations/supabase/client.ts`.
+- **Architecture diagram** (ASCII) — React app ⇄ Supabase Client ⇄ (Auth, Postgres w/ RLS, Storage, Edge Functions, Resend).
+- **Domain model at a glance** — grouped entity map:
+  - Identity: `auth.users` → `profiles`
+  - Money in/out: `categories`, `transactions`, `subscriptions`, `monthly_plans`, `category_allocations`
+  - Wealth: `portfolio_entries`, `assets`, `goals`
+- **Security model** — per-user isolation via RLS on `auth.uid()`; every table scoped to `user_id` (except `profiles` which uses `id`).
+- **Data access layer** — all reads/writes go through `src/hooks/use-app-data.ts`; global state in `src/contexts/AppContext.tsx`.
 
-For "Load sample data" actions we'll add a helper `loadSampleData()` in `use-app-data.ts` that bulk-inserts a small sample (3 categories + 2 transactions, or default categories) via existing add functions.
+### 2. Detailed Reference
 
-### 3. Onboarding checklist on Dashboard
-Create `src/components/OnboardingChecklist.tsx`:
-- Card pinned at top of Dashboard, above hero metrics.
-- Computes 4 items from app data:
-  1. **Set monthly income** — done if any `transaction.type === "income"` exists.
-  2. **Create your first 3 categories** — done if `data.categories.length >= 3`.
-  3. **Set budget for this month** — done if `data.monthlyPlans[currentMonthKey]` has any planned > 0.
-  4. **Add a portfolio asset** — done if `data.portfolio?.length > 0`.
-- Each row: checkbox (read-only check icon when done, hollow circle when not), label, right-aligned "Go →" link routing to the relevant page.
-- Top: progress bar `done/4` + "X of 4 complete" + small `X` to dismiss.
-- Dismissal persisted in `localStorage` (`onboarding_checklist_dismissed`). Auto-hides once all 4 are done (with a one-time success toast).
-- Replaces the existing first-visit `OnboardingModal` trigger; modal can stay accessible from a "Restart tour" affordance but won't auto-pop.
+#### 2.1 Tables
+For each table: purpose, columns (name / type / notes), relationships, RLS policy summary, and which UI feature uses it.
+- `profiles` — user settings (FIRE inputs, income allocation %s, birth year).
+- `categories` — income/essential/nonessential/savings/investment buckets.
+- `category_allocations` — % split per category.
+- `monthly_plans` — planned amount per category per month (`month_key`).
+- `transactions` — income/expense/investing/saving/sell/dividend entries; optional `portfolio_entry_id`, `quantity`, `realized_gain`, `quality`.
+- `portfolio_entries` — holdings with tier, account, quantity, purchase/current price, notes; has `updated_at`.
+- `assets` — non-invested personal assets.
+- `goals` — savings/FIRE targets.
+- `subscriptions` — recurring bills.
 
-### 4. Keyboard shortcuts cheatsheet
-Create `src/components/ShortcutsDialog.tsx`:
-- Dialog listing the shortcuts, grouped by page:
+#### 2.2 Database Functions & Triggers
+- `handle_new_user()` — SECURITY DEFINER; creates a `profiles` row on new `auth.users` insert.
+- `update_updated_at_column()` — generic trigger fn (used by `portfolio_entries`).
+- Note: trigger wiring on `auth.users` and `portfolio_entries`.
 
-```text
-Budget
-  Enter        Save cell, jump to next planned cell
-  Shift+Enter  Save cell, jump to previous planned cell
-Transactions
-  N            Focus Amount field to start adding
-Categories
-  N            Open the add-category row
-Portfolio
-  N            Open the add-asset row
-  ↓ / ↑        Navigate between asset groups
-  Enter        Expand / collapse focused group
-```
+#### 2.3 Row-Level Security
+- Policy pattern: `auth.uid() = user_id` (or `= id` for profiles).
+- Note the GRANT model (authenticated + service_role, no anon).
 
-- Global trigger: press `?` (Shift+/) anywhere → opens dialog. Mount listener in `AppLayout.tsx` (skip when typing in input/textarea).
-- Add a small "⌨ Shortcuts" button in the sidebar footer (next to profile) that opens the same dialog.
-- First-time hint: small toast on first dashboard visit "Tip: press ? to see keyboard shortcuts" (localStorage flag).
+#### 2.4 Authentication
+- Email/password via Supabase Auth; session persisted client-side.
+- `AuthContext` flow, `ResetPassword` page, redirect handling.
 
-### 5. Memory updates
-Add a memory file `mem://features/onboarding` documenting: checklist items + completion logic, sample-data action, `?` shortcut convention. Update `mem://index.md` to reference it.
+#### 2.5 Storage
+- Bucket `avatars` (public). Path convention required by RLS (per `mem://tech/storage-logic`).
 
-### Files touched
-- New: `src/components/EmptyState.tsx`, `src/components/OnboardingChecklist.tsx`, `src/components/ShortcutsDialog.tsx`
-- Edited: `src/pages/{Dashboard,Transactions,BudgetPlan,CategoriesManager,Portfolio,FireGoals,Report}.tsx`, `src/components/AppLayout.tsx`, `src/hooks/use-app-data.ts`
-- Memory: `mem://features/onboarding`, `mem://index.md`
+#### 2.6 Edge Functions
+- `send-budget-reminder` (public, `verify_jwt = false`) — scheduled Resend email; env vars used (`RESEND_API_KEY`, `LOVABLE_API_KEY`).
+
+#### 2.7 Secrets
+List names only (RESEND_API_KEY, LOVABLE_API_KEY, SUPABASE_* managed keys). No values.
+
+#### 2.8 Client Integration
+- `src/integrations/supabase/client.ts` (auto-generated, do not edit).
+- `src/integrations/supabase/types.ts` (auto-generated Database types).
+- Mutation patterns in `use-app-data.ts` (try/catch + toast).
+
+#### 2.9 Data Flow Examples
+Short walkthroughs:
+- Adding a transaction (UI → hook → insert → RLS check → refetch).
+- Editing a portfolio entry (updates `updated_at` via trigger).
+- Budget reminder cron → edge function → Resend.
+
+### 3. Conventions & Gotchas
+- English-only UI copy.
+- Tier vocabulary: Defensive / Safe / Income / Growth / Risk.
+- Transaction types + income quality enums.
+- `updated_at` only exists on `portfolio_entries` (not `transactions`).
+- Never modify auto-generated files or `supabase/config.toml` project-level settings.
+
+## Deliverable
+- New file: `docs/BACKEND.md`
+- No code or schema changes.
+- Content sourced from live schema (via read-only SQL) + repo files (`use-app-data.ts`, `AuthContext.tsx`, edge function, `types.ts`).

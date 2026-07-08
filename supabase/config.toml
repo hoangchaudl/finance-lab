@@ -2,3 +2,5 @@ project_id = "kozjptxyelcvkpzamvtb"
 
 [functions.send-budget-reminder]
 verify_jwt = false
+[functions.agent-log-transaction]
+verify_jwt = false

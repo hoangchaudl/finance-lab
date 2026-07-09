@@ -297,6 +297,57 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_bot_logs: {
+        Row: {
+          created_at: string
+          id: string
+          parsed: Json | null
+          raw_text: string | null
+          status: string
+          telegram_chat_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          parsed?: Json | null
+          raw_text?: string | null
+          status?: string
+          telegram_chat_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          parsed?: Json | null
+          raw_text?: string | null
+          status?: string
+          telegram_chat_id?: number | null
+        }
+        Relationships: []
+      }
+      telegram_links: {
+        Row: {
+          created_at: string
+          link_code: string | null
+          linked_at: string | null
+          telegram_chat_id: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          link_code?: string | null
+          linked_at?: string | null
+          telegram_chat_id?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          link_code?: string | null
+          linked_at?: string | null
+          telegram_chat_id?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number

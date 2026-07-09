@@ -4,3 +4,5 @@ project_id = "kozjptxyelcvkpzamvtb"
 verify_jwt = false
 [functions.agent-log-transaction]
 verify_jwt = false
+[functions.telegram-webhook]
+verify_jwt = false

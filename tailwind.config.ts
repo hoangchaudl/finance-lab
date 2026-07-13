@@ -65,6 +65,11 @@ export default {
         },
         warning: "hsl(var(--warning))",
         success: "hsl(var(--success))",
+        loss: "hsl(var(--loss))",
+        bell: {
+          DEFAULT: "hsl(var(--bell))",
+          foreground: "hsl(var(--bell-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

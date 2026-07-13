@@ -252,32 +252,30 @@ export default function Portfolio() {
   });
 
   type Group = {
+    key: string;
     name: string;
-    type: string;
-    tier: string;
     totalQty: number;
     totalCost: number;
     totalValue: number;
-    avgPrice: number;
     children: typeof calculatedEntries;
   };
 
   const groupedAssets = Object.values(
     calculatedEntries.reduce(
       (acc, item) => {
-        if (!acc[item.name]) {
-          acc[item.name] = {
-            name: item.name,
-            type: item.type,
-            tier: item.tier,
+        // Case-insensitive: "Gold" and "gold" (e.g. bot-created) are one asset
+        const key = item.name.trim().toLowerCase();
+        if (!acc[key]) {
+          acc[key] = {
+            key,
+            name: item.name.trim(),
             totalQty: 0,
             totalCost: 0,
             totalValue: 0,
-            avgPrice: 0,
             children: [],
           };
         }
-        const group = acc[item.name];
+        const group = acc[key];
         group.children.push(item);
         group.totalQty += item.quantity;
         group.totalCost += item.costBasis;
@@ -287,16 +285,41 @@ export default function Portfolio() {
       {} as Record<string, Group>,
     ),
   )
-    .map((g) => ({
-      ...g,
-      avgPrice: g.totalQty > 0 ? Math.ceil(g.totalCost / g.totalQty) : 0,
-      roi:
-        g.totalCost > 0 ? ((g.totalValue - g.totalCost) / g.totalCost) * 100 : 0,
-    }))
-    .sort(
-      (a, b) =>
-        (TIER_ORDER.indexOf(a.tier) ?? 99) - (TIER_ORDER.indexOf(b.tier) ?? 99),
-    );
+    .map((g) => {
+      // Largest holding leads: its name/type/tier represent the group
+      const children = [...g.children].sort(
+        (a, b) => b.currentValue - a.currentValue,
+      );
+      const lead = children[0];
+      const mixedType = new Set(children.map((c) => c.type)).size > 1;
+      const mixedTier = new Set(children.map((c) => c.tier)).size > 1;
+      return {
+        ...g,
+        children,
+        name: lead?.name ?? g.name,
+        type: mixedType ? "Mixed" : (lead?.type ?? "Other"),
+        tier: lead?.tier ?? "Growth",
+        mixedTier,
+        avgPrice: g.totalQty > 0 ? Math.ceil(g.totalCost / g.totalQty) : 0,
+        // Weighted, so it's always consistent with Total Value ÷ Qty
+        marketPrice:
+          g.totalQty > 0
+            ? Math.ceil(g.totalValue / g.totalQty)
+            : Math.ceil(lead?.currentPrice ?? 0),
+        roi:
+          g.totalCost > 0
+            ? ((g.totalValue - g.totalCost) / g.totalCost) * 100
+            : 0,
+      };
+    })
+    .sort((a, b) => {
+      const ta = TIER_ORDER.indexOf(a.tier);
+      const tb = TIER_ORDER.indexOf(b.tier);
+      const ra = ta === -1 ? 99 : ta; // unknown tiers last, not first
+      const rb = tb === -1 ? 99 : tb;
+      if (ra !== rb) return ra - rb;
+      return b.totalValue - a.totalValue; // biggest holdings first within tier
+    });
 
   const investmentEntries = calculatedEntries.filter((e) => e.type !== "Other");
 
@@ -369,7 +392,7 @@ export default function Portfolio() {
       if (e.key === "Enter" && !inInput) {
         if (focusedGroupIdx !== null) {
           const group = groupedAssets[focusedGroupIdx];
-          if (group) toggleExpand(group.name);
+          if (group) toggleExpand(group.key);
         }
       }
     };
@@ -446,7 +469,7 @@ export default function Portfolio() {
         type: form.type,
         tier: form.tier,
         account: form.account.trim() || "General",
-        quantity: parseFormattedNumber(form.quantity),
+        quantity: parseFloat(form.quantity) || 0,
         purchasePrice: parseFormattedNumber(form.purchasePrice),
         currentPrice: parseFormattedNumber(form.currentPrice),
         notes: form.notes || undefined,
@@ -899,7 +922,7 @@ export default function Portfolio() {
               )}
 
               {groupedAssets.map((group, groupIdx) => {
-                const isExpanded = expandedGroups[group.name];
+                const isExpanded = expandedGroups[group.key];
 
                 // Calculate Last Edited
                 const lastEditedTimestamp = group.children
@@ -920,11 +943,11 @@ export default function Portfolio() {
                     : null;
 
                 return (
-                  <React.Fragment key={group.name}>
+                  <React.Fragment key={group.key}>
                     <TableRow
-                      key={group.name}
+                      key={group.key}
                       className={`bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors ${focusedGroupIdx === groupIdx ? "ring-2 ring-inset ring-primary/40 bg-primary/5" : ""}`}
-                      onClick={() => { toggleExpand(group.name); setFocusedGroupIdx(groupIdx); }}
+                      onClick={() => { toggleExpand(group.key); setFocusedGroupIdx(groupIdx); }}
                     >
                       <TableCell>
                         <div className="flex items-center">
@@ -953,6 +976,9 @@ export default function Portfolio() {
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           {getTierIcon(group.tier, "h-3 w-3")}
                           {group.tier}
+                          {group.mixedTier && (
+                            <span title="Entries in this group have different tiers">*</span>
+                          )}
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-medium">
@@ -962,8 +988,8 @@ export default function Portfolio() {
                         {formatVND(group.avgPrice)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {group.children.length > 0
-                          ? formatVND(Math.ceil(group.children[0].currentPrice))
+                        {group.totalQty > 0 || group.children.length > 0
+                          ? formatVND(group.marketPrice)
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right font-bold text-primary text-base">

@@ -89,12 +89,14 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
       </button>
 
       <Dialog open={isOpen} onOpenChange={(v) => { setIsOpen(v); if (!v) reset(); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md overflow-hidden">
           <DialogHeader>
             <DialogTitle>Quick Add Transaction</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {/* min-w-0: DialogContent is a grid; without this, wide children
+              (category chips) inflate the form past the dialog width */}
+          <form onSubmit={handleSubmit} className="space-y-4 pt-2 min-w-0">
             {/* Type selector */}
             <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
               {(["expense", "income", "saving", "investing", "sell", "dividend"] as TxType[]).map((t) => (
@@ -122,7 +124,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
                 inputMode="numeric"
                 placeholder="0"
                 value={formatDisplay(amountRaw)}
-                onChange={(e) => setAmountRaw(e.target.value.replace(/\./g, ""))}
+                onChange={(e) => setAmountRaw(e.target.value.replace(/\D/g, ""))}
                 className="text-lg font-semibold"
               />
               {amountRaw && (
@@ -134,13 +136,13 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
             <div className="space-y-1.5">
               <Label>Category</Label>
               {filteredCategories.length > 0 ? (
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pb-1">
                   {filteredCategories.map((c) => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => setCategoryId(c.id)}
-                      className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
                         categoryId === c.id
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-background border-border text-foreground hover:bg-muted"

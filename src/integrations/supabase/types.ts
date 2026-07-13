@@ -329,6 +329,7 @@ export type Database = {
           created_at: string
           link_code: string | null
           linked_at: string | null
+          pending: Json | null
           telegram_chat_id: number | null
           user_id: string
         }
@@ -336,6 +337,7 @@ export type Database = {
           created_at?: string
           link_code?: string | null
           linked_at?: string | null
+          pending?: Json | null
           telegram_chat_id?: number | null
           user_id: string
         }
@@ -343,6 +345,7 @@ export type Database = {
           created_at?: string
           link_code?: string | null
           linked_at?: string | null
+          pending?: Json | null
           telegram_chat_id?: number | null
           user_id?: string
         }

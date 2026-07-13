@@ -1,41 +1,117 @@
+import { useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
+import {
+  monthsToTarget,
+  fireNumber,
+  crossoverTargetNW,
+  buildForecastSeries,
+  avgMonthlyAmount,
+  monthLabelFromNow,
+} from "@/lib/fire-math";
 import HintBanner from "@/components/HintBanner";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { TrendingUp, Target, CalendarClock } from "lucide-react";
+import { Target, CalendarClock, TrendingUp, Wallet } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+  ReferenceDot,
+} from "recharts";
+
+const compactVND = (v: number) =>
+  v >= 1_000_000_000
+    ? `${(v / 1_000_000_000).toFixed(1)}B`
+    : v >= 1_000_000
+      ? `${Math.round(v / 1_000_000)}M`
+      : `${Math.round(v / 1_000)}k`;
 
 export default function FireGoals() {
   const { startTour } = usePageTour("fire");
   const { data, getNetWorth } = useApp();
-  const { monthlyExpenses, returnRate, currentAge } = data.fireSettings;
+  const { returnRate, currentAge } = data.fireSettings;
 
-  // 1. Rule of 25 Calculation
-  const annualExpenses = monthlyExpenses * 12;
-  const fiNumber = annualExpenses * 25;
-  const currentNetWorth = getNetWorth();
-  const progress = Math.min(100, (currentNetWorth / fiNumber) * 100);
+  // --- Derived from actual history (last 6 months with data) ---
+  const avgIncome = useMemo(
+    () => avgMonthlyAmount(data.transactions, ["income", "dividend"]),
+    [data.transactions],
+  );
+  const avgExpenses = useMemo(
+    () => avgMonthlyAmount(data.transactions, ["expense"]),
+    [data.transactions],
+  );
+  const avgContribution = useMemo(
+    () => avgMonthlyAmount(data.transactions, ["investing", "saving"]),
+    [data.transactions],
+  );
 
-  // 2. Savings Gap Calculation (PMT Formula approximation)
-  // How much do I need to save monthly to hit FI in 14 years?
-  const yearsToGrow = 14;
-  const months = yearsToGrow * 12;
-  const r = returnRate / 100 / 12; // Monthly rate
+  // Expenses basis: real spending if we have it, otherwise profile setting
+  const monthlyExpenses =
+    avgExpenses > 0 ? avgExpenses : data.fireSettings.monthlyExpenses;
+  const expensesBasis = avgExpenses > 0 ? "your last 6 months of spending" : "your profile setting";
 
-  // Future Value of Current Principal
-  const fvPrincipal = currentNetWorth * Math.pow(1 + r, months);
+  const netWorth = getNetWorth();
+  const savingsRate = avgIncome > 0 ? (avgContribution / avgIncome) * 100 : 0;
 
-  // Remaining amount needed from contributions
-  const remainingTarget = fiNumber - fvPrincipal;
+  // --- Interactive contribution ---
+  const [contribution, setContribution] = useState<number>(() =>
+    Math.round(avgContribution / 500_000) * 500_000,
+  );
+  const sliderMax = Math.max(
+    30_000_000,
+    Math.ceil((avgIncome || 0) / 5_000_000) * 5_000_000,
+    contribution * 2,
+  );
 
-  // Monthly Contribution needed (PMT)
-  const requiredMonthlySavings =
-    remainingTarget > 0
-      ? (remainingTarget * r) / (Math.pow(1 + r, months) - 1)
-      : 0;
+  // --- Forecasts ---
+  const fiNumber = fireNumber(monthlyExpenses);
+  const progress = fiNumber > 0 ? Math.min(100, (netWorth / fiNumber) * 100) : 0;
+
+  const monthsToFI = monthsToTarget(netWorth, contribution, fiNumber, returnRate);
+
+  const crossNW = crossoverTargetNW(monthlyExpenses, returnRate);
+  const monthsToCross = isFinite(crossNW)
+    ? monthsToTarget(netWorth, contribution, crossNW, returnRate)
+    : null;
+
+  const investIncomeNow = netWorth * (returnRate / 100 / 12);
+
+  // "What if I invested 2M more?" nudge
+  const monthsToFIPlus = monthsToTarget(
+    netWorth,
+    contribution + 2_000_000,
+    fiNumber,
+    returnRate,
+  );
+  const monthsSaved =
+    monthsToFI !== null && monthsToFIPlus !== null
+      ? monthsToFI - monthsToFIPlus
+      : null;
+
+  // --- Chart ---
+  const horizon = Math.min(
+    480,
+    Math.max(120, (monthsToCross ?? 0) + 24, (monthsToFI ?? 0) + 24),
+  );
+  const series = useMemo(
+    () =>
+      buildForecastSeries(netWorth, contribution, monthlyExpenses, returnRate, horizon),
+    [netWorth, contribution, monthlyExpenses, returnRate, horizon],
+  );
+  const crossPoint = series.find((p) => p.investIncome >= p.expenses);
+
+  const freedomAge =
+    monthsToFI !== null ? Math.floor(currentAge + monthsToFI / 12) : null;
 
   return (
     <div className="space-y-6">
@@ -46,68 +122,182 @@ export default function FireGoals() {
 
       <HintBanner
         pageKey="fire"
-        message="🎯 Your FI Number is 25× your annual expenses — the amount you need invested to retire. Track your net worth growth toward this target."
+        message="🎯 Your Freedom Day is forecast from your real numbers: net worth, what you actually invest each month, and your expected return. Drag the slider to see how investing more moves the date."
       />
 
       {/* Top Level Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card data-tour="fire-target">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">
-              F.I. Target (Rule of 25)
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1.5">
+              <Target className="h-4 w-4" /> F.I. Target (Rule of 25)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {formatVND(fiNumber)}
-            </div>
+            <div className="text-2xl font-bold text-primary">{formatVND(fiNumber)}</div>
             <p className="text-xs text-muted-foreground">
-              Based on {formatVND(monthlyExpenses)}/mo expenses
+              Based on {formatVND(monthlyExpenses)}/mo · {expensesBasis}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">
-              Current Progress
-            </CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Current Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{progress.toFixed(2)}%</div>
+            <div className="text-2xl font-bold">{progress.toFixed(1)}%</div>
             <Progress value={progress} className="h-2 mt-2" />
+            <p className="text-xs text-muted-foreground mt-1">
+              Net worth {formatVND(netWorth)}
+            </p>
           </CardContent>
         </Card>
 
         <Card data-tour="fire-savings" className="bg-blue-50/50 border-blue-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-blue-600">
-              Required Monthly Savings
+            <CardTitle className="text-sm text-blue-600 flex items-center gap-1.5">
+              <CalendarClock className="h-4 w-4" /> Freedom Day
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-700">
-              {formatVND(requiredMonthlySavings)}
+              {monthsToFI !== null ? monthLabelFromNow(monthsToFI) : "—"}
             </div>
-            <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
-              <TrendingUp className="h-3 w-3" />
-              <span>
-                To retire in {yearsToGrow} years (@{returnRate}%)
-              </span>
+            <p className="text-xs text-blue-600 mt-1">
+              {monthsToFI !== null
+                ? `${monthsToFI} months away · age ${freedomAge}`
+                : "Start investing monthly to get a date"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-emerald-50/50 border-emerald-100">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-emerald-600 flex items-center gap-1.5">
+              <TrendingUp className="h-4 w-4" /> Crossover Point
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-700">
+              {monthsToCross !== null ? monthLabelFromNow(monthsToCross) : "—"}
             </div>
+            <p className="text-xs text-emerald-600 mt-1">
+              Investment income {formatVND(Math.round(investIncomeNow))}/mo today
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Contribution slider */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Wallet className="h-4 w-4" /> Monthly Investing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-end justify-between">
+            <span className="text-2xl font-bold">{formatVND(contribution)}</span>
+            <span className="text-xs text-muted-foreground">
+              Your actual average: {formatVND(Math.round(avgContribution))}/mo
+              {avgIncome > 0 && ` (${savingsRate.toFixed(0)}% of income)`}
+            </span>
+          </div>
+          <Slider
+            value={[contribution]}
+            min={0}
+            max={sliderMax}
+            step={500_000}
+            onValueChange={(v) => setContribution(v[0])}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Crossover chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-muted-foreground">
+            Crossover Chart — forecast investment income vs expenses
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={series} margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+              <YAxis tickFormatter={compactVND} tick={{ fontSize: 12 }} width={50} />
+              <Tooltip
+                formatter={(val: number, name: string) => [
+                  formatVND(val),
+                  name === "investIncome" ? "Investment income/mo" : "Expenses/mo",
+                ]}
+                labelFormatter={(year) => `Year ${year}`}
+              />
+              <Legend
+                formatter={(v: string) =>
+                  v === "investIncome" ? "Investment income (forecast)" : "Monthly expenses"
+                }
+              />
+              <Line
+                type="monotone"
+                dataKey="investIncome"
+                stroke="#2563eb"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="expenses"
+                stroke="#dc2626"
+                strokeWidth={2}
+                strokeDasharray="6 4"
+                dot={false}
+              />
+              {crossPoint && (
+                <ReferenceDot
+                  x={crossPoint.year}
+                  y={crossPoint.expenses}
+                  r={6}
+                  fill="#10b981"
+                  stroke="#fff"
+                  strokeWidth={2}
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       <Alert>
         <Target className="h-4 w-4" />
         <AlertTitle>Action Plan</AlertTitle>
         <AlertDescription>
-          To reach Financial Independence by age {currentAge + yearsToGrow}, you
-          need to invest <strong>{formatVND(requiredMonthlySavings)}</strong>{" "}
-          every month into your portfolio.
+          {monthsToFI !== null ? (
+            <>
+              Investing <strong>{formatVND(contribution)}</strong> every month makes you
+              financially free by <strong>{monthLabelFromNow(monthsToFI)}</strong> (age{" "}
+              {freedomAge}).
+              {monthsSaved !== null && monthsSaved > 0 && (
+                <>
+                  {" "}Adding {formatVND(2_000_000)}/mo would bring that forward by{" "}
+                  <strong>{monthsSaved} months</strong>.
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              With no monthly investing, there's no path to your F.I. target. Set a
+              monthly amount above — even a small one — to get your Freedom Day.
+            </>
+          )}
         </AlertDescription>
       </Alert>
+
+      <p className="text-xs text-muted-foreground">
+        Assumes {returnRate}% annual return (Profile → Financial Settings), constant
+        expenses, and contributions invested monthly. Forecasts are estimates, not guarantees.
+      </p>
     </div>
   );
 }

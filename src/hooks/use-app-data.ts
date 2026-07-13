@@ -290,7 +290,10 @@ export function useAppData() {
           note: t.note ?? null,
           portfolio_entry_id: t.portfolio_entry_id ?? null,
           realized_gain: realizedGain,
-          quality: t.quality ?? null,
+          // Income defaults to active; dividends are passive by definition
+          quality:
+            t.quality ??
+            (t.type === "income" ? "active" : t.type === "dividend" ? "passive" : null),
         })
         .select()
         .single();

@@ -5,7 +5,12 @@ import HintBanner from "@/components/HintBanner";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
 import { useApp } from "@/contexts/AppContext";
-import { formatVND } from "@/lib/format";
+import {
+  formatVND,
+  parseAmountInput,
+  sanitizeAmountTyping,
+  formatAmountTyping,
+} from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -482,7 +487,7 @@ export default function Portfolio() {
 
   const handleAdd = async () => {
     const qty = parseFloat(form.quantity) || 0;
-    const total = parseFormattedNumber(form.totalCost);
+    const total = parseAmountInput(form.totalCost) ?? 0;
     if (!form.name.trim() || qty <= 0 || total <= 0) return;
     // You enter what you paid in total; we derive the average unit price
     const unitPrice = Math.round(total / qty);
@@ -567,7 +572,7 @@ export default function Portfolio() {
 
   // Live Calc for Add Form
   const addFormQty = parseFloat(form.quantity) || 0;
-  const addFormTotal = parseFormattedNumber(form.totalCost);
+  const addFormTotal = parseAmountInput(form.totalCost) ?? 0;
   const addFormUnitPrice = addFormQty > 0 ? addFormTotal / addFormQty : 0;
 
   return (
@@ -702,11 +707,11 @@ export default function Portfolio() {
                 <Label htmlFor="add-total">Total paid (₫)</Label>
                 <Input
                   id="add-total"
-                  value={form.totalCost}
+                  value={formatAmountTyping(form.totalCost)}
                   onChange={(e) =>
-                    setForm({ ...form, totalCost: formatInputWithDots(e.target.value) })
+                    setForm({ ...form, totalCost: sanitizeAmountTyping(e.target.value) })
                   }
-                  placeholder="0"
+                  placeholder="e.g. 24tr, 500k, 24.000.000"
                 />
               </div>
             </div>

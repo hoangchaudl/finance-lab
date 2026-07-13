@@ -6,6 +6,9 @@ import {
   getMonthLabel,
   formatDate,
   todayLocalISO,
+  parseAmountInput,
+  sanitizeAmountTyping,
+  formatAmountTyping,
 } from "@/lib/format";
 import { Transaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -171,15 +174,10 @@ export default function Transactions() {
     });
   }, [allTransactions, categorySearch]);
 
-  const formatAmountDisplay = (value: string): string => {
-    if (!value) return "";
-    const numStr = value.replace(/\D/g, "");
-    return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
-
-  const parseFormattedAmount = (value: string): string => {
-    return value.replace(/\./g, "");
-  };
+  // Supports bot-style shorthand: "50k", "1.5tr", plus dotted "1.000.000"
+  const formatAmountDisplay = (value: string): string => formatAmountTyping(value);
+  const parseFormattedAmount = (value: string): string => sanitizeAmountTyping(value);
+  const amountValue = (value: string): number => parseAmountInput(value) ?? 0;
 
   const filteredCategories = data.categories.filter((c) => {
     if (formType === "income" || formType === "dividend") return c.type === "income";
@@ -252,8 +250,8 @@ export default function Transactions() {
   });
 
   const impliedPrice =
-    parseFloat(formAmount) && parseFloat(formQuantity)
-      ? parseFloat(formAmount) / parseFloat(formQuantity)
+    amountValue(formAmount) && parseFloat(formQuantity)
+      ? amountValue(formAmount) / parseFloat(formQuantity)
       : 0;
 
   // Sell profit preview
@@ -263,7 +261,7 @@ export default function Transactions() {
 
   const sellProfitPreview = useMemo(() => {
     if (!isSellType || !selectedSellAsset || !formAmount || !formQuantity) return null;
-    const saleAmount = parseFloat(formAmount);
+    const saleAmount = amountValue(formAmount);
     const qty = parseFloat(formQuantity);
     if (!saleAmount || !qty) return null;
     const costBasis = selectedSellAsset.purchasePrice * qty;
@@ -300,14 +298,14 @@ export default function Transactions() {
       let realized_gain: number | undefined;
       if (isSellType && selectedSellAsset) {
         const qty = parseFloat(formQuantity) || 0;
-        const saleAmount = parseFloat(formAmount);
+        const saleAmount = amountValue(formAmount);
         const costBasis = selectedSellAsset.purchasePrice * qty;
         realized_gain = saleAmount - costBasis;
       }
 
       await addTransaction({
         date: formDate,
-        amount: parseFloat(formAmount),
+        amount: amountValue(formAmount),
         quantity: isAssetLinkedType ? parseFloat(formQuantity) || 0 : undefined,
         type: formType,
         category_id: categoryId as string,
@@ -372,7 +370,7 @@ export default function Transactions() {
     try {
       await updateTransaction(editingTx.id, {
         date: editDate,
-        amount: parseFloat(editAmount),
+        amount: amountValue(editAmount),
         quantity: isEditAssetLinkedType ? parseFloat(editQuantity) || 0 : undefined,
         type: editType,
         category_id: categoryId as string,

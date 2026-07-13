@@ -1,7 +1,13 @@
 import { useState, forwardRef, useImperativeHandle } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
-import { formatVND, todayLocalISO } from "@/lib/format";
+import {
+  formatVND,
+  todayLocalISO,
+  parseAmountInput,
+  sanitizeAmountTyping,
+  formatAmountTyping,
+} from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,10 +63,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
     return c.type === "essential" || c.type === "nonessential";
   });
 
-  const formatDisplay = (v: string) => {
-    const num = v.replace(/\D/g, "");
-    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
+  const parsedAmount = parseAmountInput(amountRaw) ?? 0;
 
   const reset = () => {
     setType("expense");
@@ -74,7 +77,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseFloat(amountRaw);
+    const amount = parseAmountInput(amountRaw) ?? 0;
     if (!categoryId || !amount || isSubmitting) return;
     if (assetRequired && (!portfolioEntryId || qty <= 0)) return;
 
@@ -147,14 +150,15 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
               <Input
                 id="qa-amount"
                 autoFocus
-                inputMode="numeric"
-                placeholder="0"
-                value={formatDisplay(amountRaw)}
-                onChange={(e) => setAmountRaw(e.target.value.replace(/\D/g, ""))}
+                placeholder="e.g. 50k, 1.5tr, 50.000"
+                value={formatAmountTyping(amountRaw)}
+                onChange={(e) => setAmountRaw(sanitizeAmountTyping(e.target.value))}
                 className="text-lg font-semibold"
               />
               {amountRaw && (
-                <p className="text-xs text-muted-foreground">{formatVND(parseFloat(amountRaw) || 0)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {parsedAmount > 0 ? formatVND(parsedAmount) : "Keep typing — e.g. 50k, 1.5tr"}
+                </p>
               )}
             </div>
 
@@ -257,7 +261,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
                 className="flex-1"
                 disabled={
                   !categoryId ||
-                  !amountRaw ||
+                  parsedAmount <= 0 ||
                   isSubmitting ||
                   (assetRequired && (!portfolioEntryId || qty <= 0))
                 }

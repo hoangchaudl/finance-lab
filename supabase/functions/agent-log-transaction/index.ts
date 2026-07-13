@@ -143,8 +143,9 @@ Deno.serve(async (req) => {
     note: note ?? null,
   };
   if (typeof quantity === "number" && quantity > 0) insertPayload.quantity = quantity;
-  if (txType === "income" && !quality) insertPayload.quality = "active";
-  else if (quality) insertPayload.quality = quality;
+  if (quality) insertPayload.quality = quality;
+  else if (txType === "income") insertPayload.quality = "active";
+  else if (txType === "dividend") insertPayload.quality = "passive"; // dividends ARE passive income
 
   const { error: insertErr } = await supabase.from("transactions").insert(insertPayload);
   if (insertErr) return new Response(JSON.stringify({ error: `insert failed: ${insertErr.message}` }), { status: 500 });

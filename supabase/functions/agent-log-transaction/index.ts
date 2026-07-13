@@ -38,22 +38,44 @@ async function resolveCategoryId(supabase: any, userId: string, txType: TxType, 
   return created.id;
 }
 
-async function resolvePortfolioEntryId(supabase: any, userId: string, assetName: string | undefined, assetType: string | undefined, amount: number) {
+async function resolvePortfolioEntryId(
+  supabase: any,
+  userId: string,
+  assetName: string | undefined,
+  assetType: string | undefined,
+  amount: number,
+  opts?: { applyBuy?: boolean; quantity?: number; tier?: string },
+) {
   if (!assetName) return null;
 
-  const { data: existing } = await supabase.from("portfolio_entries").select("id")
+  const { data: existing } = await supabase.from("portfolio_entries").select("id, quantity, purchase_price")
     .eq("user_id", userId).ilike("name", assetName).limit(1).maybeSingle();
-  if (existing) return existing.id;
+  if (existing) {
+    // Mirror the web app's buy logic: bump quantity and recalc avg purchase price
+    if (opts?.applyBuy && opts.quantity && opts.quantity > 0) {
+      const currentQty = Number(existing.quantity) || 0;
+      const currentAvg = Number(existing.purchase_price) || 0;
+      const newQty = currentQty + opts.quantity;
+      const newAvg = newQty > 0 ? Math.ceil((currentQty * currentAvg + amount) / newQty) : 0;
+      await supabase.from("portfolio_entries")
+        .update({ quantity: newQty, purchase_price: newAvg, updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+    }
+    return existing.id;
+  }
 
+  const qty = opts?.quantity && opts.quantity > 0 ? opts.quantity : 1;
+  const unitPrice = Math.round(amount / qty);
   const { data: created, error } = await supabase.from("portfolio_entries")
     .insert({
       user_id: userId,
       name: assetName,
       type: assetType || "Other",
+      tier: opts?.tier ?? null,
       account: "Unassigned",
-      quantity: 1,
-      purchase_price: amount,
-      current_price: amount,
+      quantity: qty,
+      purchase_price: unitPrice,
+      current_price: unitPrice,
     })
     .select("id").single();
   if (error) throw new Error(`portfolio entry creation failed: ${error.message}`);
@@ -79,11 +101,12 @@ Deno.serve(async (req) => {
 
   let body: {
     type?: string; amount?: number; category_name?: string;
-    asset_name?: string; asset_type?: string; note?: string; quality?: string; date?: string;
+    asset_name?: string; asset_type?: string; asset_tier?: string; note?: string; quality?: string; date?: string;
+    quantity?: number;
   };
   try { body = await req.json(); } catch { return new Response(JSON.stringify({ error: "invalid JSON body" }), { status: 400 }); }
 
-  const { type, amount, category_name, asset_name, asset_type, note, quality } = body;
+  const { type, amount, category_name, asset_name, asset_type, asset_tier, note, quality, quantity } = body;
   if (!type || !TX_TYPES.includes(type as TxType)) {
     return new Response(JSON.stringify({ error: `type must be one of: ${TX_TYPES.join(", ")}` }), { status: 400 });
   }
@@ -99,7 +122,11 @@ Deno.serve(async (req) => {
 
   try {
     if (PORTFOLIO_LINKED_TYPES.includes(txType)) {
-      portfolioEntryId = await resolvePortfolioEntryId(supabase, userId, asset_name, asset_type, amount);
+      portfolioEntryId = await resolvePortfolioEntryId(supabase, userId, asset_name, asset_type, amount, {
+        applyBuy: txType === "investing",
+        quantity,
+        tier: asset_tier,
+      });
     } else {
       categoryId = await resolveCategoryId(supabase, userId, txType, category_name);
     }
@@ -113,6 +140,7 @@ Deno.serve(async (req) => {
     portfolio_entry_id: portfolioEntryId,
     note: note ?? null,
   };
+  if (typeof quantity === "number" && quantity > 0) insertPayload.quantity = quantity;
   if (txType === "income" && !quality) insertPayload.quality = "active";
   else if (quality) insertPayload.quality = quality;
 

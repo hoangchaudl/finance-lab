@@ -13,8 +13,14 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['"Bangers"', '"Nunito"', "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ['"Nunito"', "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
+        "border-soft": "hsl(var(--border-soft))",
+        outline: "hsl(var(--outline))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",

@@ -9,8 +9,29 @@ const supabase = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_
 
 const TIERS = ["Defensive", "Safe", "Income", "Growth", "Risk"] as const;
 
-const HELP_TEXT =
-  'Expense: amount category note\ne.g. "50k coffee cf sua"\n\nInvest: invest amount asset qty\ne.g. "invest 1tr gold 1" — or just "invest 1tr" and I\'ll ask.\n\n/cancel to abort a pending log.';
+const HELP_TEXT = [
+  "Commands:",
+  "/expense 50k coffee note — log an expense",
+  "/income 20tr salary — log income (add: scalable / passive)",
+  "/save 5tr emergency fund — log savings",
+  "/invest 1tr gold 1 — log an investment (or just /invest 1tr)",
+  "/dividend 500k FPT — log a dividend from an asset",
+  "/fire — your FIRE status & Freedom Day",
+  "/cancel — abort a pending log",
+  "",
+  'Shortcuts still work without commands: "50k coffee cf sua" logs an expense, "invest 1tr" starts an investment.',
+].join("\n");
+
+const BOT_COMMANDS = [
+  { command: "expense", description: "Log expense: /expense 50k coffee note" },
+  { command: "income", description: "Log income: /income 20tr salary" },
+  { command: "save", description: "Log savings: /save 5tr emergency" },
+  { command: "invest", description: "Log investment: /invest 1tr gold 1" },
+  { command: "dividend", description: "Log dividend: /dividend 500k FPT" },
+  { command: "fire", description: "FIRE status & Freedom Day" },
+  { command: "cancel", description: "Abort pending log" },
+  { command: "help", description: "How to use the bot" },
+];
 
 type Pending = {
   flow: "invest";
@@ -140,6 +161,103 @@ function fmt(n: number): string {
   return n.toLocaleString("de-DE");
 }
 
+// ---------- FIRE math (mirror of src/lib/fire-math.ts) ----------
+
+function monthsToTarget(
+  netWorth: number,
+  monthlyContribution: number,
+  target: number,
+  annualReturnPct: number,
+): number | null {
+  if (target <= 0 || netWorth >= target) return 0;
+  const r = annualReturnPct / 100 / 12;
+  const pmt = Math.max(0, monthlyContribution);
+  if (r <= 0) return pmt <= 0 ? null : Math.ceil((target - netWorth) / pmt);
+  if (pmt <= 0 && netWorth <= 0) return null;
+  const num = target + pmt / r;
+  const den = netWorth + pmt / r;
+  if (den <= 0) return null;
+  const m = Math.log(num / den) / Math.log(1 + r);
+  return !isFinite(m) || m < 0 ? null : Math.ceil(m);
+}
+
+function avgMonthlyAmount(
+  txs: { date: string; amount: number; type: string }[],
+  types: string[],
+  monthsBack = 6,
+): number {
+  const byMonth: Record<string, number> = {};
+  for (const t of txs) {
+    if (!types.includes(t.type)) continue;
+    const key = t.date.slice(0, 7);
+    byMonth[key] = (byMonth[key] || 0) + Number(t.amount);
+  }
+  const months = Object.keys(byMonth).sort().slice(-monthsBack);
+  if (!months.length) return 0;
+  return months.reduce((s, k) => s + byMonth[k], 0) / months.length;
+}
+
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function monthLabelFromNow(months: number): string {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + months, 1);
+  return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+async function handleFire(chatId: number, userId: string) {
+  const yearAgo = new Date(Date.now() - 400 * 24 * 3600 * 1000)
+    .toISOString().slice(0, 10);
+
+  const [profileRes, txRes, pfRes, assetRes] = await Promise.all([
+    supabase.from("profiles").select("monthly_expenses, return_rate, birth_year").eq("id", userId).maybeSingle(),
+    supabase.from("transactions").select("type, amount, date").eq("user_id", userId).gte("date", yearAgo),
+    supabase.from("portfolio_entries").select("quantity, current_price").eq("user_id", userId),
+    supabase.from("assets").select("value").eq("user_id", userId),
+  ]);
+
+  const profile = profileRes.data;
+  const txs = (txRes.data ?? []) as { type: string; amount: number; date: string }[];
+  const netWorth =
+    (pfRes.data ?? []).reduce((s: number, p: any) => s + Number(p.quantity) * Number(p.current_price), 0) +
+    (assetRes.data ?? []).reduce((s: number, a: any) => s + Number(a.value), 0);
+
+  const returnRate = Number(profile?.return_rate) || 7;
+  const avgExpenses = avgMonthlyAmount(txs, ["expense"]);
+  const expenses = avgExpenses > 0 ? avgExpenses : Number(profile?.monthly_expenses) || 0;
+  const contribution = avgMonthlyAmount(txs, ["investing", "saving"]);
+
+  if (expenses <= 0) {
+    await sendMessage(chatId, "I need your monthly expenses to compute FIRE — log some expenses or set them in Finance Lab → Profile → Financial Settings.");
+    return;
+  }
+
+  const fiNumber = expenses * 12 * 25;
+  const progress = Math.min(100, (netWorth / fiNumber) * 100);
+  const mToFI = monthsToTarget(netWorth, contribution, fiNumber, returnRate);
+  const r = returnRate / 100 / 12;
+  const crossNW = r > 0 ? expenses / r : Infinity;
+  const mToCross = isFinite(crossNW) ? monthsToTarget(netWorth, contribution, crossNW, returnRate) : null;
+  const investIncome = netWorth * r;
+
+  const age = profile?.birth_year ? new Date().getFullYear() - Number(profile.birth_year) : null;
+  const freedomAge = age !== null && mToFI !== null ? Math.floor(age + mToFI / 12) : null;
+
+  const lines = [
+    "🔥 FIRE Status",
+    `Net worth: ${fmt(Math.round(netWorth))} ₫`,
+    `F.I. target: ${fmt(fiNumber)} ₫ (${progress.toFixed(1)}%)`,
+    mToFI !== null
+      ? `Freedom Day: ${monthLabelFromNow(mToFI)} · ${mToFI} months${freedomAge !== null ? ` · age ${freedomAge}` : ""}`
+      : "Freedom Day: — (no monthly investing detected)",
+    mToCross !== null
+      ? `Crossover: ${monthLabelFromNow(mToCross)} · ${mToCross} months`
+      : "Crossover: —",
+    `Investment income: ${fmt(Math.round(investIncome))} ₫/mo vs expenses ${fmt(Math.round(expenses))} ₫/mo`,
+    `Investing: ${fmt(Math.round(contribution))} ₫/mo (6-mo avg)`,
+  ];
+  await sendMessage(chatId, lines.join("\n"));
+}
+
 // ---------- State ----------
 
 async function setPending(userId: string, pending: Pending | null) {
@@ -234,6 +352,67 @@ async function startInvest(chatId: number, userId: string, amount: number, asset
   }
   rows.push([{ text: "➕ New asset", data: "inv|new" }, CANCEL_BTN]);
   await sendMessage(chatId, `Investing ${fmt(amount)} VND — which asset?`, rows);
+}
+
+// ---------- Simple command logging ----------
+
+const QUALITY_WORDS = ["active", "scalable", "passive"];
+
+/** Log a category-based transaction (expense/saving/income) from "amount category note…" args. */
+async function logCategoryTx(
+  chatId: number,
+  userId: string,
+  type: "expense" | "saving" | "income",
+  argText: string,
+  usage: string,
+) {
+  let quality: string | undefined;
+  let cleaned = argText;
+
+  if (type === "income") {
+    const tokens = tokenize(argText);
+    const qIdx = tokens.findIndex((t) => QUALITY_WORDS.includes(t.toLowerCase()));
+    if (qIdx >= 0) {
+      quality = tokens[qIdx].toLowerCase();
+      tokens.splice(qIdx, 1);
+      cleaned = tokens.join(" ");
+    }
+  }
+
+  const { data: categories } = await supabase
+    .from("categories").select("name").eq("user_id", userId);
+  const parsed = parseExpense(cleaned, (categories ?? []).map((c: { name: string }) => c.name));
+  if (!parsed) {
+    await sendMessage(chatId, usage);
+    return;
+  }
+
+  const { text } = await callAgentLog({
+    type,
+    amount: parsed.amount,
+    category_name: parsed.categoryName,
+    note: parsed.note,
+    quality,
+  });
+  await sendMessage(chatId, quality ? `${text} · ${quality}` : text);
+}
+
+async function logDividend(chatId: number, userId: string, argText: string) {
+  const parts = tokenize(argText);
+  const amount = parseAmount(parts[0] ?? "");
+  const assetName = parts.slice(1).join(" ");
+  if (!amount || !assetName) {
+    await sendMessage(chatId, 'Format: /dividend amount asset\ne.g. "/dividend 500k FPT"');
+    return;
+  }
+  // Only attribute dividends to assets that already exist
+  const asset = await findAsset(userId, assetName);
+  if (!asset) {
+    await sendMessage(chatId, `Asset "${assetName}" not found in your portfolio. Add it first (or check the name).`);
+    return;
+  }
+  const { text } = await callAgentLog({ type: "dividend", amount, asset_name: asset.name });
+  await sendMessage(chatId, text);
 }
 
 // ---------- Callback (button) handling ----------
@@ -340,6 +519,13 @@ Deno.serve(async (req) => {
     return new Response("ok");
   }
 
+  // /start and /help must work before linking
+  if (text.startsWith("/start") || text.startsWith("/help")) {
+    if (text.startsWith("/start")) await tg("setMyCommands", { commands: BOT_COMMANDS });
+    await sendMessage(chatId, HELP_TEXT);
+    return new Response("ok");
+  }
+
   const { data: link } = await supabase
     .from("telegram_links")
     .select("user_id, pending")
@@ -351,14 +537,63 @@ Deno.serve(async (req) => {
     return new Response("ok");
   }
 
-  if (text === "/cancel") {
-    await setPending(link.user_id, null);
-    await sendMessage(chatId, "Cancelled.");
-    return new Response("ok");
-  }
-  if (text === "/help" || text === "/start") {
-    await sendMessage(chatId, HELP_TEXT);
-    return new Response("ok");
+  // ---- Slash commands ----
+  if (text.startsWith("/")) {
+    const [cmdRaw, ...restTokens] = text.split(/\s+/);
+    const cmd = cmdRaw.toLowerCase().replace(/@.*$/, ""); // tolerate /cmd@BotName
+    const args = restTokens.join(" ");
+
+    switch (cmd) {
+      case "/cancel":
+        await setPending(link.user_id, null);
+        await sendMessage(chatId, "Cancelled.");
+        return new Response("ok");
+
+      case "/fire":
+        await handleFire(chatId, link.user_id);
+        return new Response("ok");
+
+      case "/expense":
+      case "/e":
+        await setPending(link.user_id, null);
+        await logCategoryTx(chatId, link.user_id, "expense", args,
+          'Format: /expense amount category note\ne.g. "/expense 50k coffee cf sua"');
+        return new Response("ok");
+
+      case "/save":
+        await setPending(link.user_id, null);
+        await logCategoryTx(chatId, link.user_id, "saving", args,
+          'Format: /save amount category note\ne.g. "/save 5tr emergency fund"');
+        return new Response("ok");
+
+      case "/income":
+      case "/in":
+        await setPending(link.user_id, null);
+        await logCategoryTx(chatId, link.user_id, "income", args,
+          'Format: /income amount category note\nAdd "scalable" or "passive" for income quality (default: active)\ne.g. "/income 20tr salary" or "/income 3tr youtube scalable"');
+        return new Response("ok");
+
+      case "/dividend":
+      case "/div":
+        await setPending(link.user_id, null);
+        await logDividend(chatId, link.user_id, args);
+        return new Response("ok");
+
+      case "/invest":
+      case "/inv": {
+        const inv = parseInvest(`invest ${args}`);
+        if (!inv) {
+          await sendMessage(chatId, 'Format: /invest amount asset qty\ne.g. "/invest 1tr gold 1" — or just "/invest 1tr" and I\'ll ask.');
+          return new Response("ok");
+        }
+        await startInvest(chatId, link.user_id, inv.amount, inv.assetWords, inv.qty);
+        return new Response("ok");
+      }
+
+      default:
+        await sendMessage(chatId, `Unknown command.\n\n${HELP_TEXT}`);
+        return new Response("ok");
+    }
   }
 
   const pending = link.pending as Pending | null;

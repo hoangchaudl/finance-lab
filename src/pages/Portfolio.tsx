@@ -150,6 +150,7 @@ const TYPE_OPTIONS = [
   "Crypto",
   "Gold",
   "ETF",
+  "Fund",
   "Other",
 ] as const;
 
@@ -159,7 +160,19 @@ const CHART_COLORS: Record<string, string> = {
   Crypto: "#a855f7",
   Gold: "#eab308",
   ETF: "#14b8a6",
+  Fund: "#f97316",
   Other: "#64748b",
+};
+
+// Types whose market price is fetched automatically by update-prices
+const AUTO_PRICE_TYPES = ["Gold", "Crypto", "Stocks", "ETF", "Fund"];
+
+const NAME_PLACEHOLDER: Record<string, string> = {
+  Stocks: "Ticker, e.g. FPT",
+  ETF: "Ticker, e.g. E1VFVN30",
+  Fund: "Fund code, e.g. DCDS",
+  Crypto: "BTC, ETH, SOL…",
+  Gold: "Gold SJC",
 };
 
 // --- HELPER: FORMAT INPUT AS 1.000.000 ---
@@ -453,8 +466,7 @@ export default function Portfolio() {
     tier: "Growth",
     account: "",
     quantity: "",
-    purchasePrice: "",
-    currentPrice: "",
+    totalCost: "",
     notes: "",
   });
   const existingAccounts = Array.from(
@@ -462,16 +474,21 @@ export default function Portfolio() {
   );
 
   const handleAdd = async () => {
-    if (!form.name.trim() || !form.currentPrice) return;
+    const qty = parseFloat(form.quantity) || 0;
+    const total = parseFormattedNumber(form.totalCost);
+    if (!form.name.trim() || qty <= 0 || total <= 0) return;
+    // You enter what you paid in total; we derive the average unit price
+    const unitPrice = Math.round(total / qty);
+    const autoPrice = AUTO_PRICE_TYPES.includes(form.type);
     try {
       await addPortfolioEntry({
         name: form.name.trim(),
         type: form.type,
         tier: form.tier,
         account: form.account.trim() || "General",
-        quantity: parseFloat(form.quantity) || 0,
-        purchasePrice: parseFormattedNumber(form.purchasePrice),
-        currentPrice: parseFormattedNumber(form.currentPrice),
+        quantity: qty,
+        purchasePrice: unitPrice,
+        currentPrice: unitPrice, // placeholder until market price arrives
         notes: form.notes || undefined,
       });
       setForm({
@@ -480,11 +497,19 @@ export default function Portfolio() {
         tier: "Growth",
         account: "",
         quantity: "",
-        purchasePrice: "",
-        currentPrice: "",
+        totalCost: "",
         notes: "",
       });
       setAdding(false);
+      // Pull the real market price right away for supported types
+      if (autoPrice) {
+        try {
+          await supabase.functions.invoke("update-prices");
+          await loadFromDB();
+        } catch (e) {
+          console.error("Auto price fetch after add failed:", e);
+        }
+      }
     } catch (err) {
       toast({
         title: "Error",
@@ -534,9 +559,9 @@ export default function Portfolio() {
   });
 
   // Live Calc for Add Form
-  const addFormValue =
-    parseFormattedNumber(form.quantity) *
-    parseFormattedNumber(form.currentPrice);
+  const addFormQty = parseFloat(form.quantity) || 0;
+  const addFormTotal = parseFormattedNumber(form.totalCost);
+  const addFormUnitPrice = addFormQty > 0 ? addFormTotal / addFormQty : 0;
 
   return (
     <div className="space-y-6">
@@ -793,7 +818,7 @@ export default function Portfolio() {
                       onChange={(e) =>
                         setForm({ ...form, name: e.target.value })
                       }
-                      placeholder="Asset Name"
+                      placeholder={NAME_PLACEHOLDER[form.type] ?? "Asset Name"}
                       className="h-7 text-sm mb-1"
                       autoFocus
                     />
@@ -863,37 +888,27 @@ export default function Portfolio() {
                   </TableCell>
                   <TableCell>
                     <Input
-                      value={form.purchasePrice}
+                      value={form.totalCost}
                       onChange={(e) =>
                         setForm({
                           ...form,
-                          purchasePrice: formatInputWithDots(e.target.value),
+                          totalCost: formatInputWithDots(e.target.value),
                         })
                       }
-                      placeholder="Buy"
+                      placeholder="Total paid"
                       className="h-7 text-sm text-right w-full"
                     />
                   </TableCell>
-                  <TableCell>
-                    <Input
-                      value={form.currentPrice}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          currentPrice: formatInputWithDots(e.target.value),
-                        })
-                      }
-                      placeholder="Now"
-                      className="h-7 text-sm text-right w-full"
-                    />
+                  <TableCell className="text-right text-xs text-muted-foreground">
+                    {AUTO_PRICE_TYPES.includes(form.type) ? "Auto ⚡" : "= avg"}
                   </TableCell>
                   <TableCell
                     colSpan={4}
                     className="text-center text-xs font-bold text-primary"
                   >
-                    {addFormValue > 0
-                      ? formatVND(Math.ceil(addFormValue))
-                      : "Auto-calc"}
+                    {addFormUnitPrice > 0
+                      ? `≈ ${formatVND(Math.round(addFormUnitPrice))}/unit`
+                      : "Qty + total paid"}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">

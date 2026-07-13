@@ -86,6 +86,69 @@ function goldPriceForEntry(purchasePrice: number, perLuong: number): number {
   return Math.round(dLuong < dChi ? perLuong : perChi);
 }
 
+// ---------- VN Stocks & ETFs (TCBS public API) ----------
+
+const TICKER_RE = /^[A-Z0-9]{2,12}$/;
+
+/** First word of the asset name, uppercased, if it looks like a ticker. */
+function tickerFor(name: string): string | null {
+  const t = name.trim().split(/\s+/)[0]?.toUpperCase() ?? "";
+  return TICKER_RE.test(t) ? t : null;
+}
+
+async function fetchStockPricesVND(tickers: string[]): Promise<Record<string, number>> {
+  const url = `https://apipubaws.tcbs.com.vn/stock-insight/v1/stock/second-tc-price?tickers=${tickers.join(",")}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+  if (!res.ok) throw new Error(`TCBS ${res.status}`);
+  const json = await res.json();
+  const out: Record<string, number> = {};
+  for (const row of json?.data ?? []) {
+    const ticker = String(row?.t ?? "").toUpperCase();
+    let price = Number(row?.cp);
+    if (!ticker || !isFinite(price) || price <= 0) continue;
+    // Some feeds quote in nghìn đồng; a real VN share price is ≥ ~500 VND
+    if (price < 500) price *= 1000;
+    if (price < 500 || price > 10_000_000) continue;
+    out[ticker] = Math.round(price);
+  }
+  return out;
+}
+
+// ---------- Mutual funds (Fmarket NAV) ----------
+
+async function fetchFundNAVs(): Promise<Record<string, number>> {
+  const res = await fetch("https://api.fmarket.vn/res/products/filter", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    body: JSON.stringify({
+      types: ["NEW_FUND", "TRADING_FUND"],
+      issuerIds: [],
+      sortOrder: "DESC",
+      sortField: "navTo6Months",
+      page: 1,
+      pageSize: 200,
+      isIpo: false,
+      fundAssetTypes: [],
+      bondRemainPeriods: [],
+      searchField: "",
+      isBuyByReward: false,
+      thirdAppIds: [],
+    }),
+  });
+  if (!res.ok) throw new Error(`Fmarket ${res.status}`);
+  const json = await res.json();
+  const out: Record<string, number> = {};
+  for (const row of json?.data?.rows ?? []) {
+    const short = String(row?.shortName ?? "").toUpperCase();
+    const nav = Number(row?.nav);
+    if (!short || !isFinite(nav) || nav <= 0) continue;
+    if (nav < 1_000 || nav > 10_000_000) continue;
+    out[short] = Math.round(nav);
+  }
+  return out;
+}
+
 // ---------- Main ----------
 
 const corsHeaders = {
@@ -120,7 +183,7 @@ Deno.serve(async (req) => {
   let query = admin
     .from("portfolio_entries")
     .select("id, name, type, purchase_price, current_price")
-    .in("type", ["Gold", "Crypto"]);
+    .in("type", ["Gold", "Crypto", "Stocks", "ETF", "Fund"]);
   if (userId) query = query.eq("user_id", userId);
 
   const { data: entries, error: qErr } = await query;
@@ -136,21 +199,33 @@ Deno.serve(async (req) => {
 
   // Fetch market data (only what's needed) in parallel
   const needGold = entries.some((e: any) => e.type === "Gold");
+  const needFunds = entries.some((e: any) => e.type === "Fund");
   const coinIds = [...new Set(
     entries.filter((e: any) => e.type === "Crypto")
       .map((e: any) => coinIdFor(e.name))
       .filter(Boolean) as string[],
   )];
+  const tickers = [...new Set(
+    entries.filter((e: any) => e.type === "Stocks" || e.type === "ETF")
+      .map((e: any) => tickerFor(e.name))
+      .filter(Boolean) as string[],
+  )];
 
-  const [goldRes, cryptoRes] = await Promise.allSettled([
+  const [goldRes, cryptoRes, stockRes, fundRes] = await Promise.allSettled([
     needGold ? fetchGoldPricePerLuong() : Promise.resolve(null),
     coinIds.length ? fetchCryptoPricesVND(coinIds) : Promise.resolve({}),
+    tickers.length ? fetchStockPricesVND(tickers) : Promise.resolve({}),
+    needFunds ? fetchFundNAVs() : Promise.resolve({}),
   ]);
 
   const goldPerLuong = goldRes.status === "fulfilled" ? goldRes.value : null;
   if (goldRes.status === "rejected") errors.push(`gold: ${goldRes.reason?.message ?? goldRes.reason}`);
   const cryptoPrices = cryptoRes.status === "fulfilled" ? cryptoRes.value : {};
   if (cryptoRes.status === "rejected") errors.push(`crypto: ${cryptoRes.reason?.message ?? cryptoRes.reason}`);
+  const stockPrices = stockRes.status === "fulfilled" ? stockRes.value : {};
+  if (stockRes.status === "rejected") errors.push(`stocks: ${stockRes.reason?.message ?? stockRes.reason}`);
+  const fundNavs = fundRes.status === "fulfilled" ? fundRes.value : {};
+  if (fundRes.status === "rejected") errors.push(`funds: ${fundRes.reason?.message ?? fundRes.reason}`);
 
   let updated = 0;
   for (const e of entries as any[]) {
@@ -162,6 +237,14 @@ Deno.serve(async (req) => {
       const id = coinIdFor(e.name);
       if (id && cryptoPrices[id]) newPrice = Math.round(cryptoPrices[id]);
       else if (!id) skipped.push(e.name);
+    } else if (e.type === "Stocks" || e.type === "ETF") {
+      const ticker = tickerFor(e.name);
+      if (ticker && stockPrices[ticker]) newPrice = stockPrices[ticker];
+      else skipped.push(e.name);
+    } else if (e.type === "Fund") {
+      const ticker = tickerFor(e.name);
+      if (ticker && fundNavs[ticker]) newPrice = fundNavs[ticker];
+      else skipped.push(e.name);
     }
 
     if (newPrice && newPrice !== Number(e.current_price)) {

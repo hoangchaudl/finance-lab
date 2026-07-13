@@ -553,7 +553,10 @@ export default function Transactions() {
     });
 
     const escape = (v: string | number) => {
-      const s = String(v);
+      let s = String(v);
+      // Formula-injection guard: a text cell starting with = + - @ or tab
+      // would execute as a formula in Excel/Sheets. Numbers stay untouched.
+      if (typeof v === "string" && /^[=+\-@\t]/.test(s)) s = `'${s}`;
       return s.includes(",") || s.includes('"') || s.includes("\n")
         ? `"${s.replace(/"/g, '""')}"`
         : s;

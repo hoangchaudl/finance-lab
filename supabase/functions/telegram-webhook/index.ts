@@ -484,6 +484,32 @@ Deno.serve(async (req) => {
 
   const update = await req.json();
 
+  // Idempotency: Telegram re-delivers updates on slow/failed responses.
+  // Insert the update_id first; a unique-violation means we already
+  // processed this delivery — acknowledge and stop.
+  const updateId = update.update_id as number | undefined;
+  let logRow: { id: string } | null = null;
+  if (typeof updateId === "number") {
+    const logChatId =
+      update.message?.chat?.id ?? update.callback_query?.message?.chat?.id ?? null;
+    const logText =
+      update.message?.text ??
+      (update.callback_query ? `callback:${update.callback_query.data}` : null);
+    const { data, error: logErr } = await supabase
+      .from("telegram_bot_logs")
+      .insert({ update_id: updateId, telegram_chat_id: logChatId, raw_text: logText })
+      .select("id")
+      .single();
+    if (logErr) {
+      if ((logErr as { code?: string }).code === "23505") {
+        return new Response("ok"); // duplicate delivery
+      }
+      console.error("bot log insert failed:", logErr.message);
+    } else {
+      logRow = data;
+    }
+  }
+
   if (update.callback_query) {
     await handleCallback(update.callback_query);
     return new Response("ok");
@@ -494,12 +520,6 @@ Deno.serve(async (req) => {
 
   const chatId = message.chat.id as number;
   const text = (message.text as string).trim();
-
-  const { data: logRow } = await supabase
-    .from("telegram_bot_logs")
-    .insert({ telegram_chat_id: chatId, raw_text: text })
-    .select()
-    .single();
 
   if (text.startsWith("/link")) {
     const code = text.replace("/link", "").trim();
@@ -637,7 +657,9 @@ Deno.serve(async (req) => {
 
   const parsed = parseExpense(text, (categories ?? []).map((c: { name: string }) => c.name));
   if (!parsed) {
-    await supabase.from("telegram_bot_logs").update({ status: "parse_failed" }).eq("id", logRow!.id);
+    if (logRow) {
+      await supabase.from("telegram_bot_logs").update({ status: "parse_failed" }).eq("id", logRow.id);
+    }
     await sendMessage(chatId, `Couldn't parse that.\n\n${HELP_TEXT}`);
     return new Response("ok");
   }
@@ -664,12 +686,14 @@ Deno.serve(async (req) => {
     note: parsed.note,
   });
 
-  await supabase.from("telegram_bot_logs")
-    .update({
-      status: ok ? "ok" : "agent_log_failed",
-      parsed: { amount: parsed.amount, category: parsed.categoryName, note: parsed.note },
-    })
-    .eq("id", logRow!.id);
+  if (logRow) {
+    await supabase.from("telegram_bot_logs")
+      .update({
+        status: ok ? "ok" : "agent_log_failed",
+        parsed: { amount: parsed.amount, category: parsed.categoryName, note: parsed.note },
+      })
+      .eq("id", logRow.id);
+  }
 
   await sendMessage(chatId, reply);
 

@@ -51,15 +51,17 @@ async function resolvePortfolioEntryId(
   const { data: existing } = await supabase.from("portfolio_entries").select("id, quantity, purchase_price")
     .eq("user_id", userId).ilike("name", assetName).limit(1).maybeSingle();
   if (existing) {
-    // Mirror the web app's buy logic: bump quantity and recalc avg purchase price
+    // Buy math goes through the locked apply_tx_effect RPC — same code path
+    // as the web app, safe under concurrent writes
     if (opts?.applyBuy && opts.quantity && opts.quantity > 0) {
-      const currentQty = Number(existing.quantity) || 0;
-      const currentAvg = Number(existing.purchase_price) || 0;
-      const newQty = currentQty + opts.quantity;
-      const newAvg = newQty > 0 ? Math.ceil((currentQty * currentAvg + amount) / newQty) : 0;
-      await supabase.from("portfolio_entries")
-        .update({ quantity: newQty, purchase_price: newAvg, updated_at: new Date().toISOString() })
-        .eq("id", existing.id);
+      const { error: rpcErr } = await supabase.rpc("apply_tx_effect", {
+        p_entry_id: existing.id,
+        p_type: "investing",
+        p_amount: amount,
+        p_quantity: opts.quantity,
+        p_direction: 1,
+      });
+      if (rpcErr) throw new Error(`portfolio update failed: ${rpcErr.message}`);
     }
     return existing.id;
   }

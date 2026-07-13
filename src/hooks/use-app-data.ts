@@ -183,51 +183,29 @@ export function useAppData() {
   // --- PORTFOLIO MATH (single source of truth for buy/sell effects) ---
 
   /** Apply (direction=1) or reverse (direction=-1) a transaction's effect on
-   *  its linked portfolio entry. Reads the entry fresh from DB. */
+   *  its linked portfolio entry. Delegates to the apply_tx_effect Postgres
+   *  function, which locks the row — safe under concurrent web/bot writes.
+   *  Throws on business errors (e.g. insufficient quantity). */
   const adjustPortfolioForTx = useCallback(
     async (
       tx: Pick<Transaction, "type" | "amount" | "quantity" | "portfolio_entry_id">,
       direction: 1 | -1,
     ) => {
       if (!tx.portfolio_entry_id) return false;
-      const isBuy = ["investing", "saving", "expense"].includes(tx.type);
-      const isSell = tx.type === "sell";
-      if (!isBuy && !isSell) return false;
-
+      if (!["investing", "saving", "expense", "sell"].includes(tx.type)) return false;
       const txQty = Number(tx.quantity) || 0;
       if (txQty <= 0) return false; // no quantity → nothing to move
 
-      const { data: entry } = await supabase
-        .from("portfolio_entries")
-        .select("id, quantity, purchase_price")
-        .eq("id", tx.portfolio_entry_id)
-        .maybeSingle();
-      if (!entry) return false;
-
-      const txAmount = Number(tx.amount) || 0;
-      const curQty = Number(entry.quantity) || 0;
-      const curAvg = Number(entry.purchase_price) || 0;
-
-      let newQty = curQty;
-      let newAvg = curAvg;
-      if (isBuy) {
-        newQty = curQty + direction * txQty;
-        const newTotal = curQty * curAvg + direction * txAmount;
-        newAvg = newQty > 0 ? Math.ceil(newTotal / newQty) : curAvg;
-      } else {
-        // sell: reduces on apply, restores on reverse; avg price unchanged
-        newQty = curQty - direction * txQty;
-      }
-
-      await supabase
-        .from("portfolio_entries")
-        .update({
-          quantity: newQty,
-          purchase_price: newAvg,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", entry.id);
-      return true;
+      const { data: res, error } = await (supabase.rpc as any)("apply_tx_effect", {
+        p_entry_id: tx.portfolio_entry_id,
+        p_type: tx.type,
+        p_amount: Number(tx.amount) || 0,
+        p_quantity: txQty,
+        p_direction: direction,
+      });
+      if (error) throw new Error(error.message);
+      if (res && res.applied === false && res.error) throw new Error(res.error);
+      return !!res?.applied;
     },
     [],
   );
@@ -319,8 +297,15 @@ export function useAppData() {
         quality: ((inserted as any).quality as Transaction["quality"]) || undefined,
       };
 
-      // Apply the buy/sell effect on the linked portfolio entry
-      await adjustPortfolioForTx(t, 1);
+      // Apply the buy/sell effect on the linked portfolio entry. If the
+      // locked RPC rejects it (e.g. concurrent sell drained the holdings),
+      // remove the just-inserted row so no orphan transaction survives.
+      try {
+        await adjustPortfolioForTx(t, 1);
+      } catch (e) {
+        await supabase.from("transactions").delete().eq("id", inserted.id);
+        throw e;
+      }
 
       // Reload only if portfolio was affected, otherwise optimistic update
       if (t.portfolio_entry_id) {
@@ -364,11 +349,17 @@ export function useAppData() {
       let portfolioTouched = false;
       if (oldTx && merged && (touchesPortfolio(oldTx) || touchesPortfolio(merged))) {
         await adjustPortfolioForTx(oldTx, -1);
-        if (merged.type === "sell" && merged.portfolio_entry_id) {
-          const rg = await computeRealizedGain(merged);
-          if (rg !== null) dbUpdate.realized_gain = rg;
+        try {
+          if (merged.type === "sell" && merged.portfolio_entry_id) {
+            const rg = await computeRealizedGain(merged);
+            if (rg !== null) dbUpdate.realized_gain = rg;
+          }
+          await adjustPortfolioForTx(merged, 1);
+        } catch (e) {
+          // Applying the edited values failed — restore the old effect
+          await adjustPortfolioForTx(oldTx, 1);
+          throw e;
         }
-        await adjustPortfolioForTx(merged, 1);
         portfolioTouched = true;
       }
 

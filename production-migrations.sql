@@ -33,3 +33,9 @@ notify pgrst, 'reload schema';
 --   );
 --   $$
 -- );
+-- ============================================================
+-- 2026-07-13: Webhook idempotency + apply_tx_effect RPC
+-- Status: NOT yet applied to prod
+-- Run the full contents of:
+--   supabase/migrations/20260713000002_idempotency_and_tx_effect_rpc.sql
+-- ============================================================

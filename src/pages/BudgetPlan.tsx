@@ -34,8 +34,9 @@ const TYPE_LABELS: Record<string, string> = {
   investment: "Investments",
 };
 
-import { Wallet } from "lucide-react";
+import { Wallet, FolderCog } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import EmptyState from "@/components/EmptyState";
 
 export default function BudgetPlan() {
@@ -187,7 +188,13 @@ export default function BudgetPlan() {
           Budget Plan
           <PageTourButton onClick={startTour} />
         </h1>
-        <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/categories")}>
+            <FolderCog className="h-4 w-4 mr-1.5" strokeWidth={1.5} />
+            Manage Categories
+          </Button>
+          <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+        </div>
       </div>
 
       {data.categories.length === 0 && (

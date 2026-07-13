@@ -5,7 +5,7 @@ import {
   Wallet,
   PieChart,
   BarChart3,
-  FolderCog,
+  Flame,
   Menu,
   X,
   LogOut,
@@ -22,12 +22,13 @@ import ShortcutsDialog, { useGlobalShortcutsDialog } from "./ShortcutsDialog";
 import CommandPalette from "./CommandPalette";
 import QuickAddTransaction, { QuickAddHandle } from "./QuickAddTransaction";
 
+// Ordered to follow the money: see it → log it → plan it → grow it → free by it
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "Categories", path: "/categories", icon: FolderCog },
-  { label: "Budget Plan", path: "/budget", icon: Wallet },
   { label: "Transactions", path: "/transactions", icon: ArrowRightLeft },
+  { label: "Budget Plan", path: "/budget", icon: Wallet },
   { label: "Portfolio", path: "/portfolio", icon: PieChart },
+  { label: "FIRE Goals", path: "/fire", icon: Flame },
   { label: "Reports", path: "/report", icon: BarChart3 },
 ];
 

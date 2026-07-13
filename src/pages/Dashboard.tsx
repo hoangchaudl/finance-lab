@@ -1,6 +1,12 @@
 import { useApp } from "@/contexts/AppContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatVND, formatVNDCompact, getMonthKey, getMonthLabel } from "@/lib/format";
+import {
+  avgMonthlyAmount,
+  crossoverTargetNW,
+  monthsToTarget,
+  monthLabelFromNow,
+} from "@/lib/fire-math";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -241,13 +247,26 @@ export default function Dashboard() {
       ? recentDividendMonths.reduce((s, v) => s + v, 0) /
         recentDividendMonths.length
       : 0;
+  // Same expense basis as the FIRE page: real spending if available, else settings
+  const avgActualExpenses = avgMonthlyAmount(data.transactions, ["expense"]);
+  const crossoverExpenses =
+    avgActualExpenses > 0 ? avgActualExpenses : monthlyExpenses;
+
   const coveragePct =
-    monthlyExpenses > 0 ? (passiveIncomePerMonth / monthlyExpenses) * 100 : 0;
-  const crossoverYears =
-    passiveIncomePerMonth > 0
-      ? Math.log(monthlyExpenses / passiveIncomePerMonth) /
-        Math.log(1 + returnRate / 100)
-      : null;
+    crossoverExpenses > 0
+      ? (passiveIncomePerMonth / crossoverExpenses) * 100
+      : 0;
+
+  // Crossover date — identical math to the FIRE page (fire-math), so the
+  // Dashboard and the FIRE Roadmap always show the same date.
+  const avgContribution = avgMonthlyAmount(data.transactions, [
+    "investing",
+    "saving",
+  ]);
+  const crossNW = crossoverTargetNW(crossoverExpenses, returnRate);
+  const monthsToCross = isFinite(crossNW)
+    ? monthsToTarget(getNetWorth(), avgContribution, crossNW, returnRate)
+    : null;
   const insightText =
     coveragePct < 10
       ? "Start logging dividend income to track your passive income growth."
@@ -543,15 +562,20 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">
-                Years to Crossover
+                Crossover Point
               </p>
               <p className="text-2xl font-bold text-blue-600">
-                {crossoverYears === null
+                {monthsToCross === null
                   ? "—"
-                  : crossoverYears <= 0
+                  : monthsToCross <= 0
                     ? "Now!"
-                    : crossoverYears.toFixed(1)}
+                    : monthLabelFromNow(monthsToCross)}
               </p>
+              {monthsToCross !== null && monthsToCross > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {monthsToCross} months away
+                </p>
+              )}
             </div>
           </div>
           <Progress value={Math.min(100, coveragePct)} className="h-2" />

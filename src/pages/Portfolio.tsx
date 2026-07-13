@@ -10,6 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -594,6 +601,146 @@ export default function Portfolio() {
         </div>
       </div>
 
+      {/* Shared account suggestions (used by add dialog + edit rows) */}
+      <datalist id="acct-list">
+        {existingAccounts.map((a) => (
+          <option key={a} value={a} />
+        ))}
+      </datalist>
+
+      {/* Add Asset dialog */}
+      <Dialog open={adding} onOpenChange={setAdding}>
+        <DialogContent className="sm:max-w-md overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Add Asset</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAdd();
+            }}
+            className="space-y-4 pt-2 min-w-0"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Type</Label>
+                <Select
+                  value={form.type}
+                  onValueChange={(v) => setForm({ ...form, type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TYPE_OPTIONS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tier</Label>
+                <Select
+                  value={form.tier}
+                  onValueChange={(v) => setForm({ ...form, tier: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIER_OPTIONS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        <span className="flex items-center gap-1.5">
+                          {getTierIcon(t.value, "h-3.5 w-3.5")}
+                          {t.value}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="add-name">Name</Label>
+              <Input
+                id="add-name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder={NAME_PLACEHOLDER[form.type] ?? "Asset Name"}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="add-account">Account</Label>
+              <Input
+                id="add-account"
+                value={form.account}
+                onChange={(e) => setForm({ ...form, account: e.target.value })}
+                placeholder="e.g. SSI, Binance, TCB…"
+                list="acct-list"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-qty">Quantity</Label>
+                <Input
+                  id="add-qty"
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={form.quantity}
+                  onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-total">Total paid (₫)</Label>
+                <Input
+                  id="add-total"
+                  value={form.totalCost}
+                  onChange={(e) =>
+                    setForm({ ...form, totalCost: formatInputWithDots(e.target.value) })
+                  }
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              {addFormUnitPrice > 0 ? (
+                <>Avg price ≈ <strong>{formatVND(Math.round(addFormUnitPrice))}</strong>/unit.{" "}</>
+              ) : null}
+              {AUTO_PRICE_TYPES.includes(form.type)
+                ? "Market price is fetched automatically after saving."
+                : "This type has no price feed — market price starts at your avg price."}
+            </p>
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setAdding(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={!form.name.trim() || addFormQty <= 0 || addFormTotal <= 0}
+              >
+                Add Asset
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {entries.length === 0 && !adding && (
         <EmptyState
           icon={PieIcon}
@@ -809,133 +956,6 @@ export default function Portfolio() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {adding && (
-                <TableRow className="bg-muted/30">
-                  <TableCell></TableCell>
-                  <TableCell>
-                    <Input
-                      value={form.name}
-                      onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
-                      }
-                      placeholder={NAME_PLACEHOLDER[form.type] ?? "Asset Name"}
-                      className="h-7 text-sm mb-1"
-                      autoFocus
-                    />
-                    <Input
-                      value={form.account}
-                      onChange={(e) =>
-                        setForm({ ...form, account: e.target.value })
-                      }
-                      placeholder="Account"
-                      className="h-6 text-xs"
-                      list="acct-list"
-                    />
-                    <datalist id="acct-list">
-                      {existingAccounts.map((a) => (
-                        <option key={a} value={a} />
-                      ))}
-                    </datalist>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={form.type}
-                      onValueChange={(v) => setForm({ ...form, type: v })}
-                    >
-                      <SelectTrigger className="h-7 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TYPE_OPTIONS.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {t}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={form.tier}
-                      onValueChange={(v) => setForm({ ...form, tier: v })}
-                    >
-                      <SelectTrigger className="h-7 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TIER_OPTIONS.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            <span className="flex items-center gap-1.5">
-                              {getTierIcon(t.value, "h-3.5 w-3.5")}
-                              {t.value}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={form.quantity}
-                      onChange={(e) =>
-                        setForm({ ...form, quantity: e.target.value })
-                      }
-                      placeholder="Qty"
-                      className="h-7 text-sm text-right"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={form.totalCost}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          totalCost: formatInputWithDots(e.target.value),
-                        })
-                      }
-                      placeholder="Total paid"
-                      className="h-7 text-sm text-right w-full"
-                    />
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">
-                    {AUTO_PRICE_TYPES.includes(form.type) ? "Auto ⚡" : "= avg"}
-                  </TableCell>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center text-xs font-bold text-primary"
-                  >
-                    {addFormUnitPrice > 0
-                      ? `≈ ${formatVND(Math.round(addFormUnitPrice))}/unit`
-                      : "Qty + total paid"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={handleAdd}
-                      >
-                        <Check
-                          className="h-4 w-4 text-success"
-                          strokeWidth={ICON_STROKE}
-                        />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => setAdding(false)}
-                      >
-                        <X className="h-4 w-4" strokeWidth={ICON_STROKE} />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-
               {groupedAssets.map((group, groupIdx) => {
                 const isExpanded = expandedGroups[group.key];
 

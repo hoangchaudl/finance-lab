@@ -6,6 +6,7 @@ import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
 import { useApp } from "@/contexts/AppContext";
 import { formatVND } from "@/lib/format";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ import {
   Check,
   X,
   Building2,
+  RefreshCw,
   ChevronDown,
   ChevronRight,
   PieChart as PieIcon,
@@ -197,10 +199,34 @@ export default function Portfolio() {
     addPortfolioEntry,
     updatePortfolioEntry,
     deletePortfolioEntry,
+    loadFromDB,
   } = useApp();
   const { toast } = useToast();
   const { startTour } = usePageTour("portfolio");
   const entries = data.portfolio ?? [];
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
+
+  const handleRefreshPrices = async () => {
+    setRefreshingPrices(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("update-prices");
+      if (error) throw error;
+      await loadFromDB();
+      const parts = [`${result?.updated ?? 0} price(s) updated`];
+      if (result?.skipped?.length) parts.push(`${result.skipped.length} unrecognized`);
+      if (result?.errors?.length) parts.push(`${result.errors.length} source error(s)`);
+      toast({ title: "Prices refreshed", description: parts.join(" · ") });
+    } catch (e) {
+      console.error("Price refresh failed:", e);
+      toast({
+        title: "Price refresh failed",
+        description: "Could not update market prices. Try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingPrices(false);
+    }
+  };
 
   // --- 1. CALCULATIONS & GROUPING ---
   const calculatedEntries = entries.map((entry) => {
@@ -501,9 +527,23 @@ export default function Portfolio() {
           Portfolio Manager
           <PageTourButton onClick={startTour} />
         </h1>
-        <Button data-tour="portfolio-add" onClick={() => setAdding(true)} disabled={adding}>
-          <Plus className="h-4 w-4 mr-1" strokeWidth={ICON_STROKE} /> Add Asset
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleRefreshPrices}
+            disabled={refreshingPrices}
+            title="Update Gold & Crypto prices from market data"
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1 ${refreshingPrices ? "animate-spin" : ""}`}
+              strokeWidth={ICON_STROKE}
+            />
+            {refreshingPrices ? "Refreshing…" : "Refresh Prices"}
+          </Button>
+          <Button data-tour="portfolio-add" onClick={() => setAdding(true)} disabled={adding}>
+            <Plus className="h-4 w-4 mr-1" strokeWidth={ICON_STROKE} /> Add Asset
+          </Button>
+        </div>
       </div>
 
       {entries.length === 0 && !adding && (

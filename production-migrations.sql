@@ -10,3 +10,26 @@ notify pgrst, 'reload schema';
 -- ============================================================
 alter table public.telegram_bot_logs enable row level security;
 notify pgrst, 'reload schema';
+-- ============================================================
+-- 2026-07-13: Daily price auto-update cron (TEMPLATE — fill in
+-- <PROJECT_REF> and a random secret before running; also set the
+-- same secret as PRICE_CRON_SECRET env var on the update-prices
+-- edge function). Run per environment.
+-- ============================================================
+-- create extension if not exists pg_cron;
+-- create extension if not exists pg_net;
+-- select vault.create_secret('<RANDOM_SECRET>', 'price_cron_secret');
+-- select cron.schedule(
+--   'update-prices-daily',
+--   '0 1 * * *',  -- 01:00 UTC = 08:00 VN, before people check their dashboard
+--   $$
+--   select net.http_post(
+--     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/update-prices',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'price_cron_secret')
+--     ),
+--     body := '{}'::jsonb
+--   );
+--   $$
+-- );

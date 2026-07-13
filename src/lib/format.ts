@@ -11,6 +11,12 @@ export function formatVNDCompact(amount: number): string {
   return formatVND(amount);
 }
 
+/** Today's date in the user's LOCAL timezone (toISOString() is UTC and
+ *  shows yesterday before 7am in Vietnam). */
+export function todayLocalISO(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 export function getMonthKey(date: Date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }

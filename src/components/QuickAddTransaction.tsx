@@ -1,7 +1,7 @@
 import { useState, forwardRef, useImperativeHandle } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
-import { formatVND } from "@/lib/format";
+import { formatVND, todayLocalISO } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +34,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
   const [type, setType] = useState<TxType>("expense");
   const [categoryId, setCategoryId] = useState("");
   const [amountRaw, setAmountRaw] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayLocalISO());
   const [note, setNote] = useState("");
   const [portfolioEntryId, setPortfolioEntryId] = useState("");
   const [qtyStr, setQtyStr] = useState("");
@@ -66,7 +66,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
     setType("expense");
     setCategoryId("");
     setAmountRaw("");
-    setDate(new Date().toISOString().slice(0, 10));
+    setDate(todayLocalISO());
     setNote("");
     setPortfolioEntryId("");
     setQtyStr("");

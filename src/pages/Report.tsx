@@ -130,19 +130,23 @@ export default function Report() {
 
   // ── NET WORTH TREND ──────────────────────────────────────────────
   const netWorthData = useMemo(() => {
+    // Net worth growth from cash flow: income + dividends + realized gains
+    // − expenses. Investing/saving are transfers between cash and assets, so
+    // they don't change net worth and must NOT be added (the old formula
+    // double-counted them). Unrealized market gains are excluded by nature.
     const monthsSet = new Set(transactions.map((t) => t.date.slice(0, 7)));
     const months = Array.from(monthsSet).sort();
-    let cumIncome = 0, cumExpenses = 0, cumInvesting = 0;
+    let cum = 0;
 
     return months.map((month) => {
       transactions
         .filter((t) => t.date.slice(0, 7) === month)
         .forEach((t) => {
-          if (t.type === "income") cumIncome += t.amount;
-          else if (t.type === "expense") cumExpenses += t.amount;
-          else if (t.type === "investing") cumInvesting += t.amount;
+          if (t.type === "income" || t.type === "dividend") cum += t.amount;
+          else if (t.type === "expense") cum -= t.amount;
+          else if (t.type === "sell") cum += t.realized_gain ?? 0;
         });
-      return { month, label: formatMonthLabel(month), netWorth: cumIncome - cumExpenses + cumInvesting };
+      return { month, label: formatMonthLabel(month), netWorth: cum };
     });
   }, [transactions]);
 

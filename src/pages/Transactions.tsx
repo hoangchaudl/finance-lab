@@ -5,6 +5,7 @@ import {
   getMonthKey,
   getMonthLabel,
   formatDate,
+  todayLocalISO,
 } from "@/lib/format";
 import { Transaction } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,9 +108,7 @@ export default function Transactions() {
   const [formType, setFormType] = useState<TxType>("expense");
   const [formCategory, setFormCategory] = useState("");
   const [formAmount, setFormAmount] = useState("");
-  const [formDate, setFormDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [formDate, setFormDate] = useState(todayLocalISO());
   const [formNote, setFormNote] = useState("");
   const [formPortfolioId, setFormPortfolioId] = useState<string>("none");
   const [formQuantity, setFormQuantity] = useState("");
@@ -565,7 +564,7 @@ export default function Transactions() {
     const csv = [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocalISO();
     const a = document.createElement("a");
     a.href = url;
     a.download = `finance-lab-transactions-${today}.csv`;

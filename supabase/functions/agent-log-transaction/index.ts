@@ -115,7 +115,9 @@ Deno.serve(async (req) => {
   }
 
   const txType = type as TxType;
-  const date = body.date ?? new Date().toISOString().slice(0, 10);
+  // Server runs in UTC; users are in Vietnam (UTC+7) — shift so late-night
+  // logs land on the correct local date
+  const date = body.date ?? new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
 
   let categoryId: string | null = null;
   let portfolioEntryId: string | null = null;

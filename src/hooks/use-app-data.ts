@@ -180,10 +180,103 @@ export function useAppData() {
     loadFromDB();
   }, [loadFromDB]);
 
+  // --- PORTFOLIO MATH (single source of truth for buy/sell effects) ---
+
+  /** Apply (direction=1) or reverse (direction=-1) a transaction's effect on
+   *  its linked portfolio entry. Reads the entry fresh from DB. */
+  const adjustPortfolioForTx = useCallback(
+    async (
+      tx: Pick<Transaction, "type" | "amount" | "quantity" | "portfolio_entry_id">,
+      direction: 1 | -1,
+    ) => {
+      if (!tx.portfolio_entry_id) return false;
+      const isBuy = ["investing", "saving", "expense"].includes(tx.type);
+      const isSell = tx.type === "sell";
+      if (!isBuy && !isSell) return false;
+
+      const txQty = Number(tx.quantity) || 0;
+      if (txQty <= 0) return false; // no quantity → nothing to move
+
+      const { data: entry } = await supabase
+        .from("portfolio_entries")
+        .select("id, quantity, purchase_price")
+        .eq("id", tx.portfolio_entry_id)
+        .maybeSingle();
+      if (!entry) return false;
+
+      const txAmount = Number(tx.amount) || 0;
+      const curQty = Number(entry.quantity) || 0;
+      const curAvg = Number(entry.purchase_price) || 0;
+
+      let newQty = curQty;
+      let newAvg = curAvg;
+      if (isBuy) {
+        newQty = curQty + direction * txQty;
+        const newTotal = curQty * curAvg + direction * txAmount;
+        newAvg = newQty > 0 ? Math.ceil(newTotal / newQty) : curAvg;
+      } else {
+        // sell: reduces on apply, restores on reverse; avg price unchanged
+        newQty = curQty - direction * txQty;
+      }
+
+      await supabase
+        .from("portfolio_entries")
+        .update({
+          quantity: newQty,
+          purchase_price: newAvg,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", entry.id);
+      return true;
+    },
+    [],
+  );
+
+  /** Realized gain for a sell = sale amount − qty × current avg price. */
+  const computeRealizedGain = useCallback(
+    async (
+      tx: Pick<Transaction, "amount" | "quantity" | "portfolio_entry_id">,
+    ): Promise<number | null> => {
+      if (!tx.portfolio_entry_id) return null;
+      const { data: entry } = await supabase
+        .from("portfolio_entries")
+        .select("purchase_price")
+        .eq("id", tx.portfolio_entry_id)
+        .maybeSingle();
+      if (!entry) return null;
+      const qty = Number(tx.quantity) || 0;
+      return Math.round(Number(tx.amount) - qty * Number(entry.purchase_price));
+    },
+    [],
+  );
+
   // --- TRANSACTION ---
   const addTransaction = useCallback(
     async (t: Omit<Transaction, "id">) => {
       if (!user) return;
+
+      // Validate sells and compute realized gain BEFORE inserting, so an
+      // invalid sell can't leave an orphan transaction row behind
+      let realizedGain: number | null = t.realized_gain ?? null;
+      if (t.type === "sell" && t.portfolio_entry_id) {
+        const { data: entry } = await supabase
+          .from("portfolio_entries")
+          .select("quantity, purchase_price")
+          .eq("id", t.portfolio_entry_id)
+          .maybeSingle();
+        if (!entry) throw new Error("Portfolio entry not found");
+        const sellQty = Number(t.quantity) || 0;
+        if (sellQty <= 0) throw new Error("Sell quantity must be greater than 0.");
+        if (sellQty > Number(entry.quantity)) {
+          throw new Error(
+            `Insufficient quantity. You only have ${entry.quantity} units.`,
+          );
+        }
+        // Central computation — same result no matter which form logged it
+        realizedGain = Math.round(
+          Number(t.amount) - sellQty * Number(entry.purchase_price),
+        );
+      }
 
       const { data: inserted, error } = await supabase
         .from("transactions")
@@ -196,7 +289,7 @@ export function useAppData() {
           category_id: t.category_id,
           note: t.note ?? null,
           portfolio_entry_id: t.portfolio_entry_id ?? null,
-          realized_gain: t.realized_gain ?? null,
+          realized_gain: realizedGain,
           quality: t.quality ?? null,
         })
         .select()
@@ -223,53 +316,8 @@ export function useAppData() {
         quality: ((inserted as any).quality as Transaction["quality"]) || undefined,
       };
 
-      // Handle sell: validate quantity and reduce portfolio
-      if (t.type === "sell" && t.portfolio_entry_id) {
-        const entry = data.portfolio?.find(
-          (p) => p.id === t.portfolio_entry_id,
-        );
-        if (!entry) throw new Error("Portfolio entry not found");
-        const sellQty = Number(t.quantity) || 0;
-        if (sellQty > entry.quantity) {
-          throw new Error(
-            `Insufficient quantity. You only have ${entry.quantity} units.`,
-          );
-        }
-        const newQty = entry.quantity - sellQty;
-        await supabase
-          .from("portfolio_entries")
-          .update({ quantity: newQty, updated_at: new Date().toISOString() })
-          .eq("id", t.portfolio_entry_id);
-      }
-
-      // Update portfolio if linked (buy)
-      if (
-        t.portfolio_entry_id &&
-        ["investing", "saving", "expense"].includes(t.type)
-      ) {
-        const entry = data.portfolio?.find(
-          (p) => p.id === t.portfolio_entry_id,
-        );
-        if (entry) {
-          const txQty = Number(t.quantity) || 0;
-          const txAmount = Number(t.amount) || 0;
-          const currentQty = Number(entry.quantity) || 0;
-          const currentAvg = Number(entry.purchasePrice) || 0;
-          const newQty = currentQty + txQty;
-          const oldTotalCost = currentQty * currentAvg;
-          const newTotalCost = oldTotalCost + txAmount;
-          const newAvgPrice = newQty > 0 ? Math.ceil(newTotalCost / newQty) : 0;
-
-          await supabase
-            .from("portfolio_entries")
-            .update({
-              quantity: newQty,
-              purchase_price: newAvgPrice,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", t.portfolio_entry_id);
-        }
-      }
+      // Apply the buy/sell effect on the linked portfolio entry
+      await adjustPortfolioForTx(t, 1);
 
       // Reload only if portfolio was affected, otherwise optimistic update
       if (t.portfolio_entry_id) {
@@ -281,12 +329,21 @@ export function useAppData() {
         }));
       }
     },
-    [user, data.portfolio, loadFromDB],
+    [user, adjustPortfolioForTx, loadFromDB],
   );
 
   const updateTransaction = useCallback(
     async (id: string, updates: Partial<Omit<Transaction, "id">>) => {
       if (!user) return;
+
+      const oldTx = data.transactions.find((t) => t.id === id);
+      const merged = oldTx ? { ...oldTx, ...updates } : undefined;
+      const touchesPortfolio = (
+        tx?: Pick<Transaction, "type" | "portfolio_entry_id">,
+      ) =>
+        !!tx?.portfolio_entry_id &&
+        ["investing", "saving", "expense", "sell"].includes(tx.type);
+
       const dbUpdate: any = {};
       if (updates.date !== undefined) dbUpdate.date = updates.date;
       if (updates.amount !== undefined) dbUpdate.amount = updates.amount;
@@ -300,21 +357,37 @@ export function useAppData() {
         dbUpdate.portfolio_entry_id = updates.portfolio_entry_id ?? null;
       if (updates.quality !== undefined) dbUpdate.quality = updates.quality ?? null;
 
+      // Keep the portfolio in sync: reverse the old effect, apply the new one
+      let portfolioTouched = false;
+      if (oldTx && merged && (touchesPortfolio(oldTx) || touchesPortfolio(merged))) {
+        await adjustPortfolioForTx(oldTx, -1);
+        if (merged.type === "sell" && merged.portfolio_entry_id) {
+          const rg = await computeRealizedGain(merged);
+          if (rg !== null) dbUpdate.realized_gain = rg;
+        }
+        await adjustPortfolioForTx(merged, 1);
+        portfolioTouched = true;
+      }
+
       const { error } = await supabase
         .from("transactions")
         .update(dbUpdate)
         .eq("id", id);
       if (error) throw new Error(error.message);
 
-      // Optimistic update
-      setData((prev) => ({
-        ...prev,
-        transactions: prev.transactions.map((t) =>
-          t.id === id ? { ...t, ...updates } : t,
-        ),
-      }));
+      if (portfolioTouched) {
+        await loadFromDB();
+      } else {
+        // Optimistic update
+        setData((prev) => ({
+          ...prev,
+          transactions: prev.transactions.map((t) =>
+            t.id === id ? { ...t, ...updates } : t,
+          ),
+        }));
+      }
     },
-    [user],
+    [user, data.transactions, adjustPortfolioForTx, computeRealizedGain, loadFromDB],
   );
 
   const deleteTransaction = useCallback(
@@ -323,51 +396,8 @@ export function useAppData() {
 
       const tx = data.transactions.find((t) => t.id === id);
 
-      // Reverse sell: add quantity back
-      if (tx && tx.portfolio_entry_id && tx.type === "sell") {
-        const entry = data.portfolio?.find(
-          (p) => p.id === tx.portfolio_entry_id,
-        );
-        if (entry) {
-          const sellQty = Number(tx.quantity) || 0;
-          const newQty = Number(entry.quantity) + sellQty;
-          await supabase
-            .from("portfolio_entries")
-            .update({ quantity: newQty, updated_at: new Date().toISOString() })
-            .eq("id", tx.portfolio_entry_id);
-        }
-      }
-
-      // Reverse buy: reduce quantity and recalc avg
-      if (
-        tx &&
-        tx.portfolio_entry_id &&
-        ["investing", "saving", "expense"].includes(tx.type)
-      ) {
-        const entry = data.portfolio?.find(
-          (p) => p.id === tx.portfolio_entry_id,
-        );
-        if (entry) {
-          const txQty = Number(tx.quantity) || 0;
-          const txAmount = Number(tx.amount) || 0;
-          const currentQty = Number(entry.quantity) || 0;
-          const currentAvg = Number(entry.purchasePrice) || 0;
-          const newQty = currentQty - txQty;
-          const currentTotalCost = currentQty * currentAvg;
-          const newTotalCost = currentTotalCost - txAmount;
-          const newAvgPrice =
-            newQty > 0 ? Math.ceil(newTotalCost / newQty) : currentAvg;
-
-          await supabase
-            .from("portfolio_entries")
-            .update({
-              quantity: newQty,
-              purchase_price: newAvgPrice,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", tx.portfolio_entry_id);
-        }
-      }
+      // Reverse the transaction's portfolio effect (buy or sell)
+      if (tx) await adjustPortfolioForTx(tx, -1);
 
       const { error } = await supabase
         .from("transactions")
@@ -385,7 +415,7 @@ export function useAppData() {
         }));
       }
     },
-    [user, data.transactions, data.portfolio, loadFromDB],
+    [user, data.transactions, adjustPortfolioForTx, loadFromDB],
   );
 
   // --- BUDGET PLAN ---

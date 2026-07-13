@@ -11,6 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus } from "lucide-react";
 
 type TxType = "income" | "expense" | "investing" | "saving" | "sell" | "dividend";
@@ -29,7 +36,17 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
   const [amountRaw, setAmountRaw] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState("");
+  const [portfolioEntryId, setPortfolioEntryId] = useState("");
+  const [qtyStr, setQtyStr] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // investing/sell must move a real asset; dividend link is optional
+  const showAssetLink = ["investing", "sell", "dividend"].includes(type);
+  const assetRequired = type === "investing" || type === "sell";
+  const qty = parseFloat(qtyStr) || 0;
+  const sortedAssets = [...(data.portfolio ?? [])].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 
   useImperativeHandle(ref, () => ({ open: () => setIsOpen(true) }));
 
@@ -51,12 +68,15 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
     setAmountRaw("");
     setDate(new Date().toISOString().slice(0, 10));
     setNote("");
+    setPortfolioEntryId("");
+    setQtyStr("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(amountRaw);
     if (!categoryId || !amount || isSubmitting) return;
+    if (assetRequired && (!portfolioEntryId || qty <= 0)) return;
 
     setIsSubmitting(true);
     try {
@@ -66,12 +86,18 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
         type,
         category_id: categoryId,
         note: note || undefined,
+        portfolio_entry_id: (showAssetLink && portfolioEntryId) || undefined,
+        quantity: assetRequired && qty > 0 ? qty : undefined,
       });
       toast({ title: "Transaction added" });
       reset();
       setIsOpen(false);
-    } catch {
-      toast({ title: "Error", description: "Failed to add transaction", variant: "destructive" });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to add transaction",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -103,7 +129,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => { setType(t); setCategoryId(""); }}
+                  onClick={() => { setType(t); setCategoryId(""); setPortfolioEntryId(""); setQtyStr(""); }}
                   className={`rounded-md px-2 py-1.5 text-xs font-medium capitalize transition-colors ${
                     type === t
                       ? "bg-primary text-primary-foreground"
@@ -157,6 +183,49 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
               )}
             </div>
 
+            {/* Asset link — investing/sell move real portfolio holdings */}
+            {showAssetLink && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>
+                    Link Asset{assetRequired ? "" : " (optional)"}
+                  </Label>
+                  {sortedAssets.length > 0 ? (
+                    <Select value={portfolioEntryId} onValueChange={setPortfolioEntryId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select asset…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sortedAssets.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-xs text-muted-foreground pt-2">
+                      No assets yet — add one in Portfolio first.
+                    </p>
+                  )}
+                </div>
+                {assetRequired && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="qa-qty">Quantity</Label>
+                    <Input
+                      id="qa-qty"
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder={type === "sell" ? "Units sold" : "Units bought"}
+                      value={qtyStr}
+                      onChange={(e) => setQtyStr(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Date */}
             <div className="space-y-1.5">
               <Label htmlFor="qa-date">Date</Label>
@@ -183,7 +252,16 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
               <Button type="button" variant="outline" className="flex-1" onClick={() => { setIsOpen(false); reset(); }}>
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1" disabled={!categoryId || !amountRaw || isSubmitting}>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={
+                  !categoryId ||
+                  !amountRaw ||
+                  isSubmitting ||
+                  (assetRequired && (!portfolioEntryId || qty <= 0))
+                }
+              >
                 {isSubmitting ? "Saving..." : "Add Transaction"}
               </Button>
             </div>

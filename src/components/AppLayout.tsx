@@ -81,15 +81,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-50 flex flex-col md:flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-background flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b bg-white border-slate-200">
+      <div className="md:hidden flex items-center justify-between p-4 border-b-2 border-outline bg-primary text-white">
         <div className="flex items-center gap-2">
-          <Landmark className="h-7 w-7 text-primary" strokeWidth={1.5} />
-          <span className="font-bold text-lg text-slate-900">Finance Lab</span>
+          <Landmark className="h-7 w-7" strokeWidth={2} />
+          <span className="font-display text-xl tracking-wider">Finance Lab</span>
         </div>
         <Button
-          variant="ghost"
+          variant="bell"
           size="icon"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
@@ -97,20 +97,42 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </Button>
       </div>
 
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation — Doraemon belly + pocket */}
       <aside
         className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ease-in-out
-        md:relative md:translate-x-0 flex flex-col h-full
+        fixed inset-y-0 left-0 z-50 w-64 bg-primary text-white border-r-2 border-outline transform transition-transform duration-200 ease-in-out
+        md:relative md:translate-x-0 flex flex-col h-full relative overflow-hidden
         ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >
+        {/* White semicircle "belly pocket" behind lower content */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 bg-white border-2 border-outline"
+          style={{
+            bottom: "-40px",
+            width: "150%",
+            height: "260px",
+            borderRadius: "50% 50% 0 0 / 60% 60% 0 0",
+          }}
+        />
+
+        {/* Logo */}
+        <div className="relative z-10 p-4 pb-2 flex items-center gap-2">
+          <div className="h-9 w-9 rounded-full bg-bell border-2 border-outline flex items-center justify-center card-shadow-sm">
+            <Landmark className="h-5 w-5 text-outline" strokeWidth={2} />
+          </div>
+          <span className="font-display text-2xl tracking-wider text-white">
+            Finance Lab
+          </span>
+        </div>
+
         {/* Search Bar */}
-        <div className="p-4 pb-2">
+        <div className="relative z-10 p-4 pt-2 pb-2">
           <div className="relative">
             <Search
-              className="absolute left-3 top-3 h-4 w-4 text-slate-400"
-              strokeWidth={1.5}
+              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"
+              strokeWidth={2}
             />
             <Input
               ref={searchInputRef}
@@ -118,13 +140,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               placeholder="Search… ( / )"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm"
+              className="pl-9 pr-3 py-2 rounded-full bg-white text-foreground text-sm"
             />
           </div>
         </div>
 
         {/* Scrollable Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+        <nav className="relative z-10 flex-1 overflow-y-auto px-3 py-3 space-y-2">
           {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -133,13 +155,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <Link
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-bold transition-all ${
                     isActive
-                      ? "bg-blue-50 text-blue-600"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "nav-bell"
+                      : "text-white hover:bg-white/15 border-2 border-transparent"
                   }`}
                 >
-                  <Icon className="h-5 w-5" strokeWidth={1.5} />
+                  <Icon className="h-5 w-5" strokeWidth={2} />
                   <span className="flex-1">{item.label}</span>
                 </Link>
               </div>
@@ -147,50 +169,50 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Footer Section */}
-        <div className="border-t border-slate-200 p-3 space-y-1">
+        {/* Footer Section — inside the white pocket */}
+        <div className="relative z-10 mt-2 mx-3 rounded-2xl border-2 border-outline bg-white card-shadow-sm p-2 space-y-1">
           <button
             onClick={() => setShortcutsOpen(true)}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-full text-sm font-bold text-foreground hover:bg-bell/20 transition-colors"
           >
-            <Keyboard className="h-4 w-4" strokeWidth={1.5} />
+            <Keyboard className="h-4 w-4" strokeWidth={2} />
             <span className="flex-1 text-left">Shortcuts</span>
             <div className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[10px] text-slate-500">⌘K</kbd>
-              <kbd className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[10px] text-slate-500">?</kbd>
+              <kbd className="px-1.5 py-0.5 rounded border-2 border-outline bg-bell text-[10px] font-bold text-outline">⌘K</kbd>
+              <kbd className="px-1.5 py-0.5 rounded border-2 border-outline bg-bell text-[10px] font-bold text-outline">?</kbd>
             </div>
           </button>
           <button
             onClick={signOut}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-full text-sm font-bold text-destructive hover:bg-destructive/10 transition-colors"
           >
-            <LogOut className="h-4 w-4" strokeWidth={1.5} />
+            <LogOut className="h-4 w-4" strokeWidth={2} />
             <span>Sign Out</span>
           </button>
         </div>
 
         {/* Profile Card */}
-        <div className="mx-3 mb-3 mt-auto">
+        <div className="relative z-10 mx-3 mb-3 mt-2">
           <button
             onClick={() => navigate("/profile")}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-2xl border-2 border-outline bg-white card-shadow-sm hover:bg-bell/10 transition-colors"
           >
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-10 w-10 border-2 border-outline">
               <AvatarImage
                 src={avatarUrl}
                 alt={user?.user_metadata?.full_name as string}
               />
-              <AvatarFallback className="text-sm font-semibold bg-blue-100 text-blue-700">
+              <AvatarFallback className="text-sm font-bold bg-bell text-outline">
                 {getInitials()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-xs font-medium truncate text-slate-900">
+              <p className="text-xs font-bold truncate text-foreground">
                 {(user?.user_metadata?.full_name as string) || user?.email}
               </p>
-              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               {formattedDob && (
-                <p className="text-xs text-slate-400 truncate">{formattedDob}</p>
+                <p className="text-xs text-muted-foreground truncate">{formattedDob}</p>
               )}
             </div>
           </button>

@@ -220,7 +220,7 @@ export default function Portfolio() {
       console.error("Price refresh failed:", e);
       toast({
         title: "Price refresh failed",
-        description: "Could not update market prices. Try again later.",
+        description: (e as Error)?.message || "Could not update market prices. Try again later.",
         variant: "destructive",
       });
     } finally {

@@ -88,9 +88,19 @@ function goldPriceForEntry(purchasePrice: number, perLuong: number): number {
 
 // ---------- Main ----------
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "POST only" }), { status: 405 });
+    return new Response(JSON.stringify({ error: "POST only" }), { status: 405, headers: jsonHeaders });
   }
 
   // Auth: cron secret (all users) or a user JWT (own entries only)
@@ -99,10 +109,10 @@ Deno.serve(async (req) => {
   const isCron = !!PRICE_CRON_SECRET && cronSecret === PRICE_CRON_SECRET;
   if (!isCron) {
     const jwt = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-    if (!jwt) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
+    if (!jwt) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: jsonHeaders });
     const { data, error } = await admin.auth.getUser(jwt);
     if (error || !data?.user) {
-      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
+      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: jsonHeaders });
     }
     userId = data.user.id;
   }
@@ -114,10 +124,10 @@ Deno.serve(async (req) => {
   if (userId) query = query.eq("user_id", userId);
 
   const { data: entries, error: qErr } = await query;
-  if (qErr) return new Response(JSON.stringify({ error: qErr.message }), { status: 500 });
+  if (qErr) return new Response(JSON.stringify({ error: qErr.message }), { status: 500, headers: jsonHeaders });
   if (!entries?.length) {
     return new Response(JSON.stringify({ ok: true, updated: 0, skipped: [], errors: [] }), {
-      status: 200, headers: { "Content-Type": "application/json" },
+      status: 200, headers: jsonHeaders,
     });
   }
 
@@ -170,5 +180,5 @@ Deno.serve(async (req) => {
     skipped,
     errors,
     gold_per_luong: goldPerLuong,
-  }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }), { status: 200, headers: jsonHeaders });
 });

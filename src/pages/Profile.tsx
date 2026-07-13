@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Loader2 } from "lucide-react";
+import TelegramConnect from "@/components/TelegramConnect";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -501,6 +502,9 @@ export default function Profile() {
           )}
         </CardContent>
       </Card>
+
+      {/* Telegram */}
+      <TelegramConnect />
 
       {/* Financial Settings */}
       <Card>

@@ -305,6 +305,7 @@ export type Database = {
           raw_text: string | null
           status: string
           telegram_chat_id: number | null
+          update_id: number | null
         }
         Insert: {
           created_at?: string
@@ -313,6 +314,7 @@ export type Database = {
           raw_text?: string | null
           status?: string
           telegram_chat_id?: number | null
+          update_id?: number | null
         }
         Update: {
           created_at?: string
@@ -321,6 +323,7 @@ export type Database = {
           raw_text?: string | null
           status?: string
           telegram_chat_id?: number | null
+          update_id?: number | null
         }
         Relationships: []
       }
@@ -416,7 +419,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_tx_effect: {
+        Args: {
+          p_amount: number
+          p_direction: number
+          p_entry_id: string
+          p_quantity: number
+          p_type: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

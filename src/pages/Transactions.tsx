@@ -163,6 +163,20 @@ export default function Transactions() {
     return b.id.localeCompare(a.id);
   });
 
+  // Defined BEFORE the search memo below — it's called inside it, and a
+  // later const would be in the temporal dead zone (crash on first search)
+  const getCategoryById = (id?: string) => {
+    if (!id) return undefined;
+    if (id.startsWith("sub_")) {
+      const subId = id.replace("sub_", "");
+      const subscription = data.subscriptions?.find((s) => s.id === subId);
+      if (subscription) {
+        return { emoji: "📅", name: subscription.name };
+      }
+    }
+    return data.categories.find((c) => c.id === id);
+  };
+
   const transactions = useMemo(() => {
     if (!categorySearch.trim()) return allTransactions;
     const query = categorySearch.toLowerCase().trim();
@@ -420,17 +434,6 @@ export default function Transactions() {
     }
   };
 
-  const getCategoryById = (id?: string) => {
-    if (!id) return undefined;
-    if (id.startsWith("sub_")) {
-      const subId = id.replace("sub_", "");
-      const subscription = data.subscriptions?.find((s) => s.id === subId);
-      if (subscription) {
-        return { emoji: "📅", name: subscription.name };
-      }
-    }
-    return data.categories.find((c) => c.id === id);
-  };
   const getPortfolioName = (id?: string) =>
     data.portfolio?.find((p) => p.id === id)?.name;
   const monthlyIncome = getTotalIncome(selectedMonth);

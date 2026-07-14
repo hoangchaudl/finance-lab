@@ -39,3 +39,8 @@ notify pgrst, 'reload schema';
 -- Run the full contents of:
 --   supabase/migrations/20260713000002_idempotency_and_tx_effect_rpc.sql
 -- ============================================================
+-- ============================================================
+-- 2026-07-13: Reclassify ETF → Fund except listed HOSE ETFs
+-- Status: NOT yet applied to prod
+-- Run: supabase/migrations/20260713000003_reclassify_etf_fund.sql
+-- ============================================================

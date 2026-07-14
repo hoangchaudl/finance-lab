@@ -179,6 +179,20 @@ const CHART_COLORS: Record<string, string> = {
 // Types whose market price is fetched automatically by update-prices
 const AUTO_PRICE_TYPES = ["Gold", "Crypto", "Stocks", "ETF", "Fund"];
 
+// Listed ETFs on HOSE — anything else typed "ETF" is really a mutual fund
+const ETF_TICKERS = ["E1VFVN30", "FUEVFVND", "FUETCC50"];
+
+function normalizeAssetType(name: string, type: string): string {
+  const ticker = name.trim().split(/\s+/)[0]?.toUpperCase() ?? "";
+  if (ETF_TICKERS.includes(ticker)) return "ETF";
+  if (type === "ETF") return "Fund";
+  return type;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  Fund: "Mutual Funds",
+};
+
 const NAME_PLACEHOLDER: Record<string, string> = {
   Stocks: "Ticker, e.g. FPT",
   ETF: "Ticker, e.g. E1VFVN30",
@@ -338,13 +352,24 @@ export default function Portfolio() {
       };
     })
     .sort((a, b) => {
-      const ta = TIER_ORDER.indexOf(a.tier);
-      const tb = TIER_ORDER.indexOf(b.tier);
-      const ra = ta === -1 ? 99 : ta; // unknown tiers last, not first
+      // Group by asset type (Savings → Stocks → Crypto → Gold → ETF →
+      // Mutual Funds → Other), biggest holdings first within each type
+      const ta = (TYPE_OPTIONS as readonly string[]).indexOf(a.type);
+      const tb = (TYPE_OPTIONS as readonly string[]).indexOf(b.type);
+      const ra = ta === -1 ? 99 : ta;
       const rb = tb === -1 ? 99 : tb;
       if (ra !== rb) return ra - rb;
-      return b.totalValue - a.totalValue; // biggest holdings first within tier
+      return b.totalValue - a.totalValue;
     });
+
+  // Section subtotals for the type header rows
+  const typeSubtotals = groupedAssets.reduce(
+    (acc, g) => {
+      acc[g.type] = (acc[g.type] || 0) + g.totalValue;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   const investmentEntries = calculatedEntries.filter((e) => e.type !== "Other");
 
@@ -495,7 +520,7 @@ export default function Portfolio() {
     try {
       await addPortfolioEntry({
         name: form.name.trim(),
-        type: form.type,
+        type: normalizeAssetType(form.name, form.type),
         tier: form.tier,
         account: form.account.trim() || "General",
         quantity: qty,
@@ -539,7 +564,7 @@ export default function Portfolio() {
     try {
       await updatePortfolioEntry(editing.id, {
         name: editing.name,
-        type: editing.type,
+        type: normalizeAssetType(editing.name, editing.type),
         tier: editing.tier,
         account: editing.account,
         quantity: editing.quantity,
@@ -982,8 +1007,26 @@ export default function Portfolio() {
                       })()
                     : null;
 
+                const isNewTypeSection =
+                  groupIdx === 0 || groupedAssets[groupIdx - 1].type !== group.type;
+
                 return (
                   <React.Fragment key={group.key}>
+                    {isNewTypeSection && (
+                      <TableRow className="bg-slate-100/70 hover:bg-slate-100/70">
+                        <TableCell className="py-2"></TableCell>
+                        <TableCell
+                          colSpan={6}
+                          className="py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                        >
+                          {TYPE_LABELS[group.type] ?? group.type}
+                        </TableCell>
+                        <TableCell className="py-2 text-right text-xs font-semibold text-muted-foreground">
+                          {formatVND(Math.ceil(typeSubtotals[group.type] ?? 0))}
+                        </TableCell>
+                        <TableCell colSpan={4} className="py-2"></TableCell>
+                      </TableRow>
+                    )}
                     <TableRow
                       key={group.key}
                       className={`bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors ${focusedGroupIdx === groupIdx ? "ring-2 ring-inset ring-primary/40 bg-primary/5" : ""}`}

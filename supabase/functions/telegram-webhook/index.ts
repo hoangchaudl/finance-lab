@@ -148,11 +148,15 @@ function parseInvest(text: string): { amount: number; assetWords: string[]; qty?
   return { amount, assetWords: rest, qty };
 }
 
+const ETF_TICKERS = ["E1VFVN30", "FUEVFVND", "FUETCC50"];
+
 function guessAssetType(name: string): string {
+  const first = name.trim().split(/\s+/)[0]?.toUpperCase() ?? "";
+  if (ETF_TICKERS.includes(first)) return "ETF"; // listed HOSE ETFs only
   const n = name.toLowerCase();
   if (/gold|vang/.test(n)) return "Gold";
   if (/btc|eth|sol|bnb|crypto|coin/.test(n)) return "Crypto";
-  if (/etf/.test(n)) return "ETF";
+  if (/etf|fund|quy/.test(n)) return "Fund"; // everything else fund-like → mutual fund
   if (/sav|bank|deposit/.test(n)) return "Savings";
   return "Other";
 }

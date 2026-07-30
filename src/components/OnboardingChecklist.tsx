@@ -52,21 +52,21 @@ export default function OnboardingChecklist() {
   };
 
   return (
-    <Card className="border border-blue-100 bg-gradient-to-br from-blue-50/60 to-white">
+    <Card className="bg-gradient-to-br from-primary/5 to-card">
       <CardContent className="pt-5 pb-5 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="font-semibold text-slate-900">
+            <h3 className="font-bold text-foreground">
               Get started with Finance Lab
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {doneCount} of {items.length} complete — finish setup to unlock
               your full dashboard.
             </p>
           </div>
           <button
             onClick={dismiss}
-            className="text-slate-400 hover:text-slate-700 transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Dismiss"
           >
             <X className="h-4 w-4" strokeWidth={1.5} />
@@ -78,15 +78,15 @@ export default function OnboardingChecklist() {
           className="h-1.5"
         />
 
-        <ul className="divide-y divide-slate-100 -mx-2">
+        <ul className="divide-y divide-border-soft -mx-2">
           {items.map((item) => (
             <li key={item.label}>
               <button
                 onClick={() => navigate(item.path)}
-                className="flex items-center gap-3 w-full px-2 py-2.5 hover:bg-slate-50/80 rounded-lg text-left group"
+                className="flex items-center gap-3 w-full px-2 py-2.5 hover:bg-muted/60 rounded-lg text-left group"
               >
                 {item.done ? (
-                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                  <span className="h-5 w-5 rounded-full border-2 border-outline bg-success flex items-center justify-center shrink-0">
                     <Check
                       className="h-3 w-3 text-white"
                       strokeWidth={2.5}
@@ -94,22 +94,22 @@ export default function OnboardingChecklist() {
                   </span>
                 ) : (
                   <Circle
-                    className="h-5 w-5 text-slate-300 shrink-0"
+                    className="h-5 w-5 text-muted-foreground/50 shrink-0"
                     strokeWidth={1.5}
                   />
                 )}
                 <span
                   className={`flex-1 text-sm ${
                     item.done
-                      ? "text-slate-400 line-through"
-                      : "text-slate-700"
+                      ? "text-muted-foreground line-through"
+                      : "text-foreground"
                   }`}
                 >
                   {item.label}
                 </span>
                 {!item.done && (
                   <ArrowRight
-                    className="h-4 w-4 text-slate-400 group-hover:text-blue-600 transition-colors"
+                    className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"
                     strokeWidth={1.5}
                   />
                 )}

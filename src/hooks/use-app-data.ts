@@ -565,7 +565,7 @@ export function useAppData() {
 
   // --- PORTFOLIO ---
   const addPortfolioEntry = useCallback(
-    async (e: Omit<PortfolioEntry, "id">) => {
+    async (e: Omit<PortfolioEntry, "id">, acquiredDate?: string) => {
       if (!user) return;
       const { data: inserted, error } = await supabase
         .from("portfolio_entries")
@@ -586,7 +586,7 @@ export function useAppData() {
       if (error) throw new Error(error.message);
       await supabase.from("transactions").insert({
         user_id: user.id,
-        date: new Date().toISOString().split("T")[0],
+        date: acquiredDate || new Date().toISOString().split("T")[0],
         amount: e.quantity * e.purchasePrice,
         type: "investing",
         portfolio_entry_id: inserted.id,

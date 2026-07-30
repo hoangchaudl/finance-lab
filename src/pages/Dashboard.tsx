@@ -44,33 +44,27 @@ import HintBanner from "@/components/HintBanner";
 import CollapsibleAlerts from "@/components/CollapsibleAlerts";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
+import { ASSET_TYPE_COLORS, STATUS_CHART_COLORS } from "@/lib/chart-colors";
 
 function DeltaChip({ current, previous }: { current: number; previous: number }) {
   if (previous === 0) return null;
   const pct = ((current - previous) / Math.abs(previous)) * 100;
   const isUp = pct >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-emerald-600" : "text-red-500"}`}>
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isUp ? "text-success" : "text-destructive"}`}>
       {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
       {Math.abs(pct).toFixed(1)}%
     </span>
   );
 }
 
+// Essentials / Lifestyle / Savings — reuses the app's 3 status tokens so the
+// meaning (needs / discretionary / growth) matches everywhere else.
 const ALLOC_COLORS = [
-  "hsl(160, 84%, 39%)",
-  "hsl(38, 92%, 50%)",
-  "hsl(217, 91%, 60%)",
+  STATUS_CHART_COLORS.primary,
+  STATUS_CHART_COLORS.warning,
+  STATUS_CHART_COLORS.success,
 ];
-
-const PORTFOLIO_COLORS: Record<string, string> = {
-  Savings: "#22c55e",
-  Stocks: "#3b82f6",
-  Crypto: "#a855f7",
-  Gold: "#eab308",
-  ETF: "#14b8a6",
-  Other: "#64748b",
-};
 
 export default function Dashboard() {
   const {
@@ -305,8 +299,8 @@ export default function Dashboard() {
       />
 
       {/* Hero Balance Card */}
-      <div data-tour="net-worth" className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-3xl p-8 text-white shadow-lg">
-        <p className="text-sm text-blue-100 mb-2">Total Net Worth</p>
+      <div data-tour="net-worth" className="hero-gradient rounded-3xl p-8 text-white border-2 border-outline card-shadow">
+        <p className="text-sm text-white/80 mb-2">Total Net Worth</p>
         <h2 className="font-bold text-3xl">{fmt(netWorth)}</h2>
       </div>
 
@@ -382,7 +376,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-primary">
               {fmt(Math.round(totalInvestments))}
             </p>
             {(() => {
@@ -499,7 +493,7 @@ export default function Dashboard() {
                           {chartData.map((entry, index) => (
                             <Cell
                               key={`cell-${index}`}
-                              fill={PORTFOLIO_COLORS[entry.name] || "#8884d8"}
+                              fill={ASSET_TYPE_COLORS[entry.name] || "hsl(var(--chart-7))"}
                             />
                           ))}
                         </Pie>
@@ -513,7 +507,7 @@ export default function Dashboard() {
                         <div
                           className="w-3 h-3 rounded-full"
                           style={{
-                            background: PORTFOLIO_COLORS[d.name] || "#8884d8",
+                            background: ASSET_TYPE_COLORS[d.name] || "hsl(var(--chart-7))",
                           }}
                         />
 
@@ -537,7 +531,7 @@ export default function Dashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp
-              className="h-5 w-5 text-emerald-500"
+              className="h-5 w-5 text-success"
               strokeWidth={1.5}
             />
             Passive Income &amp; Crossover Point
@@ -549,7 +543,7 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">
                 Avg Monthly Dividend
               </p>
-              <p className="text-2xl font-bold text-emerald-600">
+              <p className="text-2xl font-bold text-success">
                 {formatVND(Math.round(passiveIncomePerMonth))}
               </p>
             </div>
@@ -564,7 +558,7 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">
                 Crossover Point
               </p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-2xl font-bold text-primary">
                 {monthsToCross === null
                   ? "—"
                   : monthsToCross <= 0
@@ -613,7 +607,7 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3
-                  className="h-5 w-5 text-blue-500"
+                  className="h-5 w-5 text-primary"
                   strokeWidth={1.5}
                 />
                 Income Quality
@@ -630,21 +624,21 @@ export default function Dashboard() {
                     {activePct > 0 && (
                       <div
                         style={{ width: `${activePct}%` }}
-                        className="bg-red-400 transition-all"
+                        className="bg-destructive transition-all"
                         title={`Active: ${activePct.toFixed(1)}%`}
                       />
                     )}
                     {scalablePct > 0 && (
                       <div
                         style={{ width: `${scalablePct}%` }}
-                        className="bg-yellow-400 transition-all"
+                        className="bg-warning transition-all"
                         title={`Scalable: ${scalablePct.toFixed(1)}%`}
                       />
                     )}
                     {passivePct > 0 && (
                       <div
                         style={{ width: `${passivePct}%` }}
-                        className="bg-green-400 transition-all"
+                        className="bg-success transition-all"
                         title={`Passive: ${passivePct.toFixed(1)}%`}
                       />
                     )}
@@ -652,7 +646,7 @@ export default function Dashboard() {
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
                         Active
                       </div>
                       <p className="font-semibold">{activePct.toFixed(1)}%</p>
@@ -662,7 +656,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-warning" />
                         Scalable
                       </div>
                       <p className="font-semibold">{scalablePct.toFixed(1)}%</p>
@@ -672,7 +666,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-                        <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-success" />
                         Passive
                       </div>
                       <p className="font-semibold">{passivePct.toFixed(1)}%</p>
@@ -682,7 +676,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <p
-                    className={`text-xs ${passivePct >= 30 ? "text-green-600" : "text-muted-foreground"}`}
+                    className={`text-xs ${passivePct >= 30 ? "text-success" : "text-muted-foreground"}`}
                   >
                     Target: &gt;30% Passive — currently {passivePct.toFixed(1)}%
                     {passivePct >= 30 ? " ✓" : ""}
@@ -724,17 +718,17 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-blue-50/50 border-blue-100">
+        <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-blue-600">
+            <CardTitle className="text-sm text-primary">
               Required Monthly Savings
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-700">
+            <div className="text-2xl font-bold text-primary">
               {formatVND(requiredMonthlySavings)}
             </div>
-            <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+            <div className="flex items-center gap-1 text-xs text-primary mt-1">
               <TrendingUp className="h-3 w-3" strokeWidth={1.5} />
               <span>
                 To retire in {yearsToGrow} years (@{returnRate}%)
@@ -784,7 +778,7 @@ export default function Dashboard() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm flex items-center gap-1.5">
                       <TrendingUp
-                        className="h-4 w-4 text-blue-500"
+                        className="h-4 w-4 text-primary"
                         strokeWidth={1.5}
                       />{" "}
                       Stocks/Equity
@@ -795,7 +789,7 @@ export default function Dashboard() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm flex items-center gap-1.5">
                       <Landmark
-                        className="h-4 w-4 text-emerald-500"
+                        className="h-4 w-4 text-success"
                         strokeWidth={1.5}
                       />{" "}
                       Bonds/Safe
@@ -813,7 +807,7 @@ export default function Dashboard() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm flex items-center gap-1.5">
                       <TrendingUp
-                        className="h-4 w-4 text-blue-500"
+                        className="h-4 w-4 text-primary"
                         strokeWidth={1.5}
                       />{" "}
                       Stocks/Equity
@@ -830,7 +824,7 @@ export default function Dashboard() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm flex items-center gap-1.5">
                       <Landmark
-                        className="h-4 w-4 text-emerald-500"
+                        className="h-4 w-4 text-success"
                         strokeWidth={1.5}
                       />{" "}
                       Bonds/Safe

@@ -73,6 +73,7 @@ import { Combobox, ComboboxOption } from "@/components/ui/combobox";
 import HintBanner from "@/components/HintBanner";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
+import { TX_TYPE_BADGE, QUALITY_BADGE } from "@/lib/tx-style";
 
 type TxType = "income" | "expense" | "investing" | "saving" | "sell" | "dividend";
 
@@ -439,65 +440,22 @@ export default function Transactions() {
   const monthlyIncome = getTotalIncome(selectedMonth);
 
   const getTypeBadge = (type: string) => {
-    switch (type) {
-      case "income":
-        return (
-          <Badge className="bg-green-100 text-green-700 border-green-200">
-            Income
-          </Badge>
-        );
-      case "investing":
-        return (
-          <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-            Invest
-          </Badge>
-        );
-      case "saving":
-        return (
-          <Badge className="bg-purple-100 text-purple-700 border-purple-200">
-            Save
-          </Badge>
-        );
-      case "sell":
-        return (
-          <Badge className="bg-amber-100 text-amber-700 border-amber-200">
-            Sell
-          </Badge>
-        );
-      case "dividend":
-        return (
-          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-            Dividend
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">Expense</Badge>;
-    }
+    const cfg = TX_TYPE_BADGE[type as keyof typeof TX_TYPE_BADGE];
+    if (!cfg) return <Badge variant="secondary">{type}</Badge>;
+    return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
   };
 
+  const QUALITY_ICON = { active: Briefcase, scalable: Layers, passive: Leaf } as const;
+
   const getQualityBadge = (quality?: string) => {
-    switch (quality) {
-      case "active":
-        return (
-          <Badge className="bg-red-100 text-red-700 border-red-200 text-xs inline-flex items-center gap-1">
-            <Briefcase className="h-3 w-3" strokeWidth={1.5} /> Active
-          </Badge>
-        );
-      case "scalable":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs inline-flex items-center gap-1">
-            <Layers className="h-3 w-3" strokeWidth={1.5} /> Scalable
-          </Badge>
-        );
-      case "passive":
-        return (
-          <Badge className="bg-green-100 text-green-700 border-green-200 text-xs inline-flex items-center gap-1">
-            <Leaf className="h-3 w-3" strokeWidth={1.5} /> Passive
-          </Badge>
-        );
-      default:
-        return null;
-    }
+    const cfg = QUALITY_BADGE[quality as keyof typeof QUALITY_BADGE];
+    if (!cfg) return null;
+    const Icon = QUALITY_ICON[quality as keyof typeof QUALITY_ICON];
+    return (
+      <Badge variant={cfg.variant} className="text-xs">
+        <Icon className="h-3 w-3" strokeWidth={1.5} /> {cfg.label}
+      </Badge>
+    );
   };
 
   // Pagination logic
@@ -662,19 +620,19 @@ export default function Transactions() {
                   <SelectContent>
                     <SelectItem value="active">
                       <span className="inline-flex items-center gap-1.5">
-                        <Briefcase className="h-3.5 w-3.5 text-red-500" strokeWidth={1.5} />
+                        <Briefcase className="h-3.5 w-3.5 text-destructive" strokeWidth={1.5} />
                         Active (salary, freelance)
                       </span>
                     </SelectItem>
                     <SelectItem value="scalable">
                       <span className="inline-flex items-center gap-1.5">
-                        <Layers className="h-3.5 w-3.5 text-yellow-500" strokeWidth={1.5} />
+                        <Layers className="h-3.5 w-3.5 text-warning-foreground" strokeWidth={1.5} />
                         Scalable (courses, SaaS)
                       </span>
                     </SelectItem>
                     <SelectItem value="passive">
                       <span className="inline-flex items-center gap-1.5">
-                        <Leaf className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} />
+                        <Leaf className="h-3.5 w-3.5 text-success" strokeWidth={1.5} />
                         Passive (dividends, interest)
                       </span>
                     </SelectItem>
@@ -696,7 +654,7 @@ export default function Transactions() {
             {isAssetLinkedType && (
               <>
                 <div className="sm:col-span-2 lg:col-span-1">
-                  <Label className={`flex items-center gap-1 ${isSellType ? "text-amber-600" : "text-blue-600"}`}>
+                  <Label className={`flex items-center gap-1 ${isSellType ? "text-warning-foreground" : "text-primary"}`}>
                     <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> {isSellType ? "Sell Asset" : "Link Asset"}
                   </Label>
                   <Select
@@ -704,7 +662,7 @@ export default function Transactions() {
                     onValueChange={setFormPortfolioId}
                     required
                   >
-                    <SelectTrigger className={isSellType ? "border-amber-200 bg-amber-50/50" : "border-blue-200 bg-blue-50/50"}>
+                    <SelectTrigger className={isSellType ? "border-warning/40 bg-warning/10" : "border-primary/30 bg-primary/5"}>
                       <SelectValue placeholder="Select Asset" />
                     </SelectTrigger>
                     <SelectContent>
@@ -725,13 +683,13 @@ export default function Transactions() {
                   )}
                 </div>
                 <div>
-                  <Label className={isSellType ? "text-amber-600" : "text-blue-600"}>Quantity</Label>
+                  <Label className={isSellType ? "text-warning-foreground" : "text-primary"}>Quantity</Label>
                   <Input
                     type="number"
                     value={formQuantity}
                     onChange={(e) => setFormQuantity(e.target.value)}
                     placeholder="0"
-                    className={isSellType ? "border-amber-200" : "border-blue-200"}
+                    className={isSellType ? "border-warning/40" : "border-primary/30"}
                     required
                     max={isSellType && selectedSellAsset ? selectedSellAsset.quantity : undefined}
                   />
@@ -741,11 +699,11 @@ export default function Transactions() {
 
             {isDividendType && (
               <div className="sm:col-span-2 lg:col-span-1">
-                <Label className="flex items-center gap-1 text-emerald-600">
+                <Label className="flex items-center gap-1 text-success">
                   <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> Source Holding
                 </Label>
                 <Select value={formPortfolioId} onValueChange={setFormPortfolioId}>
-                  <SelectTrigger className="border-emerald-200 bg-emerald-50/50">
+                  <SelectTrigger className="border-success/30 bg-success/10">
                     <SelectValue placeholder="Select Asset (optional)" />
                   </SelectTrigger>
                   <SelectContent>
@@ -797,10 +755,10 @@ export default function Transactions() {
             {/* Sell Profit Preview */}
             {isSellType && sellProfitPreview && (
               <div className="lg:col-span-6">
-                <div className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium ${
+                <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium border-2 ${
                   sellProfitPreview.gain >= 0
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
+                    ? "bg-success/10 text-success border-success/30"
+                    : "bg-destructive/10 text-destructive border-destructive/30"
                 }`}>
                   {sellProfitPreview.gain >= 0 ? (
                     <TrendingUp className="h-4 w-4" strokeWidth={1.5} />
@@ -907,7 +865,7 @@ export default function Transactions() {
                         {getCategoryById(t.category_id)?.name}
                       </span>
                       {getPortfolioName(t.portfolio_entry_id) && (
-                        <span className="text-[10px] text-blue-600 flex items-center gap-0.5">
+                        <span className="text-[10px] text-primary flex items-center gap-0.5">
                           <LinkIcon className="h-2 w-2" strokeWidth={1.5} />{" "}
                           {getPortfolioName(t.portfolio_entry_id)}
                         </span>
@@ -922,13 +880,13 @@ export default function Transactions() {
                     <TableCell
                       className={`text-right font-medium ${
                         t.type === "income" || t.type === "dividend" ? "text-primary" :
-                        t.type === "sell" ? "text-amber-600" : "text-foreground"
+                        t.type === "sell" ? "text-warning-foreground" : "text-foreground"
                       }`}
                     >
                       {t.type === "income" || t.type === "sell" || t.type === "dividend" ? "+" : "-"}
                       {formatVND(t.amount)}
                       {t.type === "sell" && t.realized_gain !== undefined && (
-                        <span className={`block text-[10px] ${t.realized_gain >= 0 ? "text-success" : "text-red-600"}`}>
+                        <span className={`block text-[10px] ${t.realized_gain >= 0 ? "text-success" : "text-destructive"}`}>
                           {t.realized_gain >= 0 ? "+" : ""}{formatVND(t.realized_gain)} gain
                         </span>
                       )}
@@ -1049,19 +1007,19 @@ export default function Transactions() {
                   <SelectContent>
                     <SelectItem value="active">
                       <span className="inline-flex items-center gap-1.5">
-                        <Briefcase className="h-3.5 w-3.5 text-red-500" strokeWidth={1.5} />
+                        <Briefcase className="h-3.5 w-3.5 text-destructive" strokeWidth={1.5} />
                         Active (salary, freelance)
                       </span>
                     </SelectItem>
                     <SelectItem value="scalable">
                       <span className="inline-flex items-center gap-1.5">
-                        <Layers className="h-3.5 w-3.5 text-yellow-500" strokeWidth={1.5} />
+                        <Layers className="h-3.5 w-3.5 text-warning-foreground" strokeWidth={1.5} />
                         Scalable (courses, SaaS)
                       </span>
                     </SelectItem>
                     <SelectItem value="passive">
                       <span className="inline-flex items-center gap-1.5">
-                        <Leaf className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} />
+                        <Leaf className="h-3.5 w-3.5 text-success" strokeWidth={1.5} />
                         Passive (dividends, interest)
                       </span>
                     </SelectItem>
@@ -1083,14 +1041,14 @@ export default function Transactions() {
             {isEditAssetLinkedType && (
               <>
                 <div>
-                  <Label className={`flex items-center gap-1 ${isEditSellType ? "text-amber-600" : "text-blue-600"}`}>
+                  <Label className={`flex items-center gap-1 ${isEditSellType ? "text-warning-foreground" : "text-primary"}`}>
                     <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> {isEditSellType ? "Sell Asset" : "Link Asset"}
                   </Label>
                   <Select
                     value={editPortfolioId}
                     onValueChange={setEditPortfolioId}
                   >
-                    <SelectTrigger className={isEditSellType ? "border-amber-200 bg-amber-50/50" : "border-blue-200 bg-blue-50/50"}>
+                    <SelectTrigger className={isEditSellType ? "border-warning/40 bg-warning/10" : "border-primary/30 bg-primary/5"}>
                       <SelectValue placeholder="Select Asset" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1104,13 +1062,13 @@ export default function Transactions() {
                   </Select>
                 </div>
                 <div>
-                  <Label className={isEditSellType ? "text-amber-600" : "text-blue-600"}>Quantity</Label>
+                  <Label className={isEditSellType ? "text-warning-foreground" : "text-primary"}>Quantity</Label>
                   <Input
                     type="number"
                     value={editQuantity}
                     onChange={(e) => setEditQuantity(e.target.value)}
                     placeholder="0"
-                    className={isEditSellType ? "border-amber-200" : "border-blue-200"}
+                    className={isEditSellType ? "border-warning/40" : "border-primary/30"}
                   />
                 </div>
               </>
@@ -1118,11 +1076,11 @@ export default function Transactions() {
 
             {isEditDividendType && (
               <div>
-                <Label className="flex items-center gap-1 text-emerald-600">
+                <Label className="flex items-center gap-1 text-success">
                   <LinkIcon className="h-3 w-3" strokeWidth={1.5} /> Source Holding
                 </Label>
                 <Select value={editPortfolioId} onValueChange={setEditPortfolioId}>
-                  <SelectTrigger className="border-emerald-200 bg-emerald-50/50">
+                  <SelectTrigger className="border-success/30 bg-success/10">
                     <SelectValue placeholder="Select Asset (optional)" />
                   </SelectTrigger>
                   <SelectContent>

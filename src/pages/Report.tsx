@@ -26,6 +26,7 @@ import HintBanner from "@/components/HintBanner";
 import EmptyState from "@/components/EmptyState";
 import { BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { CHART_PALETTE, STATUS_CHART_COLORS } from "@/lib/chart-colors";
 import {
   BarChart,
   Bar,
@@ -48,11 +49,6 @@ type ReportType = "monthly" | "yearly";
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
-];
-
-const PIE_COLORS = [
-  "#3b82f6", "#ef4444", "#f59e0b", "#10b981",
-  "#8b5cf6", "#f97316", "#14b8a6", "#6366f1",
 ];
 
 const formatMonthLabel = (key: string) => {
@@ -174,7 +170,11 @@ export default function Report() {
       ? savingsRateData.reduce((s, d) => s + d.rate, 0) / savingsRateData.length
       : 0;
   const savingsLineColor =
-    avgSavingsRate > 50 ? "#16a34a" : avgSavingsRate < 30 ? "#ef4444" : "#f59e0b";
+    avgSavingsRate > 50
+      ? STATUS_CHART_COLORS.success
+      : avgSavingsRate < 30
+        ? STATUS_CHART_COLORS.destructive
+        : STATUS_CHART_COLORS.warning;
 
   const currentMonthRate = (() => {
     const inc = transactions
@@ -315,9 +315,9 @@ export default function Report() {
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
             {[
               { label: "Total Income", value: formatVND(totalIncome), cls: "text-success" },
-              { label: "Capital Gains", value: `${totalCapitalGains > 0 ? "+" : ""}${formatVND(totalCapitalGains)}`, cls: totalCapitalGains >= 0 ? "text-success" : "text-red-600" },
-              { label: "Total Expenses", value: formatVND(totalExpenses), cls: "text-red-600" },
-              { label: "Saved & Invested", value: formatVND(totalSavedInvested), cls: "text-blue-600" },
+              { label: "Capital Gains", value: `${totalCapitalGains > 0 ? "+" : ""}${formatVND(totalCapitalGains)}`, cls: totalCapitalGains >= 0 ? "text-success" : "text-destructive" },
+              { label: "Total Expenses", value: formatVND(totalExpenses), cls: "text-destructive" },
+              { label: "Saved & Invested", value: formatVND(totalSavedInvested), cls: "text-primary" },
               { label: "Net Cash Flow", value: `${netChange > 0 ? "+" : ""}${formatVND(netChange)}`, cls: netChange >= 0 ? "text-primary" : "text-destructive" },
             ].map((c) => (
               <Card key={c.label}>
@@ -337,10 +337,10 @@ export default function Report() {
                   <YAxis tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(v: number, n: string) => [formatVND(v), n]} />
                   <Legend />
-                  <Bar dataKey="income" name="Income" stackId="income" fill="#16a34a" />
-                  <Bar dataKey="capitalGains" name="Capital Gains" stackId="income" fill="#86efac" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="savedInvested" name="Saved/Invested" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="income" name="Income" stackId="income" fill={STATUS_CHART_COLORS.success} />
+                  <Bar dataKey="capitalGains" name="Capital Gains" stackId="income" fill={CHART_PALETTE[4]} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name="Expense" fill={STATUS_CHART_COLORS.destructive} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="savedInvested" name="Saved/Invested" fill={STATUS_CHART_COLORS.primary} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -355,9 +355,9 @@ export default function Report() {
                     <TableHead>Period</TableHead>
                     <TableHead className="text-right text-success">Income</TableHead>
                     <TableHead className="text-right text-success">Capital Gains</TableHead>
-                    <TableHead className="text-right text-red-600">Expenses</TableHead>
-                    <TableHead className="text-right text-purple-600">Savings</TableHead>
-                    <TableHead className="text-right text-blue-600">Investment</TableHead>
+                    <TableHead className="text-right text-destructive">Expenses</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Savings</TableHead>
+                    <TableHead className="text-right text-primary">Investment</TableHead>
                     <TableHead className="text-right">Net Change</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -372,7 +372,7 @@ export default function Report() {
                     <TableRow key={row.period}>
                       <TableCell className="font-medium">{row.period}</TableCell>
                       <TableCell className="text-right">{formatVND(row.income)}</TableCell>
-                      <TableCell className={`text-right ${row.capitalGains >= 0 ? "text-success" : "text-red-500"}`}>
+                      <TableCell className={`text-right ${row.capitalGains >= 0 ? "text-success" : "text-destructive"}`}>
                         {row.capitalGains > 0 ? "+" : ""}{formatVND(row.capitalGains)}
                       </TableCell>
                       <TableCell className="text-right">{formatVND(row.expense)}</TableCell>
@@ -412,7 +412,7 @@ export default function Report() {
                         type="monotone"
                         dataKey="netWorth"
                         name="Net Worth"
-                        stroke="#3b82f6"
+                        stroke={STATUS_CHART_COLORS.primary}
                         strokeWidth={2}
                         dot={{ r: 4 }}
                         activeDot={{ r: 6 }}
@@ -435,7 +435,7 @@ export default function Report() {
               {currentMonthRate !== null && (
                 <div className="mb-4">
                   <p className="text-sm text-muted-foreground">This month</p>
-                  <p className={`text-3xl font-bold ${currentMonthRate >= 50 ? "text-success" : currentMonthRate < 30 ? "text-destructive" : "text-amber-500"}`}>
+                  <p className={`text-3xl font-bold ${currentMonthRate >= 50 ? "text-success" : currentMonthRate < 30 ? "text-destructive" : "text-warning-foreground"}`}>
                     {currentMonthRate.toFixed(1)}%
                   </p>
                 </div>
@@ -454,9 +454,9 @@ export default function Report() {
                       <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, "Savings Rate"]} />
                       <ReferenceLine
                         y={50}
-                        stroke="#6b7280"
+                        stroke="hsl(var(--muted-foreground))"
                         strokeDasharray="4 3"
-                        label={{ value: "FIRE Target 50%", position: "insideTopRight", fontSize: 11, fill: "#6b7280" }}
+                        label={{ value: "FIRE Target 50%", position: "insideTopRight", fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                       />
                       <Line
                         type="monotone"
@@ -526,7 +526,7 @@ export default function Report() {
                             labelLine={true}
                           >
                             {thisMonthExpenses.map((_, i) => (
-                              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                              <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
                             ))}
                           </Pie>
                           <Tooltip formatter={(v: number) => formatVND(v)} />
@@ -562,15 +562,15 @@ export default function Report() {
                           {allTimeExpenses.map((entry, i) => (
                             <Cell
                               key={i}
-                              fill={entry.type === "essential" ? "#3b82f6" : "#f97316"}
+                              fill={entry.type === "essential" ? STATUS_CHART_COLORS.primary : STATUS_CHART_COLORS.warning}
                             />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                     <div className="flex gap-4 justify-center mt-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" /> Essential</span>
-                      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-orange-500 inline-block" /> Non-essential</span>
+                      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-primary inline-block" /> Essential</span>
+                      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-warning inline-block" /> Non-essential</span>
                     </div>
                   </div>
                 )

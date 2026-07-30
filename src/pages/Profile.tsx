@@ -365,7 +365,7 @@ export default function Profile() {
                   {loading ? "Saving..." : "Save"}
                 </Button>
                 {isSaved && (
-                  <span className="text-xs text-green-600 font-medium ml-2">
+                  <span className="text-xs text-success font-medium ml-2">
                     ✓
                   </span>
                 )}
@@ -418,7 +418,7 @@ export default function Profile() {
                 {loading ? "Saving..." : "Save Changes"}
               </Button>
               {isSaved && (
-                <span className="text-sm text-green-600 font-medium">
+                <span className="text-sm text-success font-medium">
                   ✓ Saved
                 </span>
               )}

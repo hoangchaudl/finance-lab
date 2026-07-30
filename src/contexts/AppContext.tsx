@@ -8,9 +8,9 @@ const AppContext = createContext<AppContextType | null>(null);
 
 function AppLoadingSkeleton() {
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-50 flex flex-col md:flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-muted flex flex-col md:flex-row">
       {/* Sidebar skeleton */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 p-4 gap-3">
+      <aside className="hidden md:flex flex-col w-64 bg-card border-r-2 border-outline p-4 gap-3">
         <Skeleton className="h-9 w-full" />
         <div className="space-y-2 mt-2">
           {Array.from({ length: 6 }).map((_, i) => (

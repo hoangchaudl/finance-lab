@@ -10,6 +10,7 @@ import {
   parseAmountInput,
   sanitizeAmountTyping,
   formatAmountTyping,
+  todayLocalISO,
 } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,8 +57,13 @@ import {
   Coins,
   TrendingUp,
   Zap,
+  History,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
+import AssetActivityDialog from "@/components/AssetActivityDialog";
+import { ASSET_TYPE_COLORS } from "@/lib/chart-colors";
 import {
   PieChart,
   Pie,
@@ -88,21 +94,24 @@ const TIER_TARGETS: Record<string, { label: string; min?: number; max?: number }
   Risk:      { label: "Cap ≤ 10%",              max: 10 },
 };
 
+// Tiers map onto the app's 4 status tokens plus a neutral tone for
+// Defensive — same tokens used everywhere else (gains/losses, alerts,
+// transaction types), so a tier's color always carries the same meaning.
 const TIER_STYLES: Record<string, { border: string; bar: string }> = {
-  Defensive: { border: "border-l-4 border-blue-400", bar: "bg-blue-400" },
-  Safe: { border: "border-l-4 border-green-400", bar: "bg-green-400" },
-  Income: { border: "border-l-4 border-yellow-400", bar: "bg-yellow-400" },
-  Growth: { border: "border-l-4 border-purple-400", bar: "bg-purple-400" },
-  Risk: { border: "border-l-4 border-red-400", bar: "bg-red-400" },
+  Defensive: { border: "border-l-4 border-muted-foreground/40", bar: "bg-muted-foreground/50" },
+  Safe: { border: "border-l-4 border-success", bar: "bg-success" },
+  Income: { border: "border-l-4 border-warning", bar: "bg-warning" },
+  Growth: { border: "border-l-4 border-primary", bar: "bg-primary" },
+  Risk: { border: "border-l-4 border-destructive", bar: "bg-destructive" },
 };
 
 const getTierIcon = (tierName: string, size = "h-4 w-4") => {
   const map: Record<string, { Icon: typeof Shield; cls: string }> = {
-    Defensive: { Icon: Shield, cls: "text-blue-500" },
-    Safe: { Icon: Banknote, cls: "text-green-500" },
-    Income: { Icon: Coins, cls: "text-yellow-500" },
-    Growth: { Icon: TrendingUp, cls: "text-purple-500" },
-    Risk: { Icon: Zap, cls: "text-red-500" },
+    Defensive: { Icon: Shield, cls: "text-muted-foreground" },
+    Safe: { Icon: Banknote, cls: "text-success" },
+    Income: { Icon: Coins, cls: "text-warning-foreground" },
+    Growth: { Icon: TrendingUp, cls: "text-primary" },
+    Risk: { Icon: Zap, cls: "text-destructive" },
   };
   const entry = map[tierName];
   if (!entry) return null;
@@ -116,20 +125,12 @@ const getTierBadge = (
   pct: number,
   isPortfolioEmpty: boolean,
 ) => {
-  const ok = (
-    <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
-      ✅ OK
-    </Badge>
-  );
+  const ok = <Badge variant="success" className="text-xs">✅ OK</Badge>;
   const warn = (msg: string) => (
-    <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
-      ⚠️ {msg}
-    </Badge>
+    <Badge variant="warning" className="text-xs">⚠️ {msg}</Badge>
   );
   const danger = (msg: string) => (
-    <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
-      🔴 {msg}
-    </Badge>
+    <Badge variant="destructive" className="text-xs">🔴 {msg}</Badge>
   );
 
   // When entire portfolio is empty, Risk target is 0% so it's OK; all others are empty
@@ -165,16 +166,6 @@ const TYPE_OPTIONS = [
   "Fund",
   "Other",
 ] as const;
-
-const CHART_COLORS: Record<string, string> = {
-  Savings: "#22c55e",
-  Stocks: "#3b82f6",
-  Crypto: "#a855f7",
-  Gold: "#eab308",
-  ETF: "#14b8a6",
-  Fund: "#f97316",
-  Other: "#64748b",
-};
 
 // Types whose market price is fetched automatically by update-prices
 const AUTO_PRICE_TYPES = ["Gold", "Crypto", "Stocks", "ETF", "Fund"];
@@ -244,6 +235,17 @@ export default function Portfolio() {
   const { startTour } = usePageTour("portfolio");
   const entries = data.portfolio ?? [];
   const [refreshingPrices, setRefreshingPrices] = useState(false);
+  const [activityEntryId, setActivityEntryId] = useState<string | null>(null);
+  const [hideValues, setHideValues] = useState(
+    () => localStorage.getItem("portfolio_hide_values") === "1",
+  );
+  const toggleHideValues = () => {
+    setHideValues((v) => {
+      localStorage.setItem("portfolio_hide_values", v ? "0" : "1");
+      return !v;
+    });
+  };
+  const fmt = (v: number) => (hideValues ? "••••••" : formatVND(v));
 
   const handleRefreshPrices = async () => {
     setRefreshingPrices(true);
@@ -502,8 +504,9 @@ export default function Portfolio() {
     type: "Stocks",
     tier: "Growth",
     account: "",
+    date: todayLocalISO(),
     quantity: "",
-    totalCost: "",
+    unitPrice: "",
     notes: "",
   });
   const existingAccounts = Array.from(
@@ -512,29 +515,32 @@ export default function Portfolio() {
 
   const handleAdd = async () => {
     const qty = parseFloat(form.quantity) || 0;
-    const total = parseAmountInput(form.totalCost) ?? 0;
-    if (!form.name.trim() || qty <= 0 || total <= 0) return;
-    // You enter what you paid in total; we derive the average unit price
-    const unitPrice = Math.round(total / qty);
+    // You enter the price per unit; total investment is derived from it
+    const unitPrice = parseAmountInput(form.unitPrice) ?? 0;
+    if (!form.name.trim() || qty <= 0 || unitPrice <= 0) return;
     const autoPrice = AUTO_PRICE_TYPES.includes(form.type);
     try {
-      await addPortfolioEntry({
-        name: form.name.trim(),
-        type: normalizeAssetType(form.name, form.type),
-        tier: form.tier,
-        account: form.account.trim() || "General",
-        quantity: qty,
-        purchasePrice: unitPrice,
-        currentPrice: unitPrice, // placeholder until market price arrives
-        notes: form.notes || undefined,
-      });
+      await addPortfolioEntry(
+        {
+          name: form.name.trim(),
+          type: normalizeAssetType(form.name, form.type),
+          tier: form.tier,
+          account: form.account.trim() || "General",
+          quantity: qty,
+          purchasePrice: unitPrice,
+          currentPrice: unitPrice, // placeholder until market price arrives
+          notes: form.notes || undefined,
+        },
+        form.date || todayLocalISO(),
+      );
       setForm({
         name: "",
         type: "Stocks",
         tier: "Growth",
         account: "",
+        date: todayLocalISO(),
         quantity: "",
-        totalCost: "",
+        unitPrice: "",
         notes: "",
       });
       setAdding(false);
@@ -597,8 +603,8 @@ export default function Portfolio() {
 
   // Live Calc for Add Form
   const addFormQty = parseFloat(form.quantity) || 0;
-  const addFormTotal = parseAmountInput(form.totalCost) ?? 0;
-  const addFormUnitPrice = addFormQty > 0 ? addFormTotal / addFormQty : 0;
+  const addFormUnitPrice = parseAmountInput(form.unitPrice) ?? 0;
+  const addFormTotal = addFormQty * addFormUnitPrice;
 
   return (
     <div className="space-y-6">
@@ -613,6 +619,18 @@ export default function Portfolio() {
           <PageTourButton onClick={startTour} />
         </h1>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleHideValues}
+            title={hideValues ? "Show values" : "Hide values"}
+          >
+            {hideValues ? (
+              <EyeOff className="h-4 w-4" strokeWidth={ICON_STROKE} />
+            ) : (
+              <Eye className="h-4 w-4" strokeWidth={ICON_STROKE} />
+            )}
+          </Button>
           <Button
             variant="outline"
             onClick={handleRefreshPrices}
@@ -704,15 +722,26 @@ export default function Portfolio() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="add-account">Account</Label>
-              <Input
-                id="add-account"
-                value={form.account}
-                onChange={(e) => setForm({ ...form, account: e.target.value })}
-                placeholder="e.g. SSI, Binance, TCB…"
-                list="acct-list"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-account">Account</Label>
+                <Input
+                  id="add-account"
+                  value={form.account}
+                  onChange={(e) => setForm({ ...form, account: e.target.value })}
+                  placeholder="e.g. SSI, Binance, TCB…"
+                  list="acct-list"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-date">Date</Label>
+                <Input
+                  id="add-date"
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -729,25 +758,25 @@ export default function Portfolio() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="add-total">Total paid (₫)</Label>
+                <Label htmlFor="add-unit-price">Price / unit (₫)</Label>
                 <Input
-                  id="add-total"
-                  value={formatAmountTyping(form.totalCost)}
+                  id="add-unit-price"
+                  value={formatAmountTyping(form.unitPrice)}
                   onChange={(e) =>
-                    setForm({ ...form, totalCost: sanitizeAmountTyping(e.target.value) })
+                    setForm({ ...form, unitPrice: sanitizeAmountTyping(e.target.value) })
                   }
-                  placeholder="e.g. 24tr, 500k, 24.000.000"
+                  placeholder="e.g. 24tr, 23.777, 500k"
                 />
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              {addFormUnitPrice > 0 ? (
-                <>Avg price ≈ <strong>{formatVND(Math.round(addFormUnitPrice))}</strong>/unit.{" "}</>
+              {addFormTotal > 0 ? (
+                <>Total investment ≈ <strong>{formatVND(Math.round(addFormTotal))}</strong>.{" "}</>
               ) : null}
               {AUTO_PRICE_TYPES.includes(form.type)
                 ? "Market price is fetched automatically after saving."
-                : "This type has no price feed — market price starts at your avg price."}
+                : "This type has no price feed — market price starts at your entry price."}
             </p>
 
             <div className="flex gap-2 pt-1">
@@ -786,7 +815,7 @@ export default function Portfolio() {
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Total Cost Basis</p>
             <p className="text-xl font-bold text-muted-foreground">
-              {formatVND(totalCostBasis)}
+              {fmt(totalCostBasis)}
             </p>
           </CardContent>
         </Card>
@@ -796,7 +825,7 @@ export default function Portfolio() {
               Total Current Value
             </p>
             <p className="text-2xl font-bold text-primary">
-              {formatVND(totalCurrentValue)}
+              {fmt(totalCurrentValue)}
             </p>
           </CardContent>
         </Card>
@@ -814,7 +843,7 @@ export default function Portfolio() {
                 className={`text-sm font-medium ${totalGain >= 0 ? "text-success" : "text-destructive"}`}
               >
                 ({totalGain >= 0 ? "+" : ""}
-                {formatVND(Math.ceil(totalGain))})
+                {fmt(Math.ceil(totalGain))})
               </p>
             </div>
           </CardContent>
@@ -842,7 +871,7 @@ export default function Portfolio() {
                   {categoryChartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={CHART_COLORS[entry.name] || "#8884d8"}
+                      fill={ASSET_TYPE_COLORS[entry.name] || "hsl(var(--chart-7))"}
                     />
                   ))}
                 </Pie>
@@ -891,7 +920,7 @@ export default function Portfolio() {
                     {acct}
                   </span>
                   <span className="text-md font-bold">
-                    {formatVND(Math.ceil(val))}
+                    {fmt(Math.ceil(val))}
                   </span>
                 </div>
               ))}
@@ -901,10 +930,10 @@ export default function Portfolio() {
       </div>
 
       {/* Asset Tower */}
-      <Card className="bg-gradient-to-br from-slate-50 to-white">
+      <Card className="bg-gradient-to-br from-muted to-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Layers size={20} className="text-slate-600" />
+            <Layers size={20} className="text-muted-foreground" />
             Asset Tower
           </CardTitle>
         </CardHeader>
@@ -926,7 +955,7 @@ export default function Portfolio() {
                   </span>
                   <div className="flex items-center gap-3">
                     <span className="text-muted-foreground">
-                      {formatVND(Math.round(value))}
+                      {fmt(Math.round(value))}
                     </span>
                     <span className="font-semibold w-14 text-right">
                       {pct.toFixed(1)}%
@@ -934,11 +963,11 @@ export default function Portfolio() {
                     {getTierBadge(name, value, pct, isPortfolioEmpty)}
                   </div>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden relative">
+                <div className="h-2 rounded-full bg-muted overflow-hidden relative">
                   {/* Target zone overlay */}
                   {TIER_TARGETS[name]?.min !== undefined && TIER_TARGETS[name]?.max !== undefined && (
                     <div
-                      className="absolute top-0 h-full bg-slate-300/50 rounded-full"
+                      className="absolute top-0 h-full bg-muted-foreground/20 rounded-full"
                       style={{
                         left: `${TIER_TARGETS[name].min}%`,
                         width: `${TIER_TARGETS[name].max! - TIER_TARGETS[name].min!}%`,
@@ -948,13 +977,13 @@ export default function Portfolio() {
                   {/* Cap marker for Risk */}
                   {TIER_TARGETS[name]?.min === undefined && TIER_TARGETS[name]?.max !== undefined && (
                     <div
-                      className="absolute top-0 h-full bg-slate-300/50 rounded-full"
+                      className="absolute top-0 h-full bg-muted-foreground/20 rounded-full"
                       style={{ left: 0, width: `${TIER_TARGETS[name].max}%` }}
                     />
                   )}
                   {/* Actual value bar */}
                   <div
-                    className={`absolute top-0 h-full rounded-full ${TIER_STYLES[name]?.bar ?? "bg-slate-400"}`}
+                    className={`absolute top-0 h-full rounded-full ${TIER_STYLES[name]?.bar ?? "bg-muted-foreground"}`}
                     style={{ width: `${Math.min(100, pct)}%` }}
                   />
                 </div>
@@ -1013,7 +1042,7 @@ export default function Portfolio() {
                 return (
                   <React.Fragment key={group.key}>
                     {isNewTypeSection && (
-                      <TableRow className="bg-slate-100/70 hover:bg-slate-100/70">
+                      <TableRow className="bg-muted/70 hover:bg-muted/70">
                         <TableCell className="py-2"></TableCell>
                         <TableCell
                           colSpan={6}
@@ -1068,15 +1097,15 @@ export default function Portfolio() {
                         {group.totalQty.toLocaleString("de-DE")}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground italic">
-                        {formatVND(group.avgPrice)}
+                        {fmt(group.avgPrice)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {group.totalQty > 0 || group.children.length > 0
-                          ? formatVND(group.marketPrice)
+                          ? fmt(group.marketPrice)
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right font-bold text-primary text-base">
-                        {formatVND(Math.ceil(group.totalValue))}
+                        {fmt(Math.ceil(group.totalValue))}
                       </TableCell>
                       <TableCell
                         className={`text-right font-medium ${group.roi >= 0 ? "text-success" : "text-destructive"}`}
@@ -1088,7 +1117,7 @@ export default function Portfolio() {
                         className={`text-right font-medium ${group.totalValue - group.totalCost >= 0 ? "text-success" : "text-destructive"}`}
                       >
                         {group.totalValue - group.totalCost >= 0 ? "+" : ""}
-                        {formatVND(
+                        {fmt(
                           Math.ceil(group.totalValue - group.totalCost),
                         )}
                       </TableCell>
@@ -1104,7 +1133,7 @@ export default function Portfolio() {
                       group.children.filter((c) => !deletingIds.has(c.id)).map((child) => {
                         if (editing?.id === child.id) {
                           return (
-                            <TableRow key={child.id} className="bg-blue-50/50">
+                            <TableRow key={child.id} className="bg-primary/5">
                               <TableCell></TableCell>
                               <TableCell className="pl-8">
                                 <Input
@@ -1263,13 +1292,13 @@ export default function Portfolio() {
                               {child.quantity.toLocaleString("de-DE")}
                             </TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">
-                              {formatVND(Math.ceil(child.purchasePrice))}
+                              {fmt(Math.ceil(child.purchasePrice))}
                             </TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">
-                              {formatVND(Math.ceil(child.currentPrice))}
+                              {fmt(Math.ceil(child.currentPrice))}
                             </TableCell>
                             <TableCell className="text-right text-sm font-medium">
-                              {formatVND(Math.ceil(child.currentValue))}
+                              {fmt(Math.ceil(child.currentValue))}
                             </TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">
                               {child.roi.toFixed(1)}%
@@ -1278,7 +1307,7 @@ export default function Portfolio() {
                               className={`text-right text-sm ${child.gain >= 0 ? "text-success" : "text-destructive"}`}
                             >
                               {child.gain >= 0 ? "+" : ""}
-                              {formatVND(Math.ceil(child.gain))}
+                              {fmt(Math.ceil(child.gain))}
                             </TableCell>
 
                             <TableCell className="text-right text-xs text-muted-foreground">
@@ -1300,6 +1329,19 @@ export default function Portfolio() {
 
                             <TableCell className="text-right">
                               <div className="flex justify-end items-center gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  title="Log transaction / view history"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActivityEntryId(child.id);
+                                  }}
+                                >
+                                  <History className="h-3 w-3" strokeWidth={ICON_STROKE} />
+                                </Button>
+                                <div className="w-px h-4 bg-border mx-1" />
                                 <Button
                                   size="icon"
                                   variant="ghost"
@@ -1343,6 +1385,11 @@ export default function Portfolio() {
           </Table>
         </CardContent>
       </Card>
+
+      <AssetActivityDialog
+        entryId={activityEntryId}
+        onOpenChange={(open) => !open && setActivityEntryId(null)}
+      />
     </div>
   );
 }

@@ -142,7 +142,7 @@ function CategoriesTab() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button data-tour="cat-add" onClick={() => setAdding(true)} disabled={adding} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Add Category
+          <Plus className="h-4 w-4 mr-1" strokeWidth={1.5} /> Add Category
         </Button>
       </div>
 
@@ -213,14 +213,14 @@ function CategoriesTab() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" onClick={handleAdd}>
-                        <Check className="h-4 w-4 text-primary" />
+                        <Check className="h-4 w-4 text-primary" strokeWidth={1.5} />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
                         onClick={() => setAdding(false)}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4" strokeWidth={1.5} />
                       </Button>
                     </div>
                   </TableCell>
@@ -332,10 +332,10 @@ function GroupRows({
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
                   <Button size="icon" variant="ghost" onClick={onSaveEdit}>
-                    <Check className="h-4 w-4 text-primary" />
+                    <Check className="h-4 w-4 text-primary" strokeWidth={1.5} />
                   </Button>
                   <Button size="icon" variant="ghost" onClick={onCancelEdit}>
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4" strokeWidth={1.5} />
                   </Button>
                 </div>
               </TableCell>
@@ -359,14 +359,14 @@ function GroupRows({
                   variant="ghost"
                   onClick={() => onStartEdit(cat)}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-4 w-4" strokeWidth={1.5} />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={() => onDelete(cat.id)}
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className="h-4 w-4 text-destructive" strokeWidth={1.5} />
                 </Button>
               </div>
             </TableCell>
@@ -419,7 +419,7 @@ function SubscriptionsTab() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button onClick={() => setAdding(true)} disabled={adding} size="sm">
-          <Plus className="h-4 w-4 mr-1" /> Add Subscription
+          <Plus className="h-4 w-4 mr-1" strokeWidth={1.5} /> Add Subscription
         </Button>
       </div>
 
@@ -468,14 +468,14 @@ function SubscriptionsTab() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" onClick={handleAdd}>
-                        <Check className="h-4 w-4 text-primary" />
+                        <Check className="h-4 w-4 text-primary" strokeWidth={1.5} />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
                         onClick={() => setAdding(false)}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4" strokeWidth={1.5} />
                       </Button>
                     </div>
                   </TableCell>
@@ -528,14 +528,14 @@ function SubscriptionsTab() {
                             variant="ghost"
                             onClick={handleSaveEdit}
                           >
-                            <Check className="h-4 w-4 text-primary" />
+                            <Check className="h-4 w-4 text-primary" strokeWidth={1.5} />
                           </Button>
                           <Button
                             size="icon"
                             variant="ghost"
                             onClick={() => setEditing(null)}
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-4 w-4" strokeWidth={1.5} />
                           </Button>
                         </div>
                       </TableCell>
@@ -555,14 +555,14 @@ function SubscriptionsTab() {
                           variant="ghost"
                           onClick={() => setEditing(sub)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" strokeWidth={1.5} />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => deleteSubscription(sub.id)}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-4 w-4 text-destructive" strokeWidth={1.5} />
                         </Button>
                       </div>
                     </TableCell>

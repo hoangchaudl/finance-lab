@@ -28,7 +28,7 @@ export default function EmptyState({
       </div>
       <div className="space-y-1 max-w-md">
         <h3 className="text-lg font-bold text-foreground">{title}</h3>
-        <p className="text-sm text-slate-500">{description}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       {(actionLabel || secondaryLabel) && (
         <div className="flex gap-2 mt-2">

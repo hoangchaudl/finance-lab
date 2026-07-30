@@ -37,10 +37,27 @@
     /* Gains #00B060 */
     --success: 151 100% 35%;
     --warning: 51 100% 50%;
+    /* Warning is a bright gold — needs a darker readable tone for text/icons
+       on top of it or on its tinted backgrounds (same trick as
+       --primary-foreground-strong above). */
+    --warning-foreground: 40 70% 28%;
 
     /* Bell yellow #FFD700 */
     --bell: 51 100% 50%;
     --bell-foreground: 0 0% 10%;
+
+    /* Categorical chart palette — one shared source of truth for every
+       pie/donut/line series in the app. chart-1/2/4 intentionally echo the
+       brand's primary/success/warning hues so a slice's color carries the
+       same meaning it would anywhere else in the UI; chart-3/5/6/7 are
+       chart-only hues chosen to stay legible side-by-side with them. */
+    --chart-1: 199 100% 46%; /* Doraemon blue — Stocks */
+    --chart-2: 151 100% 35%; /* Doraemon green — Savings / Cash */
+    --chart-3: 262 83% 62%;  /* violet — Crypto */
+    --chart-4: 51 100% 50%;  /* gold — Gold */
+    --chart-5: 174 70% 41%;  /* teal — ETF */
+    --chart-6: 24 95% 53%;   /* orange — Mutual Funds */
+    --chart-7: 0 0% 55%;     /* neutral gray — Other */
 
     /* Outline near-black #1A1A1A */
     --outline: 0 0% 10%;
@@ -193,7 +210,7 @@
   @apply bg-primary text-white hover:opacity-90;
 }
 .driver-popover.fl-tour .driver-popover-prev-btn {
-  @apply bg-white text-foreground hover:bg-slate-50;
+  @apply bg-card text-foreground hover:bg-muted;
 }
 .driver-popover.fl-tour .driver-popover-close-btn {
   @apply text-muted-foreground hover:text-foreground;

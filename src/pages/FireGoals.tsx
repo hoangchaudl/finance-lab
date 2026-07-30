@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Target, CalendarClock, TrendingUp, Wallet } from "lucide-react";
+import { STATUS_CHART_COLORS } from "@/lib/chart-colors";
 import {
   ResponsiveContainer,
   LineChart,
@@ -154,17 +155,17 @@ export default function FireGoals() {
           </CardContent>
         </Card>
 
-        <Card data-tour="fire-savings" className="bg-blue-50/50 border-blue-100">
+        <Card data-tour="fire-savings" className="bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-blue-600 flex items-center gap-1.5">
+            <CardTitle className="text-sm text-primary flex items-center gap-1.5">
               <CalendarClock className="h-4 w-4" /> Freedom Day
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-700">
+            <div className="text-2xl font-bold text-primary">
               {monthsToFI !== null ? monthLabelFromNow(monthsToFI) : "—"}
             </div>
-            <p className="text-xs text-blue-600 mt-1">
+            <p className="text-xs text-primary mt-1">
               {monthsToFI !== null
                 ? `${monthsToFI} months away · age ${freedomAge}`
                 : "Start investing monthly to get a date"}
@@ -172,17 +173,17 @@ export default function FireGoals() {
           </CardContent>
         </Card>
 
-        <Card className="bg-emerald-50/50 border-emerald-100">
+        <Card className="bg-success/10 border-success/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-emerald-600 flex items-center gap-1.5">
+            <CardTitle className="text-sm text-success flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4" /> Crossover Point
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-700">
+            <div className="text-2xl font-bold text-success">
               {monthsToCross !== null ? monthLabelFromNow(monthsToCross) : "—"}
             </div>
-            <p className="text-xs text-emerald-600 mt-1">
+            <p className="text-xs text-success mt-1">
               Investment income {formatVND(Math.round(investIncomeNow))}/mo today
             </p>
           </CardContent>
@@ -224,7 +225,7 @@ export default function FireGoals() {
         <CardContent className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={series} margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border-soft))" />
               <XAxis dataKey="year" tick={{ fontSize: 12 }} />
               <YAxis tickFormatter={compactVND} tick={{ fontSize: 12 }} width={50} />
               <Tooltip
@@ -242,14 +243,14 @@ export default function FireGoals() {
               <Line
                 type="monotone"
                 dataKey="investIncome"
-                stroke="#2563eb"
+                stroke={STATUS_CHART_COLORS.primary}
                 strokeWidth={2}
                 dot={false}
               />
               <Line
                 type="monotone"
                 dataKey="expenses"
-                stroke="#dc2626"
+                stroke={STATUS_CHART_COLORS.destructive}
                 strokeWidth={2}
                 strokeDasharray="6 4"
                 dot={false}
@@ -259,7 +260,7 @@ export default function FireGoals() {
                   x={crossPoint.year}
                   y={crossPoint.expenses}
                   r={6}
-                  fill="#10b981"
+                  fill={STATUS_CHART_COLORS.success}
                   stroke="#fff"
                   strokeWidth={2}
                 />

@@ -503,12 +503,7 @@ export default function BudgetPlan() {
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm font-medium">
                 <span>Total Investing</span>
-                <Badge
-                  variant="outline"
-                  className="bg-blue-500/10 text-blue-600"
-                >
-                  Future
-                </Badge>
+                <Badge variant="default">Future</Badge>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
@@ -526,7 +521,7 @@ export default function BudgetPlan() {
               <div className="space-y-1">
                 <div className="flex justify-between text-xs font-medium">
                   <span>Actual</span>
-                  <span className="text-blue-600">
+                  <span className="text-primary">
                     {getPct(actualInvestingBucket).toFixed(1)}%
                   </span>
                 </div>

@@ -46,7 +46,7 @@ const GROUPS: { page: string; rows: { keys: string[]; action: string }[] }[] = [
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="px-1.5 py-0.5 rounded-md border border-slate-200 bg-slate-50 text-[11px] font-mono text-slate-700 shadow-sm">
+    <kbd className="px-1.5 py-0.5 rounded-md border-2 border-outline bg-muted text-[11px] font-mono text-foreground">
       {children}
     </kbd>
   );
@@ -89,7 +89,7 @@ export default function ShortcutsDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Keyboard className="h-5 w-5 text-blue-600" strokeWidth={1.5} />
+            <Keyboard className="h-5 w-5 text-primary" strokeWidth={1.5} />
             Keyboard shortcuts
           </DialogTitle>
           <DialogDescription>
@@ -100,7 +100,7 @@ export default function ShortcutsDialog({
         <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-1">
           {GROUPS.map((g) => (
             <div key={g.page}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 {g.page}
               </p>
               <ul className="space-y-1.5">
@@ -109,12 +109,12 @@ export default function ShortcutsDialog({
                     key={idx}
                     className="flex items-start justify-between gap-4 text-sm"
                   >
-                    <span className="text-slate-600 flex-1">{r.action}</span>
+                    <span className="text-foreground flex-1">{r.action}</span>
                     <span className="flex items-center gap-1 shrink-0">
                       {r.keys.map((k, i) => (
                         <span key={i} className="flex items-center gap-1">
                           {i > 0 && (
-                            <span className="text-slate-300 text-xs">+</span>
+                            <span className="text-muted-foreground text-xs">+</span>
                           )}
                           <Kbd>{k}</Kbd>
                         </span>

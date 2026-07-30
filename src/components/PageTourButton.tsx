@@ -15,7 +15,7 @@ export default function PageTourButton({ onClick, label = "Replay tour" }: Props
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-blue-50"
+      className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
     >
       <HelpCircle className="h-5 w-5" strokeWidth={1.5} />
     </Button>

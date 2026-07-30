@@ -116,7 +116,7 @@ export default function TelegramConnect() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Send className="h-5 w-5 text-blue-500" />
+          <Send className="h-5 w-5 text-primary" />
           Telegram Logging
         </CardTitle>
       </CardHeader>
@@ -125,7 +125,7 @@ export default function TelegramConnect() {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : connected ? (
           <>
-            <div className="flex items-center gap-2 text-sm text-green-600">
+            <div className="flex items-center gap-2 text-sm text-success">
               <CheckCircle2 className="h-4 w-4" />
               Connected — log expenses by texting the bot, e.g.{" "}
               <code className="bg-muted px-1.5 py-0.5 rounded">50k coffee cf sua</code>

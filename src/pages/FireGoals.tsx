@@ -68,10 +68,15 @@ export default function FireGoals() {
   const [contribution, setContribution] = useState<number>(() =>
     Math.round(avgContribution / 500_000) * 500_000,
   );
+  // Based only on stable, data-derived values (avgIncome/avgContribution) —
+  // never on the live `contribution` state. Including the live value here
+  // used to make the track's own scale grow while dragging (max = contribution * 2
+  // recalculated on every pointer move), so the thumb position vs. displayed
+  // value drifted out of sync past ~half of the floor (~15-20M).
   const sliderMax = Math.max(
-    30_000_000,
+    80_000_000,
     Math.ceil((avgIncome || 0) / 5_000_000) * 5_000_000,
-    contribution * 2,
+    Math.ceil((avgContribution * 2) / 5_000_000) * 5_000_000,
   );
 
   // --- Forecasts ---

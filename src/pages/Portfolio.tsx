@@ -995,23 +995,23 @@ export default function Portfolio() {
 
       <Card>
         <CardContent className="p-0">
-          <Table className="w-full table-fixed min-w-[900px]">
+          <Table className="w-full table-fixed min-w-[960px]">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-6"></TableHead>
-                <TableHead className="w-[18%]">Asset</TableHead>
-                <TableHead className="w-[9%]">Type</TableHead>
-                <TableHead className="w-[9%]">Tier</TableHead>
-                <TableHead className="text-right w-[8%]">Qty</TableHead>
-                <TableHead className="text-right w-[11%]">Avg Price</TableHead>
-                <TableHead className="text-right w-[11%]">Mkt Price</TableHead>
-                <TableHead className="text-right font-bold text-primary w-[12%]">
+                <TableHead className="w-[3%]"></TableHead>
+                <TableHead className="w-[16%]">Asset</TableHead>
+                <TableHead className="w-[7%]">Type</TableHead>
+                <TableHead className="w-[8%]">Tier</TableHead>
+                <TableHead className="text-right w-[6%]">Qty</TableHead>
+                <TableHead className="text-right w-[9%]">Avg Price</TableHead>
+                <TableHead className="text-right w-[9%]">Mkt Price</TableHead>
+                <TableHead className="text-right font-bold text-primary w-[10%]">
                   Total Value
                 </TableHead>
-                <TableHead className="text-right w-[7%]">ROI %</TableHead>
-                <TableHead className="text-right w-[10%]">ROI ₫</TableHead>
-                <TableHead className="text-right w-[7%]">Updated</TableHead>
-                <TableHead className="w-14"></TableHead>
+                <TableHead className="text-right w-[6%]">ROI %</TableHead>
+                <TableHead className="text-right w-[8%]">ROI ₫</TableHead>
+                <TableHead className="text-right w-[6%]">Updated</TableHead>
+                <TableHead className="w-[12%]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1161,140 +1161,141 @@ export default function Portfolio() {
                     {isExpanded &&
                       group.children.filter((c) => !deletingIds.has(c.id)).map((child) => {
                         if (editing?.id === child.id) {
+                          // Single wrapping cell instead of spreading inputs across
+                          // the table's own (far-right-scrolling) columns — every
+                          // field, including price, is reachable right under the
+                          // row without scrolling.
                           return (
                             <TableRow key={child.id} className="bg-primary/5">
                               <TableCell></TableCell>
-                              <TableCell className="pl-8">
-                                <Input
-                                  value={editing.name}
-                                  onChange={(e) =>
-                                    setEditing({
-                                      ...editing,
-                                      name: e.target.value,
-                                    })
-                                  }
-                                  className="h-7 text-sm mb-1"
-                                />
-                                <Input
-                                  value={editing.account}
-                                  onChange={(e) =>
-                                    setEditing({
-                                      ...editing,
-                                      account: e.target.value,
-                                    })
-                                  }
-                                  className="h-6 text-xs"
-                                  list="acct-list"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Select
-                                  value={editing.type}
-                                  onValueChange={(v) =>
-                                    setEditing({ ...editing, type: v })
-                                  }
-                                >
-                                  <SelectTrigger className="h-7 text-sm">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {TYPE_OPTIONS.map((t) => (
-                                      <SelectItem key={t} value={t}>
-                                        {t}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <Select
-                                  value={editing.tier}
-                                  onValueChange={(v) =>
-                                    setEditing({ ...editing, tier: v })
-                                  }
-                                >
-                                  <SelectTrigger className="h-7 text-sm">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {TIER_OPTIONS.map((t) => (
-                                      <SelectItem key={t.value} value={t.value}>
-                                        <span className="flex items-center gap-1.5">
-                                          {getTierIcon(t.value, "h-3.5 w-3.5")}
-                                          {t.value}
-                                        </span>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={editing.quantity}
-                                  onChange={(e) =>
-                                    setEditing({
-                                      ...editing,
-                                      quantity: parseFloat(e.target.value) || 0,
-                                    })
-                                  }
-                                  className="h-7 text-sm text-right"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  value={editing.purchasePrice}
-                                  onChange={(e) =>
-                                    setEditing({
-                                      ...editing,
-                                      purchasePrice: formatInputWithDots(
-                                        e.target.value,
-                                      ),
-                                    })
-                                  }
-                                  className="h-7 text-sm text-right w-full"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  value={editing.currentPrice}
-                                  onChange={(e) =>
-                                    setEditing({
-                                      ...editing,
-                                      currentPrice: formatInputWithDots(
-                                        e.target.value,
-                                      ),
-                                    })
-                                  }
-                                  className="h-7 text-sm text-right w-full"
-                                />
-                              </TableCell>
-                              <TableCell colSpan={4}></TableCell>
-                              <TableCell>
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8"
-                                    onClick={handleSaveEdit}
-                                  >
-                                    <Check
-                                      className="h-4 w-4 text-success"
-                                      strokeWidth={ICON_STROKE}
+                              <TableCell colSpan={11} className="pl-8 py-3">
+                                <div className="flex flex-wrap items-end gap-3">
+                                  <div className="space-y-1 w-40">
+                                    <Label className="text-xs text-muted-foreground">Name</Label>
+                                    <Input
+                                      value={editing.name}
+                                      onChange={(e) =>
+                                        setEditing({ ...editing, name: e.target.value })
+                                      }
+                                      className="h-8 text-sm"
                                     />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8"
-                                    onClick={() => setEditing(null)}
-                                  >
-                                    <X
-                                      className="h-4 w-4"
-                                      strokeWidth={ICON_STROKE}
+                                  </div>
+                                  <div className="space-y-1 w-32">
+                                    <Label className="text-xs text-muted-foreground">Account</Label>
+                                    <Input
+                                      value={editing.account}
+                                      onChange={(e) =>
+                                        setEditing({ ...editing, account: e.target.value })
+                                      }
+                                      className="h-8 text-xs"
+                                      list="acct-list"
                                     />
-                                  </Button>
+                                  </div>
+                                  <div className="space-y-1 w-28">
+                                    <Label className="text-xs text-muted-foreground">Type</Label>
+                                    <Select
+                                      value={editing.type}
+                                      onValueChange={(v) =>
+                                        setEditing({ ...editing, type: v })
+                                      }
+                                    >
+                                      <SelectTrigger className="h-8 text-sm">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {TYPE_OPTIONS.map((t) => (
+                                          <SelectItem key={t} value={t}>
+                                            {t}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-1 w-36">
+                                    <Label className="text-xs text-muted-foreground">Tier</Label>
+                                    <Select
+                                      value={editing.tier}
+                                      onValueChange={(v) =>
+                                        setEditing({ ...editing, tier: v })
+                                      }
+                                    >
+                                      <SelectTrigger className="h-8 text-sm">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {TIER_OPTIONS.map((t) => (
+                                          <SelectItem key={t.value} value={t.value}>
+                                            <span className="flex items-center gap-1.5">
+                                              {getTierIcon(t.value, "h-3.5 w-3.5")}
+                                              {t.value}
+                                            </span>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-1 w-24">
+                                    <Label className="text-xs text-muted-foreground">Quantity</Label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={editing.quantity}
+                                      onChange={(e) =>
+                                        setEditing({
+                                          ...editing,
+                                          quantity: parseFloat(e.target.value) || 0,
+                                        })
+                                      }
+                                      className="h-8 text-sm text-right"
+                                    />
+                                  </div>
+                                  <div className="space-y-1 w-32">
+                                    <Label className="text-xs text-muted-foreground">Avg Price</Label>
+                                    <Input
+                                      value={editing.purchasePrice}
+                                      onChange={(e) =>
+                                        setEditing({
+                                          ...editing,
+                                          purchasePrice: formatInputWithDots(e.target.value),
+                                        })
+                                      }
+                                      className="h-8 text-sm text-right"
+                                    />
+                                  </div>
+                                  <div className="space-y-1 w-32">
+                                    <Label className="text-xs text-muted-foreground">Mkt Price</Label>
+                                    <Input
+                                      value={editing.currentPrice}
+                                      onChange={(e) =>
+                                        setEditing({
+                                          ...editing,
+                                          currentPrice: formatInputWithDots(e.target.value),
+                                        })
+                                      }
+                                      className="h-8 text-sm text-right"
+                                    />
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={handleSaveEdit}
+                                    >
+                                      <Check
+                                        className="h-4 w-4 text-success"
+                                        strokeWidth={ICON_STROKE}
+                                      />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => setEditing(null)}
+                                    >
+                                      <X className="h-4 w-4" strokeWidth={ICON_STROKE} />
+                                    </Button>
+                                  </div>
                                 </div>
                               </TableCell>
                             </TableRow>

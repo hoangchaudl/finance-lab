@@ -63,7 +63,7 @@ import {
 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import AssetActivityDialog from "@/components/AssetActivityDialog";
-import { ASSET_TYPE_COLORS } from "@/lib/chart-colors";
+import { ASSET_TYPE_COLORS, ASSET_TYPE_VARS } from "@/lib/chart-colors";
 import {
   PieChart,
   Pie,
@@ -613,12 +613,12 @@ export default function Portfolio() {
         message="🏗️ Add your investments here and assign each one to a tier: Defensive (emergency fund), Safe (bonds/gold), Income (dividend stocks/ETFs), Growth (stocks), or Risk (crypto). The Asset Tower shows your allocation health."
       />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
           Portfolio Manager
           <PageTourButton onClick={startTour} />
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="icon"
@@ -669,7 +669,7 @@ export default function Portfolio() {
             }}
             className="space-y-4 pt-2 min-w-0"
           >
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Type</Label>
                 <Select
@@ -722,7 +722,7 @@ export default function Portfolio() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="add-account">Account</Label>
                 <Input
@@ -744,7 +744,7 @@ export default function Portfolio() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="add-qty">Quantity</Label>
                 <Input
@@ -995,7 +995,7 @@ export default function Portfolio() {
 
       <Card>
         <CardContent className="p-0">
-          <Table className="w-full table-fixed">
+          <Table className="w-full table-fixed min-w-[900px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-6"></TableHead>
@@ -1041,21 +1041,37 @@ export default function Portfolio() {
 
                 return (
                   <React.Fragment key={group.key}>
-                    {isNewTypeSection && (
-                      <TableRow className="bg-muted/70 hover:bg-muted/70">
-                        <TableCell className="py-2"></TableCell>
-                        <TableCell
-                          colSpan={6}
-                          className="py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                        >
-                          {TYPE_LABELS[group.type] ?? group.type}
-                        </TableCell>
-                        <TableCell className="py-2 text-right text-xs font-semibold text-muted-foreground">
-                          {formatVND(Math.ceil(typeSubtotals[group.type] ?? 0))}
-                        </TableCell>
-                        <TableCell colSpan={4} className="py-2"></TableCell>
-                      </TableRow>
-                    )}
+                    {isNewTypeSection && (() => {
+                      const typeVar = ASSET_TYPE_VARS[group.type];
+                      const rowStyle = typeVar
+                        ? { backgroundColor: `hsl(var(${typeVar}) / 0.12)` }
+                        : undefined;
+                      // The accent bar lives on the leading <td>, not the <tr> —
+                      // border-left on table rows renders inconsistently and can
+                      // poke past the table's own rounded/clipped corner.
+                      const leadCellStyle = typeVar
+                        ? { borderLeft: `3px solid hsl(var(${typeVar}))` }
+                        : undefined;
+                      const labelStyle = typeVar
+                        ? { color: `hsl(var(${typeVar}))` }
+                        : undefined;
+                      return (
+                        <TableRow style={rowStyle} className="hover:bg-transparent">
+                          <TableCell className="py-2" style={leadCellStyle}></TableCell>
+                          <TableCell
+                            colSpan={6}
+                            className="py-2 text-xs font-bold uppercase tracking-wider"
+                            style={labelStyle}
+                          >
+                            {TYPE_LABELS[group.type] ?? group.type}
+                          </TableCell>
+                          <TableCell className="py-2 text-right text-xs font-semibold text-muted-foreground">
+                            {formatVND(Math.ceil(typeSubtotals[group.type] ?? 0))}
+                          </TableCell>
+                          <TableCell colSpan={4} className="py-2"></TableCell>
+                        </TableRow>
+                      );
+                    })()}
                     <TableRow
                       key={group.key}
                       className={`bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors ${focusedGroupIdx === groupIdx ? "ring-2 ring-inset ring-primary/40 bg-primary/5" : ""}`}
@@ -1082,7 +1098,20 @@ export default function Portfolio() {
                       </TableCell>
 
                       <TableCell>
-                        <Badge variant="outline">{group.type}</Badge>
+                        <Badge
+                          variant="outline"
+                          style={
+                            ASSET_TYPE_VARS[group.type]
+                              ? {
+                                  color: `hsl(var(${ASSET_TYPE_VARS[group.type]}))`,
+                                  borderColor: `hsl(var(${ASSET_TYPE_VARS[group.type]}) / 0.4)`,
+                                  backgroundColor: `hsl(var(${ASSET_TYPE_VARS[group.type]}) / 0.1)`,
+                                }
+                              : undefined
+                          }
+                        >
+                          {group.type}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

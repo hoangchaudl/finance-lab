@@ -198,7 +198,7 @@ export default function FireGoals() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-end justify-between">
+          <div className="flex flex-wrap items-end justify-between gap-2">
             <span className="text-2xl font-bold">{formatVND(contribution)}</span>
             <span className="text-xs text-muted-foreground">
               Your actual average: {formatVND(Math.round(avgContribution))}/mo

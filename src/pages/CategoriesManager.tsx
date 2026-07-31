@@ -162,8 +162,8 @@ function CategoriesTab() {
         />
       ) : (
       <Card>
-        <CardContent className="pt-6">
-          <Table data-tour="cat-row">
+        <CardContent className="pt-6 overflow-x-auto">
+          <Table data-tour="cat-row" className="min-w-[560px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12"></TableHead>
@@ -424,8 +424,8 @@ function SubscriptionsTab() {
       </div>
 
       <Card>
-        <CardContent className="pt-6">
-          <Table>
+        <CardContent className="pt-6 overflow-x-auto">
+          <Table className="min-w-[520px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Service Name</TableHead>

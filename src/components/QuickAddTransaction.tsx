@@ -189,7 +189,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
 
             {/* Asset link — investing/sell move real portfolio holdings */}
             {showAssetLink && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>
                     Link Asset{assetRequired ? "" : " (optional)"}

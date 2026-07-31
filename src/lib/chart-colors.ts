@@ -27,6 +27,19 @@ export const ASSET_TYPE_COLORS: Record<string, string> = {
   Other: cssVar("--chart-7"),
 };
 
+/** Raw `--chart-N` var names (no hsl() wrapper) for spots that need to build
+ *  their own hsl(var(...) / alpha) tint — e.g. a subtle row background that
+ *  still matches the ASSET_TYPE_COLORS used in the pie chart above. */
+export const ASSET_TYPE_VARS: Record<string, string> = {
+  Stocks: "--chart-1",
+  Savings: "--chart-2",
+  Crypto: "--chart-3",
+  Gold: "--chart-4",
+  ETF: "--chart-5",
+  Fund: "--chart-6",
+  Other: "--chart-7",
+};
+
 /** Status/semantic colors for line & bar charts (gains vs. losses, income vs.
  *  expenses, etc.) — always the same 4 brand tokens, never ad hoc hexes. */
 export const STATUS_CHART_COLORS = {

@@ -206,7 +206,7 @@ export default function AssetActivityDialog({ entryId, onOpenChange }: AssetActi
             </TabsList>
           </Tabs>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">{logType === "sell" ? "Sale Amount" : logType === "dividend" ? "Amount" : "Total Cost"}</Label>
               <Input
@@ -252,7 +252,7 @@ export default function AssetActivityDialog({ entryId, onOpenChange }: AssetActi
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Category</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>

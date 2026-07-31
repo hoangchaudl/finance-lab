@@ -183,12 +183,12 @@ export default function BudgetPlan() {
         message="📋 Set monthly spending targets per category. At the end of each month, compare planned vs actual to see where you overspent."
       />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
           Budget Plan
           <PageTourButton onClick={startTour} />
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate("/categories")}>
             <FolderCog className="h-4 w-4 mr-1.5" strokeWidth={1.5} />
             Manage Categories
@@ -554,7 +554,7 @@ export default function BudgetPlan() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Table data-tour="budget-table">
+          <Table data-tour="budget-table" className="min-w-[640px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Category</TableHead>

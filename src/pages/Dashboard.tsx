@@ -274,8 +274,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
+      <div className="flex flex-wrap justify-between items-start gap-2">
+        <h1 data-tour="page-title" className="text-xl sm:text-2xl font-bold flex items-center gap-1">
           Overview — {getMonthLabel(monthKey)}
           <PageTourButton onClick={startTour} />
         </h1>
@@ -405,8 +405,8 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Income Allocation</CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center gap-6">
-            <div className="w-32 h-32">
+          <CardContent className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-32 h-32 shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -448,7 +448,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Portfolio Allocation</CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center gap-6">
+          <CardContent className="flex flex-col sm:flex-row items-center gap-6">
             {(() => {
               const portfolio = data.portfolio ?? [];
               const investmentEntries = portfolio.filter(
@@ -478,7 +478,7 @@ export default function Dashboard() {
 
               return (
                 <>
-                  <div className="w-32 h-32">
+                  <div className="w-32 h-32 shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie

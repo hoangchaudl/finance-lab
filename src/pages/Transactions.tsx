@@ -541,19 +541,19 @@ export default function Transactions() {
         message="💡 Log every income, expense, investment, and dividend here. Use Categories to organize your spending. The more you log, the better your reports become."
       />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
           Transactions
           <PageTourButton onClick={startTour} />
         </h1>
-        <div data-tour="tx-month" className="flex items-center gap-2">
-          <div className="relative">
+        <div data-tour="tx-month" className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[140px] sm:flex-initial">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
             <Input
               placeholder="Search category..."
               value={categorySearch}
               onChange={(e) => setCategorySearch(e.target.value)}
-              className="pl-9 w-44"
+              className="pl-9 w-full sm:w-44"
             />
           </div>
           <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
@@ -926,11 +926,11 @@ export default function Transactions() {
 
       {/* Pagination Controls */}
       {transactions.length > 0 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <span className="text-sm text-muted-foreground">
             Page {currentPage} of {totalPages} ({transactions.length} total)
           </span>
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             <Button
               variant="outline"
               size="sm"
@@ -945,7 +945,7 @@ export default function Transactions() {
                 variant={currentPage === page ? "default" : "outline"}
                 size="sm"
                 onClick={() => setCurrentPage(page)}
-                className="min-w-10"
+                className="min-w-10 shrink-0"
               >
                 {page}
               </Button>
@@ -967,11 +967,11 @@ export default function Transactions() {
         open={!!editingTx}
         onOpenChange={(open) => !open && setEditingTx(null)}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Transaction</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleEditSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Type</Label>
               <Select
@@ -1114,7 +1114,7 @@ export default function Transactions() {
                 required
               />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Label>Note</Label>
               <Input
                 value={editNote}
@@ -1122,7 +1122,7 @@ export default function Transactions() {
                 placeholder="Optional"
               />
             </div>
-            <div className="col-span-2 flex justify-end gap-2">
+            <div className="sm:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"

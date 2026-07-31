@@ -255,7 +255,7 @@ export default function Profile() {
           <CardTitle>Profile Picture</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center gap-6 text-center sm:text-left">
             <div className="relative">
               <Avatar className="h-24 w-24">
                 <AvatarImage src={avatarUrl} alt={fullName} />
@@ -326,7 +326,7 @@ export default function Profile() {
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
               <form
-                className="flex items-center gap-2"
+                className="flex flex-col sm:flex-row sm:items-center gap-2"
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!fullName) return;
@@ -359,7 +359,7 @@ export default function Profile() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="w-64"
+                  className="w-full sm:w-64"
                 />
                 <Button type="submit" size="sm" disabled={loading}>
                   {loading ? "Saving..." : "Save"}

@@ -86,7 +86,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div className="md:hidden flex items-center justify-between p-4 border-b-2 border-outline bg-primary text-white">
         <div className="flex items-center gap-2">
           <Wallet className="h-7 w-7" strokeWidth={2} />
-          <span className="font-display text-xl tracking-wider">Finance Lab</span>
+          <span className="font-display italic uppercase text-xl tracking-wide">Finance Lab</span>
         </div>
         <Button
           variant="bell"
@@ -122,7 +122,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="h-9 w-9 rounded-full bg-bell border-2 border-outline flex items-center justify-center card-shadow-sm">
             <Wallet className="h-5 w-5 text-outline" strokeWidth={2} />
           </div>
-          <span className="font-display text-2xl tracking-wider text-white">
+          <span className="font-display italic uppercase text-2xl tracking-wide text-white">
             Finance Lab
           </span>
         </div>

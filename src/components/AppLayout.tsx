@@ -122,7 +122,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="h-9 w-9 rounded-full bg-bell border-2 border-outline flex items-center justify-center card-shadow-sm">
             <Wallet className="h-5 w-5 text-outline" strokeWidth={2} />
           </div>
-          <span className="font-display text-2xl tracking-wider text-white">
+          <span className="font-display italic uppercase text-2xl tracking-wide text-white">
             Finance Lab
           </span>
         </div>

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PRICE_CRON_SECRET = Deno.env.get("PRICE_CRON_SECRET");
+const PRICE_CRON_TOKEN = Deno.env.get("PRICE_CRON_TOKEN");
 
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -169,7 +170,9 @@ Deno.serve(async (req) => {
   // Auth: cron secret (all users) or a user JWT (own entries only)
   let userId: string | null = null;
   const cronSecret = req.headers.get("x-cron-secret");
-  const isCron = !!PRICE_CRON_SECRET && cronSecret === PRICE_CRON_SECRET;
+  const isCron =
+    (!!PRICE_CRON_SECRET && cronSecret === PRICE_CRON_SECRET) ||
+    (!!PRICE_CRON_TOKEN && cronSecret === PRICE_CRON_TOKEN);
   if (!isCron) {
     const jwt = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
     if (!jwt) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: jsonHeaders });

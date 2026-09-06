@@ -118,14 +118,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         />
 
         {/* Logo */}
-        <div className="relative z-10 p-4 pb-2 flex items-center gap-2">
-          <div className="h-9 w-9 rounded-full bg-bell border-2 border-outline flex items-center justify-center card-shadow-sm">
-            <Wallet className="h-5 w-5 text-outline" strokeWidth={2} />
-          </div>
-          <span className="font-display italic uppercase text-2xl tracking-wide text-white">
-            Finance Lab
-          </span>
+        <div className="relative z-10 p-4 pb-2">
+          <Brand size={36} textClassName="text-2xl" className="text-white" />
         </div>
+
 
         {/* Search Bar */}
         <div className="relative z-10 p-4 pt-2 pb-2">

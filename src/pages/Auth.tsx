@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Landmark } from "lucide-react";
+import Brand from "@/components/Brand";
 
 export default function Auth() {
   const { user, loading, signIn } = useAuth();

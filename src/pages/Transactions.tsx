@@ -813,7 +813,7 @@ export default function Transactions() {
           </div>
         )}
         <CardContent className="p-0">
-          <Table>
+          <Table className="min-w-[820px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10">

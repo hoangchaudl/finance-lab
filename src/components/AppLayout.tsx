@@ -100,8 +100,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar Navigation — Doraemon belly + pocket */}
       <aside
         className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-primary text-white border-r-2 border-outline transform transition-transform duration-200 ease-in-out
-        md:relative md:translate-x-0 flex flex-col h-full relative overflow-hidden
+        fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] bg-primary text-white border-r-2 border-outline transform transition-transform duration-200 ease-in-out
+        md:relative md:translate-x-0 md:max-w-none flex flex-col h-full overflow-hidden
         ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >

@@ -125,10 +125,10 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2">
-              <Landmark className="h-8 w-8 text-primary" strokeWidth={1.5} />
-              <CardTitle className="text-2xl font-bold text-primary">Finance Lab</CardTitle>
+            <div className="flex items-center justify-center">
+              <Brand size={40} textClassName="text-2xl text-primary" />
             </div>
+
             <p className="text-sm text-muted-foreground">Reset your password</p>
           </CardHeader>
           <CardContent>

@@ -349,7 +349,7 @@ export default function Report() {
           <Card>
             <CardHeader><CardTitle>Detailed Breakdown</CardTitle></CardHeader>
             <CardContent className="p-0 overflow-x-auto">
-              <Table>
+              <Table className="min-w-[560px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Period</TableHead>
@@ -641,7 +641,7 @@ export default function Report() {
               <Card>
                 <CardHeader><CardTitle>Portfolio Performance</CardTitle></CardHeader>
                 <CardContent className="p-0 overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-[560px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Asset</TableHead>

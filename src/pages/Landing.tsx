@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import {
-  Landmark,
+  
   TrendingUp,
   Layers,
   Zap,
@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Brand from "@/components/Brand";
+
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -26,11 +28,9 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 shrink-0">
-            <Landmark className="h-6 w-6 text-blue-600 shrink-0" strokeWidth={1.5} />
-            <span className="font-bold text-base sm:text-lg text-slate-900 whitespace-nowrap">
-              Finance Lab
-            </span>
+            <Brand size={30} textClassName="text-base sm:text-lg" />
           </div>
+
           <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <Button variant="ghost" size="sm" onClick={goToAuth} className="px-2 sm:px-3">
               Sign In
@@ -414,9 +414,9 @@ export default function Landing() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Landmark className="h-5 w-5 text-blue-400" strokeWidth={1.5} />
-                <span className="font-bold text-white">Finance Lab</span>
+                <Brand size={28} textClassName="text-base text-white" />
               </div>
+
               <p className="text-sm text-slate-500">Your path to financial freedom</p>
             </div>
             <div className="flex items-center gap-6 text-sm">

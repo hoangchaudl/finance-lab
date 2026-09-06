@@ -24,17 +24,23 @@ export default function Landing() {
     <div className="min-h-screen bg-white text-slate-900">
       {/* ── NAV ─────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Landmark className="h-6 w-6 text-blue-600" strokeWidth={1.5} />
-            <span className="font-bold text-lg text-slate-900">Finance Lab</span>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            <Landmark className="h-6 w-6 text-blue-600 shrink-0" strokeWidth={1.5} />
+            <span className="font-bold text-base sm:text-lg text-slate-900 whitespace-nowrap">
+              Finance Lab
+            </span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Button variant="ghost" size="sm" onClick={goToAuth}>
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+            <Button variant="ghost" size="sm" onClick={goToAuth} className="px-2 sm:px-3">
               Sign In
             </Button>
-            <Button size="sm" onClick={goToSignup} className="bg-blue-600 hover:bg-blue-700 text-white">
-              Get Started Free
+            <Button
+              size="sm"
+              onClick={goToSignup}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 whitespace-nowrap"
+            >
+              Get Started
             </Button>
           </div>
         </div>

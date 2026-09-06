@@ -20,6 +20,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import ShortcutsDialog, { useGlobalShortcutsDialog } from "./ShortcutsDialog";
 import CommandPalette from "./CommandPalette";
 import QuickAddTransaction, { QuickAddHandle } from "./QuickAddTransaction";
+import Brand from "./Brand";
+
 
 // Ordered to follow the money: see it → log it → plan it → grow it → free by it
 const NAV_ITEMS = [

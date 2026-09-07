@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['"Bangers"', '"Nunito"', "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ['"Abril Fatface"', '"Bangers"', '"Nunito"', "ui-sans-serif", "system-ui", "sans-serif"],
         sans: ['"Nunito"', "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
       },
       colors: {

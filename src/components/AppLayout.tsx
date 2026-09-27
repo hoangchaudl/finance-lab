@@ -86,7 +86,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="h-screen w-screen overflow-hidden bg-background flex flex-col md:flex-row">
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-primary text-white">
-        <Brand size={30} textClassName="text-xl" />
+        <Brand size={30} textClassName="text-xl" inverted />
 
         <Button
           variant="bell"
@@ -107,7 +107,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       >
         {/* Logo */}
         <div className="relative z-10 p-4 pb-2">
-          <Brand size={36} textClassName="text-2xl" className="text-white" />
+          <Brand size={36} textClassName="text-2xl" className="text-white" inverted />
         </div>
 
 

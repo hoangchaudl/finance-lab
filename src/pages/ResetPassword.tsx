@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Landmark } from "lucide-react";
+import Brand from "@/components/Brand";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -50,9 +50,8 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <Landmark className="h-8 w-8 text-primary" strokeWidth={1.5} />
-            <CardTitle className="text-2xl font-bold text-primary">Finance Lab</CardTitle>
+          <div className="flex items-center justify-center">
+            <Brand size={40} textClassName="text-2xl text-primary" />
           </div>
           <p className="text-sm text-muted-foreground">Reset your password</p>
         </CardHeader>

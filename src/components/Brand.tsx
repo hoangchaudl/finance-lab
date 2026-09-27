@@ -1,4 +1,3 @@
-import logo from "@/assets/finance-lab-logo.png";
 import { cn } from "@/lib/utils";
 
 type BrandProps = {
@@ -22,19 +21,25 @@ export default function Brand({
   className,
   markOnly = false,
 }: BrandProps) {
+  // Crossover point mark. Keep in sync with public/favicon.svg.
+  // Old bell mark: src/assets/logo-bell-backup.png
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <img
-        src={logo}
-        alt="Finance Lab logo"
+      <svg
+        viewBox="0 0 44 44"
         width={size}
         height={size}
-        style={{ width: size, height: size }}
-        className="shrink-0 rounded-xl bg-white object-contain"
-      />
+        role="img"
+        aria-label="Finance Lab logo"
+        className="shrink-0"
+      >
+        <rect x="0.5" y="0.5" width="43" height="43" rx="11.5" fill="#FFFFFF" stroke="#E5E7EB" />
+        <path d="M11 32 L33 12" stroke="var(--brand-blue)" strokeWidth="4.5" strokeLinecap="round" />
+        <circle cx="22" cy="22" r="5.5" fill="var(--brand-green)" stroke="#FFFFFF" strokeWidth="2.5" />
+      </svg>
       {!markOnly && (
         <span
-          className={cn("font-display tracking-wide whitespace-nowrap", textClassName)}
+          className={cn("font-brand font-extrabold tracking-tight whitespace-nowrap", textClassName)}
         >
           Finance Lab
         </span>

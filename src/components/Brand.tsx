@@ -8,8 +8,6 @@ type BrandProps = {
   className?: string;
   /** Hide the "Finance Lab" wordmark, show the mark only */
   markOnly?: boolean;
-  /** White tile with blue line, for use on blue backgrounds */
-  inverted?: boolean;
 };
 
 /**
@@ -22,12 +20,9 @@ export default function Brand({
   textClassName = "text-2xl",
   className,
   markOnly = false,
-  inverted = false,
 }: BrandProps) {
-  // Crossover point: rising income line meets the flat expense line.
-  // Keep in sync with public/favicon.svg. Old bell mark: src/assets/logo-bell-backup.png
-  const tile = inverted ? "#FFFFFF" : "var(--brand-blue)";
-  const line = inverted ? "var(--brand-blue)" : "#FFFFFF";
+  // Crossover point mark. Keep in sync with public/favicon.svg.
+  // Old bell mark: src/assets/logo-bell-backup.png
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <svg
@@ -38,10 +33,9 @@ export default function Brand({
         aria-label="Finance Lab logo"
         className="shrink-0"
       >
-        <rect width="44" height="44" rx="12" fill={tile} />
-        <path d="M8 22 H36" stroke="var(--brand-salmon)" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="0.5 6.4" />
-        <path d="M9 33 L35 11" stroke={line} strokeWidth="4" strokeLinecap="round" />
-        <circle cx="22" cy="22" r="5.5" fill="var(--brand-green)" stroke={tile} strokeWidth="2.5" />
+        <rect x="0.5" y="0.5" width="43" height="43" rx="11.5" fill="#FFFFFF" stroke="#E5E7EB" />
+        <path d="M11 32 L33 12" stroke="var(--brand-blue)" strokeWidth="4.5" strokeLinecap="round" />
+        <circle cx="22" cy="22" r="5.5" fill="var(--brand-green)" stroke="#FFFFFF" strokeWidth="2.5" />
       </svg>
       {!markOnly && (
         <span

@@ -4,79 +4,172 @@
 
 @layer base {
   :root {
-    /* Finance Lab theme — clean SaaS blue on white */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Fonts */
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Nunito", "Baloo 2", "Quicksand", ui-sans-serif, system-ui, sans-serif;
+
+    /* Brand accents (same in light and dark) */
+    --brand-blue: #2E9DF7;
+    --brand-blue-shadow: #1b85df;
+    --brand-green: #3DDC97;
+    --brand-green-ink: #0B3D2A;
+    --brand-red: #F4511E;
+    --brand-red-shadow: #C53914;
+    --brand-green-shadow: #2A8F62;
+    --brand-orange: #FFA94D;
+    --brand-sun: #F5A623;
+    --brand-salmon: #FFB59C;
+
+    /* Semantic colors (light) */
+    --color-page: #FDFDFB;
+    --color-surface: #FFFFFF;
+    --color-ink: #2D2D2D;
+    --color-sky: #E0F2FE;
+    --color-navy: #1E40AF;
+    --color-pocket: #F5F9FF;
+    --color-rose: #FEE2E2;
+    --color-peach: #FFF4ED;
+    --color-mint: #E6FAF1;
+    --color-leaf: #2A8F62;
+    --color-ember: #C53914;
+    --color-rail: #2E9DF7;
+
+    /* Grays (400/500 darker than Tailwind's so small text stays readable) */
+    --color-gray-50:  #F9FAFB;
+    --color-gray-100: #F3F4F6;
+    --color-gray-200: #E5E7EB;
+    --color-gray-300: #D1D5DB;
+    --color-gray-400: #666D7A;
+    --color-gray-500: #596070;
+    --color-gray-600: #4B5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1F2937;
+    --color-gray-900: #111827;
+
+    /* Radii */
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-card: 32px;
+    --radius-hero: 40px;
+    --radius-pill: 9999px;
+
+    /* Soft shadows (Tailwind defaults) */
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / .25);
+
+    /* shadcn HSL tokens, derived from the palette above */
+    --background: 60 33% 99%;       /* page */
+    --foreground: 0 0% 18%;         /* ink */
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-
+    --card-foreground: 0 0% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 18%;
 
-    /* Brand blue #2563EB */
-    --primary: 221 83% 53%;
+    --primary: 207 93% 57%;         /* brand-blue */
     --primary-foreground: 0 0% 100%;
-    /* deep navy for readable text on blue-tinted surfaces (WCAG AA) */
-    --primary-foreground-strong: 224 64% 27%;
+    --primary-foreground-strong: 226 71% 40%; /* navy */
 
-    --secondary: 214 100% 97%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 204 94% 94%;       /* sky */
+    --secondary-foreground: 226 71% 40%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 220 14% 96%;           /* gray-100 */
+    --muted-foreground: 222 11% 39%;/* gray-500 */
 
-    --accent: 214 95% 93%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 216 100% 98%;         /* pocket */
+    --accent-foreground: 226 71% 40%;
 
-    /* Loss red #DC2626 */
-    --destructive: 0 72% 51%;
+    --destructive: 14 91% 54%;      /* brand-red */
     --destructive-foreground: 0 0% 100%;
-    --loss: 0 72% 51%;
+    --loss: 13 82% 43%;             /* ember */
 
-    /* Gains #16A34A */
-    --success: 142 71% 40%;
-    --warning: 38 92% 50%;
-    /* Warning is a bright amber — needs a darker readable tone for text/icons
-       on top of it or on its tinted backgrounds (same trick as
-       --primary-foreground-strong above). */
-    --warning-foreground: 26 90% 27%;
+    --success: 153 55% 36%;         /* leaf */
+    --warning: 31 100% 65%;         /* brand-orange */
+    --warning-foreground: 13 82% 43%;
 
-    /* Accent gold — used for highlighted/active chips */
-    --bell: 43 96% 56%;
-    --bell-foreground: 222 47% 11%;
+    --bell: 154 69% 55%;            /* brand-green */
+    --bell-foreground: 157 69% 14%; /* brand-green-ink */
 
-    /* Categorical chart palette — one shared source of truth for every
-       pie/donut/line series in the app. chart-1/2/4 intentionally echo the
-       brand's primary/success/warning hues so a slice's color carries the
-       same meaning it would anywhere else in the UI; chart-3/5/6/7 are
-       chart-only hues chosen to stay legible side-by-side with them. */
-    --chart-1: 221 83% 53%; /* brand blue — Stocks */
-    --chart-2: 142 71% 40%; /* green — Savings / Cash */
+    /* Categorical chart palette */
+    --chart-1: 207 93% 57%; /* brand blue — Stocks */
+    --chart-2: 154 69% 55%; /* green — Savings / Cash */
     --chart-3: 262 83% 62%; /* violet — Crypto */
-    --chart-4: 43 96% 56%;  /* gold — Gold */
+    --chart-4: 37 91% 55%;  /* sun — Gold */
     --chart-5: 174 70% 41%; /* teal — ETF */
-    --chart-6: 24 95% 53%;  /* orange — Mutual Funds */
+    --chart-6: 14 91% 54%;  /* red-orange — Mutual Funds */
     --chart-7: 220 9% 55%;  /* neutral gray — Other */
 
-    /* Soft slate borders/dividers */
-    --outline: 214 32% 91%;
-    --border: 214 32% 91%;
-    --border-soft: 210 40% 96%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --outline: 220 13% 91%;         /* gray-200 */
+    --border: 220 13% 91%;
+    --border-soft: 220 14% 96%;
+    --input: 220 13% 91%;
+    --ring: 154 69% 55%;            /* brand-green focus ring */
 
     --radius: 1rem;
 
-    /* Sidebar (brand blue) */
-    --sidebar-background: 221 83% 53%;
+    /* Sidebar (rail) */
+    --sidebar-background: 207 93% 57%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 43 96% 56%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 221 76% 46%;
+    --sidebar-primary: 154 69% 55%;
+    --sidebar-primary-foreground: 157 69% 14%;
+    --sidebar-accent: 208 78% 49%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 221 76% 46%;
-    --sidebar-ring: 43 96% 56%;
+    --sidebar-border: 208 78% 49%;
+    --sidebar-ring: 154 69% 55%;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --color-page: #0E1420;
+    --color-surface: #182131;
+    --color-ink: #E4E8EE;
+    --color-sky: #1B3656;
+    --color-navy: #A9CCFF;
+    --color-pocket: #152033;
+    --color-rose: #3E1F22;
+    --color-peach: #3A2419;
+    --color-mint: #14382A;
+    --color-leaf: #5FE0A7;
+    --color-ember: #FF8A65;
+    --color-rail: #173A66;
+
+    /* Grays flip: 50 darkest, 900 lightest */
+    --color-gray-50:  #121A28;
+    --color-gray-100: #202A3C;
+    --color-gray-200: #2B374C;
+    --color-gray-300: #3A475E;
+    --color-gray-400: #8A96AB;
+    --color-gray-500: #97A2B6;
+    --color-gray-600: #B2BCCB;
+    --color-gray-700: #CAD1DC;
+    --color-gray-800: #E1E6EC;
+    --color-gray-900: #F2F4F7;
+
+    --background: 220 39% 9%;
+    --foreground: 216 23% 91%;
+    --card: 218 34% 14%;
+    --card-foreground: 216 23% 91%;
+    --popover: 218 34% 14%;
+    --popover-foreground: 216 23% 91%;
+    --primary-foreground-strong: 216 100% 83%;
+    --secondary: 213 52% 22%;
+    --secondary-foreground: 216 100% 83%;
+    --muted: 219 30% 18%;
+    --muted-foreground: 219 18% 65%;
+    --accent: 218 42% 14%;
+    --accent-foreground: 216 100% 83%;
+    --loss: 14 100% 70%;
+    --success: 153 68% 63%;
+    --warning-foreground: 14 100% 70%;
+    --outline: 218 28% 23%;
+    --border: 218 28% 23%;
+    --border-soft: 219 30% 18%;
+    --input: 218 28% 23%;
+    --sidebar-background: 213 63% 25%;
+    --sidebar-accent: 213 61% 31%;
+    --sidebar-border: 213 61% 31%;
   }
 }
 
@@ -87,8 +180,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Nunito", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-      Roboto, sans-serif;
+    font-family: var(--font-sans);
   }
 
   td, th, .tabular, .font-tabular {
@@ -99,25 +191,84 @@
 /* Utility classes */
 @layer components {
   .card-shadow {
-    box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.08);
+    box-shadow: var(--shadow-sm);
   }
   .card-shadow-sm {
-    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.06);
+    box-shadow: var(--shadow-sm);
   }
   .floating-nav-shadow {
     box-shadow: 0 10px 25px -5px rgb(15 23 42 / 0.15), 0 4px 6px -4px rgb(15 23 42 / 0.1);
   }
   .card-base {
-    @apply bg-white rounded-2xl border border-border card-shadow;
+    @apply bg-card border border-border-soft card-shadow;
+    border-radius: var(--radius-card);
   }
   .hero-gradient {
     @apply bg-gradient-to-br from-primary to-sky-400;
   }
 
-  .font-display {
-    font-family: "Fredoka", "Nunito", ui-sans-serif, system-ui, sans-serif;
+  /* Design-system primitives (usable directly in markup) */
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-gray-100);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+  }
+  .card-hero {
+    background: var(--color-surface);
+    border: 4px solid var(--color-surface);
+    border-radius: var(--radius-hero);
+    box-shadow: var(--shadow-2xl);
+    padding: 2rem;
+  }
+  .menu {
+    background: var(--color-surface);
+    border: 1px solid var(--color-gray-100);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: .5rem;
+  }
+  .btn {
+    color: #fff;
     font-weight: 700;
-    letter-spacing: 0.01em;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .025em;
+    padding: .75rem 1.5rem;
+    border: 0;
+    border-radius: var(--radius-lg);
+    transition: all .15s;
+    background: var(--brand-blue);
+    box-shadow: 0 4px 0 var(--brand-blue-shadow);
+  }
+  .btn:active { box-shadow: none; transform: translateY(2px); }
+  .btn:disabled { opacity: .6; }
+  .btn-red   { background: var(--brand-red); box-shadow: 0 4px 0 var(--brand-red-shadow); }
+  .btn-green { background: var(--brand-green); color: var(--brand-green-ink); box-shadow: 0 4px 0 var(--brand-green-shadow); }
+  .input {
+    background: var(--color-gray-50);
+    border: 0;
+    border-radius: var(--radius-md);
+    padding: .75rem;
+    font-size: .875rem;
+    font-weight: 500;
+    transition: all .15s;
+  }
+  .input:focus { outline: none; box-shadow: 0 0 0 2px var(--brand-green); }
+  .badge {
+    border-radius: var(--radius-pill);
+    padding: .25rem .75rem;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+  }
+  .notice { border-left: 4px solid var(--brand-blue); }
+
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 800;
   }
 
   /* Speech-bubble tooltip wrapper (used in Recharts custom tooltip) */

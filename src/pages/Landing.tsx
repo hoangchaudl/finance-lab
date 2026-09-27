@@ -38,7 +38,7 @@ export default function Landing() {
             <Button
               size="sm"
               onClick={goToSignup}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 whitespace-nowrap"
+              className="px-3 whitespace-nowrap"
             >
               Get Started
             </Button>
@@ -47,16 +47,16 @@ export default function Landing() {
       </nav>
 
       {/* ── HERO ────────────────────────────────────────────────── */}
-      <section className="bg-gradient-to-br from-blue-50 via-white to-white py-20 sm:py-28">
+      <section className="bg-gradient-to-br from-accent via-background to-background py-20 sm:py-28">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Text */}
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+            <div className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1 rounded-full">
               🎯 Built for Vietnamese investors
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight text-slate-900">
               Know exactly when your investments{" "}
-              <span className="text-blue-600">pay for your life.</span>
+              <span className="text-primary">pay for your life.</span>
             </h1>
             <p className="text-lg text-slate-600 leading-relaxed max-w-lg">
               Finance Lab tracks your{" "}
@@ -68,7 +68,7 @@ export default function Landing() {
               <Button
                 size="lg"
                 onClick={goToSignup}
-                className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                className="gap-2"
               >
                 Start for free <ArrowRight className="h-4 w-4" />
               </Button>
@@ -108,14 +108,14 @@ export default function Landing() {
               {/* Area fill under passive income */}
               <path
                 d="M 30,200 C 130,188 290,135 450,68 L 450,215 L 30,215 Z"
-                fill="#2563eb"
+                fill="var(--brand-blue)"
                 fillOpacity="0.07"
               />
 
               {/* Passive income line */}
               <path
                 d="M 30,200 C 130,188 290,135 450,68"
-                stroke="#2563eb"
+                stroke="var(--brand-blue)"
                 strokeWidth="2.5"
                 fill="none"
                 strokeLinecap="round"
@@ -148,13 +148,13 @@ export default function Landing() {
                 cy="137"
                 r="6"
                 fill="white"
-                stroke="#2563eb"
+                stroke="var(--brand-blue)"
                 strokeWidth="2"
               />
-              <circle cx="285" cy="137" r="2.5" fill="#2563eb" />
+              <circle cx="285" cy="137" r="2.5" fill="var(--brand-blue)" />
 
               {/* Crossover label pill */}
-              <rect x="205" y="12" width="160" height="24" rx="12" fill="#1d4ed8" />
+              <rect x="205" y="12" width="160" height="24" rx="12" fill="var(--brand-blue-shadow)" />
               <text
                 x="285"
                 y="28"
@@ -171,7 +171,7 @@ export default function Landing() {
               <text
                 x="38"
                 y="195"
-                fill="#2563eb"
+                fill="var(--brand-blue)"
                 fontSize="10"
                 fontWeight="600"
                 fontFamily="system-ui"
@@ -220,7 +220,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center space-y-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 max-w-2xl mx-auto">
             Most finance apps tell you where your money went.{" "}
-            <span className="text-blue-600">We tell you when you're free.</span>
+            <span className="text-primary">We tell you when you're free.</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {[
@@ -268,8 +268,8 @@ export default function Landing() {
                 icon: TrendingUp,
                 title: "Crossover Point Dashboard",
                 body: "See what % of your monthly expenses your passive income currently covers. Watch it grow toward 100% — that's your financial freedom number.",
-                color: "text-blue-600",
-                bg: "bg-blue-50",
+                color: "text-primary",
+                bg: "bg-secondary",
               },
               {
                 icon: Layers,
@@ -361,14 +361,14 @@ export default function Landing() {
             </Card>
 
             {/* Pro */}
-            <Card className="border-2 border-blue-600 shadow-lg relative">
+            <Card className="border-2 border-primary shadow-lg relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-blue-600 text-white px-3 py-0.5 text-xs font-semibold">
+                <Badge className="bg-primary text-primary-foreground px-3 py-0.5 text-xs font-semibold">
                   Most Popular
                 </Badge>
               </div>
               <CardHeader>
-                <CardTitle className="text-xl text-blue-700">Pro</CardTitle>
+                <CardTitle className="text-xl text-primary">Pro</CardTitle>
                 <div className="mt-2">
                   <span className="text-3xl font-extrabold">₫99,000</span>
                   <span className="text-slate-500 ml-1">/ month</span>
@@ -397,7 +397,7 @@ export default function Landing() {
                   ))}
                 </ul>
                 <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  className="w-full"
                   onClick={goToSignup}
                 >
                   Start Pro free for 7 days

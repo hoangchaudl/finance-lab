@@ -34,7 +34,7 @@ export default function Brand({
       />
       {!markOnly && (
         <span
-          className={cn("font-sans font-extrabold tracking-tight whitespace-nowrap", textClassName)}
+          className={cn("font-sans font-extrabold uppercase tracking-tight whitespace-nowrap", textClassName)}
         >
           Finance Lab
         </span>

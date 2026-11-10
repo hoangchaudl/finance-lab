@@ -24,6 +24,24 @@ export function useAppData() {
       return;
     }
 
+    // Supabase caps each request at 1000 rows, so page until a short page
+    const fetchAllTransactions = async () => {
+      const PAGE = 1000;
+      const rows: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("date", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw new Error(error.message);
+        rows.push(...(data || []));
+        if (!data || data.length < PAGE) return rows;
+      }
+    };
+
     try {
       const [
         profileRes,
@@ -38,7 +56,7 @@ export function useAppData() {
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("categories").select("*").eq("user_id", user.id),
-        supabase.from("transactions").select("*").eq("user_id", user.id),
+        fetchAllTransactions(),
         supabase.from("portfolio_entries").select("*").eq("user_id", user.id),
         supabase.from("assets").select("*").eq("user_id", user.id),
         supabase.from("goals").select("*").eq("user_id", user.id),
@@ -60,7 +78,7 @@ export function useAppData() {
         }),
       );
 
-      const transactions: Transaction[] = (transactionsRes.data || []).map(
+      const transactions: Transaction[] = transactionsRes.map(
         (t: any) => ({
           id: t.id,
           date: t.date,

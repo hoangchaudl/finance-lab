@@ -503,7 +503,7 @@ export default function Report() {
                   </dl>
 
                   <div className="overflow-x-auto -mx-6">
-                    <Table className="min-w-[640px]">
+                    <Table className="min-w-[760px] whitespace-nowrap">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="pl-6">Asset</TableHead>

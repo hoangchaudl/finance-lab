@@ -1025,8 +1025,8 @@ export default function Portfolio() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[3%]"></TableHead>
-                <TableHead className="w-[16%]">Asset</TableHead>
-                <TableHead className="w-[7%]">Type</TableHead>
+                <TableHead className="w-[14%]">Asset</TableHead>
+                <TableHead className="w-[9%]">Type</TableHead>
                 <TableHead className="w-[8%]">Tier</TableHead>
                 <TableHead className="text-right w-[6%]">Qty</TableHead>
                 <TableHead className="text-right w-[9%]">Avg Price</TableHead>

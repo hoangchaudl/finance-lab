@@ -373,7 +373,7 @@ export default function Dashboard() {
         {/* ─── INCOME QUALITY ─── */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>Income quality</CardTitle>
+            <CardTitle className="text-lg">Income quality</CardTitle>
             <p className="text-sm text-muted-foreground">How much of this month's income needed your time.</p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -409,7 +409,7 @@ export default function Dashboard() {
         {/* ─── STOCKS VS SAFE ASSETS ─── */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>Growth and safety mix</CardTitle>
+            <CardTitle className="text-lg">Growth and safety mix</CardTitle>
             <p className="text-sm text-muted-foreground">
               {currentAge > 0
                 ? `Rule of 110: at ${currentAge}, aim for about ${targetStocks}% in growth assets.`
@@ -426,7 +426,7 @@ export default function Dashboard() {
                     <span className="font-medium">{m.label}</span>
                     <span className="tabular">
                       <span className="font-bold">{m.actual.toFixed(1)}%</span>
-                      {currentAge > 0 && <span className="text-muted-foreground"> of a {m.target}% target</span>}
+                      {currentAge > 0 && <span className="text-muted-foreground"> (target {m.target}%)</span>}
                     </span>
                   </div>
                   <Progress value={m.actual} className="h-2" />

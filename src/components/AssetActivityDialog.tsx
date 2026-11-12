@@ -109,11 +109,12 @@ export default function AssetActivityDialog({ entryId, onOpenChange }: AssetActi
   const amountValue = parseAmountInput(amount) ?? 0;
   const qtyValue = parseFloat(quantity) || 0;
   const isQtyType = logType === "investing" || logType === "sell";
-  const impliedPrice = isQtyType && qtyValue > 0 ? amountValue / qtyValue : 0;
+  // Buy/Sell: the amount field holds the price per unit, total is derived
+  const totalValue = isQtyType ? Math.round(amountValue * qtyValue) : amountValue;
 
   const sellPreview =
     logType === "sell" && amountValue > 0 && qtyValue > 0
-      ? { gain: amountValue - avgCost * qtyValue, salePrice: amountValue / qtyValue }
+      ? { gain: totalValue - avgCost * qtyValue, salePrice: amountValue }
       : null;
 
   const canSubmit =
@@ -127,7 +128,7 @@ export default function AssetActivityDialog({ entryId, onOpenChange }: AssetActi
     try {
       await addTransaction({
         date,
-        amount: amountValue,
+        amount: totalValue,
         quantity: isQtyType ? qtyValue : undefined,
         type: logType,
         category_id: categoryId,
@@ -192,7 +193,7 @@ export default function AssetActivityDialog({ entryId, onOpenChange }: AssetActi
 
         {/* Quick log form */}
         <div className="space-y-3 rounded-lg border p-3 bg-muted/20">
-          <Tabs value={logType} onValueChange={(v) => setLogType(v as LogType)}>
+          <Tabs value={logType} onValueChange={(v) => { setLogType(v as LogType); setAmount(""); }}>
             <TabsList className="grid grid-cols-3 w-full">
               <TabsTrigger value="investing" className="gap-1">
                 <ArrowUpCircle className="h-3.5 w-3.5" strokeWidth={1.5} /> Buy
@@ -208,7 +209,7 @@ export default function AssetActivityDialog({ entryId, onOpenChange }: AssetActi
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">{logType === "sell" ? "Sale Amount" : logType === "dividend" ? "Amount" : "Total Cost"}</Label>
+              <Label className="text-xs">{logType === "sell" ? "Sale price / unit" : logType === "dividend" ? "Amount" : "Price / unit"}</Label>
               <Input
                 value={formatAmountTyping(amount)}
                 onChange={(e) => setAmount(sanitizeAmountTyping(e.target.value))}
@@ -233,9 +234,9 @@ export default function AssetActivityDialog({ entryId, onOpenChange }: AssetActi
             )}
           </div>
 
-          {isQtyType && impliedPrice > 0 && (
+          {isQtyType && totalValue > 0 && (
             <p className="text-xs text-muted-foreground">
-              @{formatVND(Math.round(impliedPrice))}/unit
+              {logType === "sell" ? "Sale total" : "Total cost"} ≈ <strong>{formatVND(totalValue)}</strong>
             </p>
           )}
 

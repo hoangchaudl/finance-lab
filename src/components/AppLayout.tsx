@@ -9,12 +9,11 @@ import {
   Menu,
   X,
   LogOut,
-  Search,
+  FolderCog,
   Keyboard,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import ShortcutsDialog, { useGlobalShortcutsDialog } from "./ShortcutsDialog";
@@ -28,6 +27,7 @@ const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Transactions", path: "/transactions", icon: ArrowRightLeft },
   { label: "Budget Plan", path: "/budget", icon: Wallet },
+  { label: "Categories", path: "/categories", icon: FolderCog },
   { label: "Portfolio", path: "/portfolio", icon: PieChart },
   { label: "FIRE Goals", path: "/fire", icon: Flame },
   { label: "Reports", path: "/report", icon: BarChart3 },
@@ -37,25 +37,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const { signOut, user } = useAuth();
   const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useGlobalShortcutsDialog();
   const quickAddRef = useRef<QuickAddHandle>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // '/' focuses the sidebar search
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target as HTMLElement).isContentEditable) return;
-      if (e.key === "/") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
 
   const getInitials = () => {
     const metadata = user?.user_metadata || {};
@@ -77,10 +61,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         day: "numeric",
       })
     : null;
-
-  const filteredNavItems = NAV_ITEMS.filter((item) =>
-    item.label.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background flex flex-col md:flex-row">
@@ -111,27 +91,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
 
-        {/* Search Bar */}
-        <div className="relative z-10 p-4 pt-2 pb-2">
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"
-              strokeWidth={2}
-            />
-            <Input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search… ( / )"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-3 py-2 rounded-full bg-white text-foreground text-sm"
-            />
-          </div>
-        </div>
-
         {/* Scrollable Navigation */}
         <nav className="relative z-10 flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {filteredNavItems.map((item) => {
+          {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (

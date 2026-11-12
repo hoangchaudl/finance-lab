@@ -3,12 +3,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.3";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // This emails every user, so only the scheduler may call it. Fails closed
+  // when the secret is not configured.
+  const CRON_SECRET = Deno.env.get("REMINDER_CRON_SECRET");
+  if (!CRON_SECRET || req.headers.get("x-cron-secret") !== CRON_SECRET) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -49,8 +59,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get the app URL from the request origin or use a fallback
-    const appUrl = req.headers.get("origin") || SUPABASE_URL.replace(".supabase.co", ".lovable.app");
+    // Never from the request: a caller-supplied Origin would put its link in every email
+    const appUrl = Deno.env.get("APP_URL") || SUPABASE_URL.replace(".supabase.co", ".lovable.app");
 
     let sentCount = 0;
     const errors: string[] = [];

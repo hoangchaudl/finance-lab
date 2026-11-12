@@ -34,7 +34,7 @@ const GROUPS: { page: string; rows: { keys: string[]; action: string }[] }[] = [
     page: "Portfolio",
     rows: [
       { keys: ["N"], action: "Open the add-asset row" },
-      { keys: ["↓", "↑"], action: "Navigate between asset groups" },
+      { keys: ["↓", "↑"], action: "Navigate between asset groups (click a row first)" },
       { keys: ["Enter"], action: "Expand / collapse the focused group" },
     ],
   },

@@ -1,4 +1,5 @@
 import { useApp } from "@/contexts/AppContext";
+import { SAMPLE_NOTE } from "@/hooks/use-app-data";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatVND, formatVNDCompact, getMonthKey, getMonthLabel } from "@/lib/format";
 import {
@@ -75,11 +76,28 @@ export default function Dashboard() {
     getTotalSavings,
     getTotalInvestments,
     getTotalInvestmentCost,
+    clearSampleData,
   } = useApp();
   const { user } = useAuth();
   const { toast } = useToast();
   const { startTour } = usePageTour("dashboard");
   // Remove editing state for age; age is now always read-only and auto-calculated
+
+  const hasSampleData =
+    data.transactions.some((t) => t.note?.startsWith(SAMPLE_NOTE)) ||
+    (data.portfolio ?? []).some((p) => p.notes === SAMPLE_NOTE);
+  const handleClearSample = async () => {
+    try {
+      await clearSampleData();
+      toast({ title: "Sample data removed" });
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: e instanceof Error ? e.message : "Could not remove the sample data.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const isFirstVisit =
     !localStorage.getItem("onboarding_complete") &&
@@ -287,6 +305,21 @@ export default function Dashboard() {
           {compact ? "Full" : "Compact"}
         </button>
       </div>
+
+      {hasSampleData && (
+        <Alert>
+          <AlertTitle>You're looking at sample data</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              The example salary, expenses and E1VFVN30 holding are not yours. Remove them when you're ready to
+              enter your own. Your categories stay.
+            </span>
+            <Button size="sm" variant="outline" onClick={handleClearSample}>
+              Remove sample data
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <OnboardingChecklist />
 

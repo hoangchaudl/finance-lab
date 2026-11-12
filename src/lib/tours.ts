@@ -33,7 +33,7 @@ export const TOURS: Record<TourKey, DriveStep[]> = {
       popover: {
         title: "Monthly Summary",
         description:
-          "Income, expenses and savings for the current month. Use this to spot trends fast.",
+          "Money in, money out and what you kept so far this month, compared with last month.",
       },
     },
     {

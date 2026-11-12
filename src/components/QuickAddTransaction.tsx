@@ -119,7 +119,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
       </button>
 
       <Dialog open={isOpen} onOpenChange={(v) => { setIsOpen(v); if (!v) reset(); }}>
-        <DialogContent className="sm:max-w-md overflow-hidden">
+        <DialogContent className="sm:max-w-md max-h-[90dvh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Quick Add Transaction</DialogTitle>
           </DialogHeader>
@@ -167,31 +167,6 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
               )}
             </div>
 
-            {/* Category — horizontal chips on mobile */}
-            <div className="space-y-1.5">
-              <Label>Category</Label>
-              {filteredCategories.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pb-1">
-                  {filteredCategories.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setCategoryId(c.id)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
-                        categoryId === c.id
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background border-border text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      {c.emoji} {c.name}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">No categories for this type.</p>
-              )}
-            </div>
-
             {/* Asset link — investing/sell move real portfolio holdings */}
             {showAssetLink && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -234,6 +209,31 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
                 )}
               </div>
             )}
+
+            {/* Category — horizontal chips on mobile */}
+            <div className="space-y-1.5">
+              <Label>Category</Label>
+              {filteredCategories.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pb-1">
+                  {filteredCategories.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setCategoryId(c.id)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
+                        categoryId === c.id
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {c.emoji} {c.name}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No categories for this type.</p>
+              )}
+            </div>
 
             {/* Date */}
             <div className="space-y-1.5">

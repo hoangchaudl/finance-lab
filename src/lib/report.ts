@@ -25,3 +25,11 @@ export function shiftPeriod(key: string, delta: number): string {
   const d = new Date(y, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
+
+/** The previous period's transactions up to the same day as `today`, so a
+ *  part-finished month or year is compared like for like. */
+export function upToSamePoint(transactions: Transaction[], prevKey: string, today: string) {
+  const from = prevKey.length === 7 ? 8 : 5; // day of month, or month-day
+  const cutoff = today.slice(from);
+  return transactions.filter((t) => t.date.startsWith(prevKey) && t.date.slice(from) <= cutoff);
+}

@@ -10,7 +10,7 @@ interface Props {
 
 export default function CollapsibleAlerts({ budgetAlerts, portfolioAlerts, subscriptionAlerts }: Props) {
   const storageKey = "dashboard_alerts_collapsed";
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(storageKey) === "true");
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(storageKey) !== "false");
 
   const allAlerts = [...budgetAlerts, ...portfolioAlerts, ...subscriptionAlerts];
   if (allAlerts.length === 0) return null;

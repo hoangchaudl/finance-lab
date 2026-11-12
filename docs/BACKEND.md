@@ -222,9 +222,9 @@ Upload path convention is `<user_id>/<filename>` (required by the bucket's RLS â
 
 #### `send-budget-reminder`
 - Path: `supabase/functions/send-budget-reminder/index.ts`
-- Config: `verify_jwt = false` (safe to invoke on a schedule).
+- Config: `verify_jwt = false`; the scheduler must send the `x-cron-secret` header matching `REMINDER_CRON_SECRET`, otherwise the function returns 401.
 - Uses the service-role client to list verified users, then sends a weekly budget check-in email via **Resend** with a link back to `/budget`.
-- Env: `RESEND_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+- Env: `RESEND_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `REMINDER_CRON_SECRET`, optional `APP_URL` (link target in the email).
 - Returns `{ message, sent, errors }`.
 
 ### 2.7 Secrets

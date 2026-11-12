@@ -10,11 +10,27 @@ import { initialData } from "@/lib/initial-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+/** Marks rows created by onboarding's "Use Sample Data" so they can be removed later. */
+export const SAMPLE_NOTE = "Sample data";
+
 export function useAppData() {
   const { user } = useAuth();
   const [data, setData] = useState<AppData>(initialData);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
+
+  /** Supabase resolves on failure instead of rejecting. Show the banner and
+   *  throw, so a save that didn't happen never looks like one that did. */
+  const write = useCallback(
+    async (query: PromiseLike<{ error: { message: string } | null }>) => {
+      const { error } = await query;
+      if (error) {
+        setDbError(`Your change was not saved: ${error.message}`);
+        throw new Error(error.message);
+      }
+    },
+    [],
+  );
 
   // Load all data from Supabase
   const loadFromDB = useCallback(async () => {
@@ -67,6 +83,11 @@ export function useAppData() {
           .select("*")
           .eq("user_id", user.id),
       ]);
+
+      // A failed query would otherwise look like "you have no data"
+      const failed = [categoriesRes, portfolioRes, assetsRes, goalsRes, subscriptionsRes, plansRes, allocationsRes]
+        .find((r) => r.error);
+      if (failed?.error) throw new Error(failed.error.message);
 
       const profile = profileRes.data;
       const categories: Category[] = (categoriesRes.data || []).map(
@@ -434,50 +455,54 @@ export function useAppData() {
   const updatePlan = useCallback(
     async (m: string, c: string, p: number) => {
       if (!user) return;
-      await supabase
-        .from("monthly_plans")
-        .upsert(
-          { user_id: user.id, month_key: m, category_id: c, planned: p },
-          { onConflict: "user_id,month_key,category_id" },
-        );
+      await write(
+        supabase
+          .from("monthly_plans")
+          .upsert(
+            { user_id: user.id, month_key: m, category_id: c, planned: p },
+            { onConflict: "user_id,month_key,category_id" },
+          ),
+      );
       await loadFromDB();
     },
-    [user, loadFromDB],
+    [user, loadFromDB, write],
   );
 
   // --- ASSETS ---
   const updateAsset = useCallback(
     async (id: string, v: number) => {
-      await supabase.from("assets").update({ value: v }).eq("id", id);
+      await write(supabase.from("assets").update({ value: v }).eq("id", id));
       await loadFromDB();
     },
-    [loadFromDB],
+    [loadFromDB, write],
   );
 
   // --- GOALS ---
   const updateGoal = useCallback(
     async (id: string, c: number) => {
-      await supabase.from("goals").update({ current: c }).eq("id", id);
+      await write(supabase.from("goals").update({ current: c }).eq("id", id));
       await loadFromDB();
     },
-    [loadFromDB],
+    [loadFromDB, write],
   );
 
   // --- ALLOCATIONS ---
   const updateAllocations = useCallback(
     async (a: AppData["incomeAllocations"]) => {
       if (!user) return;
-      await supabase
-        .from("profiles")
-        .update({
-          essentials_pct: a.essentials_pct,
-          lifestyle_pct: a.lifestyle_pct,
-          savings_pct: a.savings_pct,
-        })
-        .eq("id", user.id);
+      await write(
+        supabase
+          .from("profiles")
+          .update({
+            essentials_pct: a.essentials_pct,
+            lifestyle_pct: a.lifestyle_pct,
+            savings_pct: a.savings_pct,
+          })
+          .eq("id", user.id),
+      );
       await loadFromDB();
     },
-    [user, loadFromDB],
+    [user, loadFromDB, write],
   );
 
   // --- FIRE SETTINGS ---
@@ -487,103 +512,114 @@ export function useAppData() {
       const birthYear = s.currentAge
         ? new Date().getFullYear() - s.currentAge
         : s.birthYear;
-      await supabase
-        .from("profiles")
-        .update({
-          monthly_expenses: s.monthlyExpenses,
-          inflation_rate: s.inflationRate,
-          return_rate: s.returnRate,
-          birth_year: birthYear,
-        })
-        .eq("id", user.id);
+      await write(
+        supabase
+          .from("profiles")
+          .update({
+            monthly_expenses: s.monthlyExpenses,
+            inflation_rate: s.inflationRate,
+            return_rate: s.returnRate,
+            birth_year: birthYear,
+          })
+          .eq("id", user.id),
+      );
       await loadFromDB();
     },
-    [user, loadFromDB],
+    [user, loadFromDB, write],
   );
 
   // --- CATEGORIES ---
   const addCategory = useCallback(
     async (c: Omit<Category, "id">) => {
       if (!user) return;
-      await supabase.from("categories").insert({
-        user_id: user.id,
-        name: c.name,
-        emoji: c.emoji,
-        type: c.type,
-      });
+      await write(
+        supabase.from("categories").insert({
+          user_id: user.id,
+          name: c.name,
+          emoji: c.emoji,
+          type: c.type,
+        }),
+      );
       await loadFromDB();
     },
-    [user, loadFromDB],
+    [user, loadFromDB, write],
   );
 
   const updateCategory = useCallback(
     async (id: string, u: Partial<Omit<Category, "id">>) => {
-      await supabase.from("categories").update(u).eq("id", id);
+      await write(supabase.from("categories").update(u).eq("id", id));
       await loadFromDB();
     },
-    [loadFromDB],
+    [loadFromDB, write],
   );
 
   const deleteCategory = useCallback(
     async (id: string) => {
-      await supabase
-        .from("category_allocations")
-        .delete()
-        .eq("category_id", id);
-      await supabase.from("categories").delete().eq("id", id);
+      await write(
+        supabase
+          .from("category_allocations")
+          .delete()
+          .eq("category_id", id),
+      );
+      await write(supabase.from("categories").delete().eq("id", id));
       await loadFromDB();
     },
-    [loadFromDB],
+    [loadFromDB, write],
   );
 
   const updateCategoryAllocation = useCallback(
     async (id: string, p: number) => {
       if (!user) return;
-      await supabase
-        .from("category_allocations")
-        .upsert(
-          { user_id: user.id, category_id: id, percentage: p },
-          { onConflict: "user_id,category_id" },
-        );
+      await write(
+        supabase
+          .from("category_allocations")
+          .upsert(
+            { user_id: user.id, category_id: id, percentage: p },
+            { onConflict: "user_id,category_id" },
+          ),
+      );
       await loadFromDB();
     },
-    [user, loadFromDB],
+    [user, loadFromDB, write],
   );
 
   // --- SUBSCRIPTIONS ---
   const addSubscription = useCallback(
     async (s: Omit<Subscription, "id">) => {
       if (!user) return;
-      await supabase.from("subscriptions").insert({
-        user_id: user.id,
-        name: s.name,
-        amount: s.amount,
-        due_day: s.due_day,
-      });
+      await write(
+        supabase.from("subscriptions").insert({
+          user_id: user.id,
+          name: s.name,
+          amount: s.amount,
+          due_day: s.due_day,
+        }),
+      );
       await loadFromDB();
     },
-    [user, loadFromDB],
+    [user, loadFromDB, write],
   );
 
   const updateSubscription = useCallback(
     async (id: string, u: Partial<Omit<Subscription, "id">>) => {
-      await supabase.from("subscriptions").update(u).eq("id", id);
+      await write(supabase.from("subscriptions").update(u).eq("id", id));
       await loadFromDB();
     },
-    [loadFromDB],
+    [loadFromDB, write],
   );
 
   const deleteSubscription = useCallback(
     async (id: string) => {
-      await supabase.from("subscriptions").delete().eq("id", id);
+      await write(supabase.from("subscriptions").delete().eq("id", id));
       await loadFromDB();
     },
-    [loadFromDB],
+    [loadFromDB, write],
   );
 
   // --- PORTFOLIO ---
   const addPortfolioEntry = useCallback(
-    async (e: Omit<PortfolioEntry, "id">, acquiredDate?: string) => {
+    // logPurchase=false: the user already owned it, so it isn't money invested now
+    async (e: Omit<PortfolioEntry, "id">, acquiredDate?: string, logPurchase = true) => {
       if (!user) return;
       const { data: inserted, error } = await supabase
         .from("portfolio_entries")
@@ -602,7 +638,7 @@ export function useAppData() {
         .select()
         .single();
       if (error) throw new Error(error.message);
-      await supabase.from("transactions").insert({
+      const { error: txError } = !logPurchase ? { error: null } : await supabase.from("transactions").insert({
         user_id: user.id,
         date: acquiredDate || new Date().toISOString().split("T")[0],
         amount: e.quantity * e.purchasePrice,
@@ -613,6 +649,8 @@ export function useAppData() {
         category_id: null,
       });
       await loadFromDB();
+      if (txError)
+        throw new Error("Asset saved, but its initial transaction was not logged: " + txError.message);
     },
     [user, loadFromDB],
   );
@@ -640,7 +678,8 @@ export function useAppData() {
 
   const deletePortfolioEntry = useCallback(
     async (id: string) => {
-      await supabase.from("portfolio_entries").delete().eq("id", id);
+      const { error } = await supabase.from("portfolio_entries").delete().eq("id", id);
+      if (error) throw new Error(error.message);
       await loadFromDB();
     },
     [loadFromDB],
@@ -721,6 +760,14 @@ export function useAppData() {
     [data.portfolio],
   );
 
+  const clearSampleData = useCallback(async () => {
+    if (!user) return;
+    // Transactions first: the sample dividend points at the sample holding
+    await write(supabase.from("transactions").delete().eq("user_id", user.id).like("note", `${SAMPLE_NOTE}%`));
+    await write(supabase.from("portfolio_entries").delete().eq("user_id", user.id).eq("notes", SAMPLE_NOTE));
+    await loadFromDB();
+  }, [user, loadFromDB, write]);
+
   const resetData = useCallback(() => setData(initialData), []);
   const resetError = useCallback(() => setDbError(null), []);
 
@@ -748,6 +795,7 @@ export function useAppData() {
     addPortfolioEntry,
     updatePortfolioEntry,
     deletePortfolioEntry,
+    clearSampleData,
     getActualForCategory,
     getMonthTransactions,
     getTotalIncome,

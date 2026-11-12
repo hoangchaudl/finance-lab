@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -430,7 +431,8 @@ export default function Portfolio() {
         setFocusedGroupIdx(null);
       }
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        if (inInput) return;
+        // Only once a row is selected, so arrows still scroll the page otherwise
+        if (inInput || focusedGroupIdx === null) return;
         e.preventDefault();
         setFocusedGroupIdx((prev) => {
           const len = groupedAssets.length;
@@ -508,6 +510,7 @@ export default function Portfolio() {
     quantity: "",
     unitPrice: "",
     notes: "",
+    alreadyOwned: false,
   });
   const existingAccounts = Array.from(
     new Set(entries.map((e) => e.account).filter(Boolean)),
@@ -532,6 +535,7 @@ export default function Portfolio() {
           notes: form.notes || undefined,
         },
         form.date || todayLocalISO(),
+        !form.alreadyOwned,
       );
       setForm({
         name: "",
@@ -542,6 +546,7 @@ export default function Portfolio() {
         quantity: "",
         unitPrice: "",
         notes: "",
+        alreadyOwned: false,
       });
       setAdding(false);
       // Pull the real market price right away for supported types
@@ -615,7 +620,7 @@ export default function Portfolio() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 data-tour="page-title" className="text-2xl font-bold flex items-center gap-1">
-          Portfolio Manager
+          Portfolio
           <PageTourButton onClick={startTour} />
         </h1>
         <div className="flex flex-wrap items-center gap-2">
@@ -635,7 +640,7 @@ export default function Portfolio() {
             variant="outline"
             onClick={handleRefreshPrices}
             disabled={refreshingPrices}
-            title="Update Gold & Crypto prices from market data"
+            title="Update market prices for stocks, ETFs, funds, gold and crypto"
           >
             <RefreshCw
               className={`h-4 w-4 mr-1 ${refreshingPrices ? "animate-spin" : ""}`}
@@ -739,6 +744,7 @@ export default function Portfolio() {
                   id="add-date"
                   type="date"
                   value={form.date}
+                  disabled={form.alreadyOwned}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                 />
               </div>
@@ -768,6 +774,18 @@ export default function Portfolio() {
                   placeholder="e.g. 24tr, 23.777, 500k"
                 />
               </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="add-owned"
+                className="mt-0.5"
+                checked={form.alreadyOwned}
+                onCheckedChange={(v) => setForm({ ...form, alreadyOwned: v === true })}
+              />
+              <Label htmlFor="add-owned" className="text-sm font-normal leading-snug">
+                I already own this. Don't count it as money invested on this date.
+              </Label>
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -876,7 +894,7 @@ export default function Portfolio() {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(val: number) => formatVND(Math.ceil(val))}
+                  formatter={(val: number) => fmt(Math.ceil(val))}
                 />
                 <Legend
                   layout="vertical"
@@ -1066,7 +1084,7 @@ export default function Portfolio() {
                             {TYPE_LABELS[group.type] ?? group.type}
                           </TableCell>
                           <TableCell className="py-2 text-right text-xs font-semibold text-muted-foreground">
-                            {formatVND(Math.ceil(typeSubtotals[group.type] ?? 0))}
+                            {fmt(Math.ceil(typeSubtotals[group.type] ?? 0))}
                           </TableCell>
                           <TableCell colSpan={4} className="py-2"></TableCell>
                         </TableRow>

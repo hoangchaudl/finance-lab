@@ -77,7 +77,8 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseAmountInput(amountRaw) ?? 0;
+    // Investing/sell: the amount field holds the price per unit
+    const amount = Math.round((parseAmountInput(amountRaw) ?? 0) * (assetRequired ? qty : 1));
     if (!categoryId || !amount || isSubmitting) return;
     if (assetRequired && (!portfolioEntryId || qty <= 0)) return;
 
@@ -146,7 +147,7 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
 
             {/* Amount */}
             <div className="space-y-1.5">
-              <Label htmlFor="qa-amount">Amount (₫)</Label>
+              <Label htmlFor="qa-amount">{assetRequired ? "Price / unit (₫)" : "Amount (₫)"}</Label>
               <Input
                 id="qa-amount"
                 autoFocus
@@ -157,7 +158,11 @@ const QuickAddTransaction = forwardRef<QuickAddHandle>((_, ref) => {
               />
               {amountRaw && (
                 <p className="text-xs text-muted-foreground">
-                  {parsedAmount > 0 ? formatVND(parsedAmount) : "Keep typing — e.g. 50k, 1.5tr"}
+                  {parsedAmount > 0
+                    ? assetRequired
+                      ? `${formatVND(parsedAmount)} / unit${qty > 0 ? ` · Total ≈ ${formatVND(Math.round(parsedAmount * qty))}` : ""}`
+                      : formatVND(parsedAmount)
+                    : "Keep typing — e.g. 50k, 1.5tr"}
                 </p>
               )}
             </div>

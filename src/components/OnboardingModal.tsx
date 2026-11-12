@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
+import { SAMPLE_NOTE } from "@/hooks/use-app-data";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { formatVND } from "@/lib/format";
+import { formatVND, todayLocalISO } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -23,6 +25,7 @@ interface Props {
 export default function OnboardingModal({ open, onClose }: Props) {
   const { data, updateFireSettings } = useApp();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [step, setStep] = useState(1);
   const [monthlyIncome, setMonthlyIncome] = useState("");
@@ -43,7 +46,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
 
   const parsedExpenses = parseFloat(monthlyExpenses) || 0;
   const fiNumber = parsedExpenses * 12 * 25;
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayLocalISO();
 
   const dismiss = () => {
     localStorage.setItem("onboarding_complete", "true");
@@ -88,6 +91,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
             quantity: 100,
             purchase_price: 32400,
             current_price: 32400,
+            notes: SAMPLE_NOTE,
             updated_at: new Date().toISOString(),
           })
           .select()
@@ -102,7 +106,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
             type: "income",
             quality: "active",
             category_id: catId("Salary"),
-            note: "Monthly salary",
+            note: `${SAMPLE_NOTE}: Monthly salary`,
           },
           {
             user_id: user.id,
@@ -110,7 +114,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
             amount: 4_000_000,
             type: "expense",
             category_id: catId("Food & Dining"),
-            note: "Monthly food expenses",
+            note: `${SAMPLE_NOTE}: Monthly food expenses`,
           },
           {
             user_id: user.id,
@@ -118,7 +122,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
             amount: 6_200_000,
             type: "expense",
             category_id: catId("Housing"),
-            note: "Rent",
+            note: `${SAMPLE_NOTE}: Rent`,
           },
           {
             user_id: user.id,
@@ -126,7 +130,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
             amount: 500_000,
             type: "expense",
             category_id: catId("Transport"),
-            note: "Fuel",
+            note: `${SAMPLE_NOTE}: Fuel`,
           },
           {
             user_id: user.id,
@@ -134,7 +138,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
             amount: 500_000,
             type: "expense",
             category_id: catId("Entertainment"),
-            note: "Netflix, Spotify",
+            note: `${SAMPLE_NOTE}: Netflix, Spotify`,
           },
           {
             user_id: user.id,
@@ -142,7 +146,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
             amount: 1_500_000,
             type: "expense",
             category_id: catId("Health"),
-            note: "Gym membership",
+            note: `${SAMPLE_NOTE}: Gym membership`,
           },
           {
             user_id: user.id,
@@ -152,7 +156,7 @@ export default function OnboardingModal({ open, onClose }: Props) {
             quality: "passive",
             category_id: null,
             portfolio_entry_id: (portEntry as any)?.id ?? null,
-            note: "E1VFVN30 dividend",
+            note: `${SAMPLE_NOTE}: E1VFVN30 dividend`,
           },
         ]);
       }
@@ -170,6 +174,11 @@ export default function OnboardingModal({ open, onClose }: Props) {
       setStep(4);
     } catch (e) {
       console.error("Onboarding error:", e);
+      toast({
+        title: "Setup was not saved",
+        description: e instanceof Error ? e.message : "Check your connection and try again.",
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }

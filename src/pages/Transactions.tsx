@@ -269,6 +269,10 @@ export default function Transactions() {
       ? amountValue(formAmount) / parseFloat(formQuantity)
       : 0;
 
+  // Investing/sell: the amount field holds the price per unit, total is derived
+  const isBuyType = formType === "investing" || formType === "sell";
+  const buyTotal = Math.round(amountValue(formAmount) * (parseFloat(formQuantity) || 0));
+
   // Sell profit preview
   const selectedSellAsset = isSellType && formPortfolioId !== "none"
     ? data.portfolio?.find((p) => p.id === formPortfolioId)
@@ -276,8 +280,8 @@ export default function Transactions() {
 
   const sellProfitPreview = useMemo(() => {
     if (!isSellType || !selectedSellAsset || !formAmount || !formQuantity) return null;
-    const saleAmount = amountValue(formAmount);
     const qty = parseFloat(formQuantity);
+    const saleAmount = amountValue(formAmount) * qty;
     if (!saleAmount || !qty) return null;
     const costBasis = selectedSellAsset.purchasePrice * qty;
     const gain = saleAmount - costBasis;
@@ -297,6 +301,7 @@ export default function Transactions() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formCategory || !formAmount || isSubmitting) return;
+    if (isBuyType && buyTotal <= 0) return;
 
     let categoryId: string | null = formCategory;
     let note = formNote || undefined;
@@ -313,14 +318,14 @@ export default function Transactions() {
       let realized_gain: number | undefined;
       if (isSellType && selectedSellAsset) {
         const qty = parseFloat(formQuantity) || 0;
-        const saleAmount = amountValue(formAmount);
+        const saleAmount = buyTotal;
         const costBasis = selectedSellAsset.purchasePrice * qty;
         realized_gain = saleAmount - costBasis;
       }
 
       await addTransaction({
         date: formDate,
-        amount: amountValue(formAmount),
+        amount: isBuyType ? buyTotal : amountValue(formAmount),
         quantity: isAssetLinkedType ? parseFloat(formQuantity) || 0 : undefined,
         type: formType,
         category_id: categoryId as string,
@@ -682,18 +687,6 @@ export default function Transactions() {
                     </span>
                   )}
                 </div>
-                <div>
-                  <Label className={isSellType ? "text-warning-foreground" : "text-primary"}>Quantity</Label>
-                  <Input
-                    type="number"
-                    value={formQuantity}
-                    onChange={(e) => setFormQuantity(e.target.value)}
-                    placeholder="0"
-                    className={isSellType ? "border-warning/40" : "border-primary/30"}
-                    required
-                    max={isSellType && selectedSellAsset ? selectedSellAsset.quantity : undefined}
-                  />
-                </div>
               </>
             )}
 
@@ -719,7 +712,7 @@ export default function Transactions() {
             )}
 
             <div className={isAssetLinkedType ? "" : "lg:col-span-1"}>
-              <Label>{isSellType ? "Sale Amount" : isPortfolioType ? "Total Cost" : "Amount"}</Label>
+              <Label>{isSellType ? "Sale price / unit" : isBuyType ? "Price / unit" : isPortfolioType ? "Total Cost" : "Amount"}</Label>
               <Input
                 ref={amountInputRef}
                 type="text"
@@ -727,12 +720,32 @@ export default function Transactions() {
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="0"
               />
-              {isPortfolioType && impliedPrice > 0 && (
+              {isBuyType && buyTotal > 0 && (
+                <span className="text-[10px] text-muted-foreground">
+                  Total ≈ {formatVND(buyTotal)}
+                </span>
+              )}
+              {!isBuyType && isPortfolioType && impliedPrice > 0 && (
                 <span className="text-[10px] text-muted-foreground">
                   @{formatVND(impliedPrice)} / unit
                 </span>
               )}
             </div>
+            {isAssetLinkedType && (
+              <div>
+                <Label className={isSellType ? "text-warning-foreground" : "text-primary"}>Quantity</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={formQuantity}
+                  onChange={(e) => setFormQuantity(e.target.value)}
+                  placeholder="0"
+                  className={isSellType ? "border-warning/40" : "border-primary/30"}
+                  required={formType !== "saving"}
+                  max={isSellType && selectedSellAsset ? selectedSellAsset.quantity : undefined}
+                />
+              </div>
+            )}
             <div className={isAssetLinkedType ? "" : "lg:col-span-1"}>
               <Label>Date</Label>
               <Input

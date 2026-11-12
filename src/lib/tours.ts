@@ -132,7 +132,7 @@ export const TOURS: Record<TourKey, DriveStep[]> = {
     {
       element: '[data-tour="page-title"]',
       popover: {
-        title: "Portfolio Manager",
+        title: "Portfolio",
         description:
           "Track every investment — stocks, ETFs, crypto, gold, savings — in one place with live profit/loss.",
       },
@@ -176,7 +176,7 @@ export const TOURS: Record<TourKey, DriveStep[]> = {
     {
       element: '[data-tour="page-title"]',
       popover: {
-        title: "Financial Report",
+        title: "Reports",
         description:
           "Deep-dive analytics across periods. Use the filters to compare months and categories.",
       },

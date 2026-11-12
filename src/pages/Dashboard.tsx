@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { SAMPLE_NOTE } from "@/hooks/use-app-data";
 import { useAuth } from "@/contexts/AuthContext";
-import { formatVND, formatVNDCompact, getMonthKey, getMonthLabel } from "@/lib/format";
-import { sumPeriod, shiftPeriod } from "@/lib/report";
+import { formatVND, formatVNDCompact, getMonthKey, getMonthLabel, todayLocalISO } from "@/lib/format";
+import { sumPeriod, shiftPeriod, upToSamePoint } from "@/lib/report";
 import {
   avgMonthlyAmount,
   crossoverTargetNW,
@@ -31,7 +31,7 @@ function DeltaChip({ current, previous, upIsGood = true }: { current: number; pr
   return (
     <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isUp === upIsGood ? "text-success" : "text-destructive"}`}>
       {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-      {Math.abs(pct).toFixed(1)}% vs last month
+      {Math.abs(pct).toFixed(1)}% vs this point last month
     </span>
   );
 }
@@ -90,7 +90,8 @@ export default function Dashboard() {
   // ── THIS MONTH (same maths as the Reports page, so the two always agree) ──
   const monthKey = getMonthKey();
   const month = sumPeriod(data.transactions, monthKey);
-  const lastMonth = sumPeriod(data.transactions, shiftPeriod(monthKey, -1));
+  const lastMonthKey = shiftPeriod(monthKey, -1);
+  const lastMonth = sumPeriod(upToSamePoint(data.transactions, lastMonthKey, todayLocalISO()), lastMonthKey);
 
   // ── NET WORTH ──
   const netWorth = getNetWorth();
@@ -116,26 +117,32 @@ export default function Dashboard() {
     const pct = (actual / planned) * 100;
     if (pct >= 80 && actual < planned) {
       budgetAlerts.push(`${cat.emoji} ${cat.name} is ${pct.toFixed(0)}% used with ${daysLeft} days left`);
-    } else if (actual >= planned) {
+    } else if (actual === planned) {
+      budgetAlerts.push(`${cat.emoji} ${cat.name} has used its whole budget`);
+    } else if (actual > planned) {
       budgetAlerts.push(`${cat.emoji} ${cat.name} has exceeded budget (${formatVND(actual - planned)} over)`);
     }
   });
 
-  const portfolioAlerts: string[] = [];
+  // Worst drop per asset name (lots in different accounts are one asset)
+  const drops = new Map<string, number>();
   (data.portfolio ?? []).forEach((p) => {
-    if (p.purchasePrice > 0 && p.currentPrice < p.purchasePrice) {
-      const drop = ((p.purchasePrice - p.currentPrice) / p.purchasePrice) * 100;
-      if (drop >= 5) {
-        portfolioAlerts.push(`${p.name} dropped ${drop.toFixed(1)}% below purchase price`);
-      }
-    }
+    if (p.purchasePrice <= 0) return;
+    const drop = ((p.purchasePrice - p.currentPrice) / p.purchasePrice) * 100;
+    if (drop >= 5) drops.set(p.name, Math.max(drop, drops.get(p.name) ?? 0));
   });
+  const sortedDrops = Array.from(drops).sort((a, b) => b[1] - a[1]);
+  // A long list of old losers isn't news every day: past three, say it once
+  const portfolioAlerts =
+    sortedDrops.length > 3
+      ? [`${sortedDrops.length} holdings are 5% or more below what you paid, led by ${sortedDrops[0][0]} (${sortedDrops[0][1].toFixed(1)}% down)`]
+      : sortedDrops.map(([name, drop]) => `${name} is ${drop.toFixed(1)}% below what you paid`);
 
   const subscriptionAlerts: string[] = [];
   (data.subscriptions ?? []).forEach((sub) => {
     const dueThisMonth = sub.due_day - today.getDate();
     if (dueThisMonth >= 0 && dueThisMonth <= 7) {
-      subscriptionAlerts.push(`${sub.name} renews in ${dueThisMonth === 0 ? "today" : `${dueThisMonth} day${dueThisMonth !== 1 ? "s" : ""}`} (${formatVND(sub.amount)})`);
+      subscriptionAlerts.push(`${sub.name} renews ${dueThisMonth === 0 ? "today" : `in ${dueThisMonth} day${dueThisMonth !== 1 ? "s" : ""}`} (${formatVND(sub.amount)})`);
     }
   });
 
@@ -145,7 +152,7 @@ export default function Dashboard() {
   const { monthlyExpenses, returnRate, birthYear } = data.fireSettings;
   const dividendByMonth: Record<string, number> = {};
   data.transactions
-    .filter((t) => t.type === "dividend")
+    .filter((t) => t.type === "dividend" || (t.type === "income" && t.quality === "passive"))
     .forEach((t) => {
       const m = t.date.slice(0, 7);
       dividendByMonth[m] = (dividendByMonth[m] || 0) + t.amount;
@@ -172,7 +179,7 @@ export default function Dashboard() {
     : null;
   const insightText =
     coveragePct < 10
-      ? "Log dividend income to see your passive income grow."
+      ? "Log dividends or other passive income to see this grow."
       : coveragePct < 50
         ? "Good start. Keep building your income-generating assets."
         : coveragePct < 100
@@ -263,7 +270,7 @@ export default function Dashboard() {
         <div data-tour="net-worth" className="hero-gradient rounded-3xl p-8 text-white card-shadow flex flex-col gap-4">
           <div>
             <p className="text-sm text-white/80 mb-2">Net worth</p>
-            <h2 className="font-bold text-3xl tabular">{fmt(netWorth)}</h2>
+            <h2 className="font-bold text-3xl tabular">{fmt(Math.round(netWorth))}</h2>
           </div>
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -305,7 +312,7 @@ export default function Dashboard() {
             <div className="space-y-1">
               <Progress value={Math.min(100, coveragePct)} className="h-2" />
               <p className="text-sm">
-                Dividends cover <span className="font-bold">{coveragePct.toFixed(1)}%</span> of your spending
+                Passive income covers <span className="font-bold">{coveragePct.toFixed(1)}%</span> of your spending
                 <span className="text-muted-foreground"> ({fmt(Math.round(passiveIncomePerMonth))} a month)</span>
               </p>
             </div>

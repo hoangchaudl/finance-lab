@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sumPeriod, shiftPeriod } from "@/lib/report";
+import { sumPeriod, shiftPeriod, upToSamePoint } from "@/lib/report";
 import type { Transaction } from "@/lib/types";
 
 const tx = (date: string, type: Transaction["type"], amount: number, realized_gain?: number): Transaction => ({
@@ -32,6 +32,12 @@ describe("report maths", () => {
 
   it("has no rate without money in", () => {
     expect(sumPeriod(txs, "2026-10").rate).toBeNull();
+  });
+
+  it("compares a part-finished period with the same point of the last one", () => {
+    expect(upToSamePoint(txs, "2026-10", "2026-11-08")).toHaveLength(0); // Oct 9 is after day 8
+    expect(upToSamePoint(txs, "2026-10", "2026-11-09")).toHaveLength(1);
+    expect(upToSamePoint(txs, "2026", "2027-11-08").map((t) => t.date)).not.toContain("2026-11-09");
   });
 
   it("steps months across years, and years", () => {

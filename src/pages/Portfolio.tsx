@@ -140,16 +140,16 @@ const getTierBadge = (
   if (name === "Defensive") return value > 0 ? ok : warn("Empty");
   if (name === "Safe") {
     if (pct === 0) return warn("Empty");
-    return pct >= 20 && pct <= 30 ? ok : warn("Out of range");
+    return pct >= 20 && pct <= 30 ? ok : warn(pct < 20 ? "Below target" : "Above target");
   }
   if (name === "Income") {
     if (pct === 0) return warn("Empty");
     if (pct >= 30 && pct <= 40) return ok;
-    return pct < 30 ? warn("Below target") : warn("Out of range");
+    return pct < 30 ? warn("Below target") : warn("Above target");
   }
   if (name === "Growth") {
     if (pct === 0) return warn("Empty");
-    return pct >= 15 && pct <= 25 ? ok : warn("Out of range");
+    return pct >= 15 && pct <= 25 ? ok : warn(pct < 15 ? "Below target" : "Above target");
   }
   if (name === "Risk") {
     if (pct === 0) return warn("Empty");
@@ -381,6 +381,9 @@ export default function Portfolio() {
     (s, e) => s + e.currentValue,
     0,
   );
+  const otherValue = calculatedEntries
+    .filter((e) => e.type === "Other")
+    .reduce((s, e) => s + e.currentValue, 0);
   const totalGain = totalCurrentValue - totalCostBasis;
   const totalROI = totalCostBasis > 0 ? (totalGain / totalCostBasis) * 100 : 0;
 
@@ -663,7 +666,7 @@ export default function Portfolio() {
 
       {/* Add Asset dialog */}
       <Dialog open={adding} onOpenChange={setAdding}>
-        <DialogContent className="sm:max-w-md overflow-hidden">
+        <DialogContent className="sm:max-w-md max-h-[90dvh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Add Asset</DialogTitle>
           </DialogHeader>
@@ -845,6 +848,11 @@ export default function Portfolio() {
             <p className="text-2xl font-bold text-primary">
               {fmt(totalCurrentValue)}
             </p>
+            {otherValue > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Not counting {fmt(otherValue)} in other assets, which net worth includes.
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -963,16 +971,16 @@ export default function Portfolio() {
                 key={name}
                 className={`space-y-1 pl-3 ${TIER_STYLES[name]?.border ?? ""}`}
               >
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
                   <span className="font-medium flex items-center gap-1.5">
                     {getTierIcon(name)}
                     {name}
-                    <span className="text-xs text-muted-foreground font-normal">
+                    <span className="text-xs text-muted-foreground font-normal whitespace-nowrap">
                       {TIER_TARGETS[name]?.label}
                     </span>
                   </span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground">
+                  <div className="flex items-center gap-3 ml-auto">
+                    <span className="text-muted-foreground whitespace-nowrap">
                       {fmt(Math.round(value))}
                     </span>
                     <span className="font-semibold w-14 text-right">

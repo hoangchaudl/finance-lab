@@ -3,8 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import PageTourButton from "@/components/PageTourButton";
 import { usePageTour } from "@/hooks/use-page-tour";
 import { useApp } from "@/contexts/AppContext";
-import { formatVND, getMonthKey, getMonthLabel } from "@/lib/format";
-import { sumPeriod, shiftPeriod } from "@/lib/report";
+import { formatVND, getMonthKey, getMonthLabel, todayLocalISO } from "@/lib/format";
+import { sumPeriod, shiftPeriod, upToSamePoint } from "@/lib/report";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -96,12 +96,18 @@ export default function Report() {
 
   const periodLabel = view === "month" ? getMonthLabel(period) : view === "year" ? period : "All time";
   const prevKey = view === "all" ? null : shiftPeriod(period, -1);
-  const prevLabel = prevKey ? (view === "month" ? getMonthLabel(prevKey) : prevKey) : "";
   const atLatest = period >= (view === "month" ? nowMonth : nowYear);
+  const prevName = prevKey ? (view === "month" ? getMonthLabel(prevKey) : prevKey) : "";
+  // The current month or year isn't over, so compare it with the same point of the last one
+  const prevLabel = atLatest && prevKey ? `this point in ${prevName}` : prevName;
+  const prevTransactions = useMemo(
+    () => (prevKey && atLatest ? upToSamePoint(transactions, prevKey, todayLocalISO()) : transactions),
+    [transactions, prevKey, atLatest],
+  );
 
   // ── NUMBERS ──
   const cur = useMemo(() => sumPeriod(transactions, period), [transactions, period]);
-  const prev = useMemo(() => (prevKey ? sumPeriod(transactions, prevKey) : null), [transactions, prevKey]);
+  const prev = useMemo(() => (prevKey ? sumPeriod(prevTransactions, prevKey) : null), [prevTransactions, prevKey]);
   const periodIsEmpty = cur.moneyIn === 0 && cur.out === 0 && cur.moved === 0;
 
   // Month and Year views chart the 12 months of that year; All time charts years
@@ -128,17 +134,17 @@ export default function Report() {
   };
 
   const spending = useMemo(() => {
-    const byCategory = (prefix: string) => {
+    const byCategory = (list: typeof transactions, prefix: string) => {
       const totals = new Map<string, number>();
-      transactions.forEach((t) => {
+      list.forEach((t) => {
         if (t.type !== "expense" || !t.date.startsWith(prefix)) return;
         const id = t.category_id ?? "";
         totals.set(id, (totals.get(id) ?? 0) + t.amount);
       });
       return totals;
     };
-    const before = prevKey ? byCategory(prevKey) : null;
-    return Array.from(byCategory(period))
+    const before = prevKey ? byCategory(prevTransactions, prevKey) : null;
+    return Array.from(byCategory(transactions, period))
       .map(([id, value]) => {
         const cat = data.categories.find((c) => c.id === id);
         return {
@@ -150,41 +156,45 @@ export default function Report() {
         };
       })
       .sort((a, b) => b.value - a.value);
-  }, [transactions, data.categories, period, prevKey]);
+  }, [transactions, prevTransactions, data.categories, period, prevKey]);
 
   const biggestCategory = spending[0]?.value ?? 0;
   const essentialShare =
     cur.out > 0 ? (spending.filter((c) => c.essential).reduce((s, c) => s + c.value, 0) / cur.out) * 100 : 0;
   const visibleSpending = showAllCategories ? spending : spending.slice(0, 6);
 
-  const holdings = useMemo(
-    () =>
-      (data.portfolio ?? [])
-        .map((entry) => {
-          const qty = Number(entry.quantity) || 0;
-          const cost = qty * (Number(entry.purchasePrice) || 0);
-          const value = qty * (Number(entry.currentPrice) || 0);
-          let bought = 0;
-          let realized = 0;
-          let dividends = 0;
-          transactions.forEach((t) => {
-            if (t.portfolio_entry_id !== entry.id) return;
-            if (t.type === "investing" || t.type === "saving") bought += t.amount;
-            else if (t.type === "sell") realized += t.realized_gain ?? 0;
-            else if (t.type === "dividend") dividends += t.amount;
-          });
-          // Everything ever put in, so a part-sold position isn't measured
-          // against only the shares that are left. Falls back to cost basis
-          // for assets with no logged buys.
-          const invested = bought || cost;
-          const unrealized = value - cost;
-          const returnPct = invested > 0 ? ((unrealized + realized + dividends) / invested) * 100 : 0;
-          return { id: entry.id, name: entry.name, tier: entry.tier, invested, value, unrealized, realized, dividends, returnPct };
-        })
-        .sort((a, b) => b.returnPct - a.returnPct),
-    [data.portfolio, transactions],
-  );
-  const totalUnrealized = holdings.reduce((s, h) => s + h.unrealized, 0);
+  const allHoldings = useMemo(() => {
+    // One row per asset: lots of the same name held in different accounts are added up
+    const groups = new Map<string, { id: string; name: string; tier: string; cost: number; value: number; bought: number; realized: number; dividends: number }>();
+    (data.portfolio ?? []).forEach((entry) => {
+      const key = entry.name.trim().toLowerCase();
+      const g = groups.get(key) ?? { id: key, name: entry.name.trim(), tier: entry.tier, cost: 0, value: 0, bought: 0, realized: 0, dividends: 0 };
+      const qty = Number(entry.quantity) || 0;
+      g.cost += qty * (Number(entry.purchasePrice) || 0);
+      g.value += qty * (Number(entry.currentPrice) || 0);
+      transactions.forEach((t) => {
+        if (t.portfolio_entry_id !== entry.id) return;
+        if (t.type === "investing" || t.type === "saving") g.bought += t.amount;
+        else if (t.type === "sell") g.realized += t.realized_gain ?? 0;
+        else if (t.type === "dividend") g.dividends += t.amount;
+      });
+      groups.set(key, g);
+    });
+    return Array.from(groups.values())
+      .map((g) => {
+        // Logged buys cover a part-sold position; cost basis covers holdings
+        // whose buys were never logged. The larger one is what was put in.
+        const invested = Math.max(g.bought, g.cost);
+        const unrealized = g.value - g.cost;
+        const returnPct = invested > 0 ? ((unrealized + g.realized + g.dividends) / invested) * 100 : 0;
+        return { ...g, invested, unrealized, returnPct };
+      })
+      .sort((a, b) => b.returnPct - a.returnPct);
+  }, [data.portfolio, transactions]);
+  const totalUnrealized = allHoldings.reduce((s, h) => s + h.unrealized, 0);
+  // Cash, deposits and belongings never gain or lose, so they'd only pad the table
+  const holdings = allHoldings.filter((h) => Math.round(h.unrealized) !== 0 || h.realized !== 0 || h.dividends !== 0);
+  const flatCount = allHoldings.length - holdings.length;
 
   // ── RENDER ──
   return (
@@ -471,7 +481,7 @@ export default function Report() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {holdings.length === 0 ? (
+              {allHoldings.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No assets yet. Add one in Portfolio to see gains and dividends here.
                 </p>
@@ -530,6 +540,7 @@ export default function Report() {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     The table covers each asset since you first bought it, best return first.
+                    {flatCount > 0 && ` ${flatCount} assets with no gain or loss are left out.`}
                   </p>
                 </>
               )}
